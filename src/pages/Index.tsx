@@ -10,8 +10,8 @@ const Index = () => {
       <header className="bg-primary text-primary-foreground py-6 shadow-lg">
         <div className="container mx-auto px-4">
           <div className="text-center">
-            <h1 className="text-3xl font-bold mb-2">Zingsui Sambu Village</h1>
-            <p className="text-primary-foreground/90">Certificate Management System</p>
+           <h1 className="text-3xl font-bold mb-2">Multi-Village NOC System</h1>
+          <p className="text-primary-foreground/90">No Objection Certificate Management</p>
           </div>
         </div>
       </header>
@@ -21,10 +21,10 @@ const Index = () => {
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
             <Building2 className="mx-auto h-16 w-16 text-primary mb-4" />
-            <h2 className="text-2xl font-bold mb-4">Welcome to Certificate Services</h2>
+           <h2 className="text-2xl font-bold mb-4">Multi-Village NOC Services</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Apply for village certificates online or check the status of your existing applications. 
-              Official certificates for residents of Zingsui Sambu Village.
+              Apply for No Objection Certificates (NOC) from registered villages online. 
+              Track your application status and download approved certificates.
             </p>
           </div>
 
@@ -33,10 +33,10 @@ const Index = () => {
             <Card className="border-2 hover:border-primary/50 transition-colors">
               <CardHeader className="text-center">
                 <FileText className="mx-auto h-12 w-12 text-primary mb-4" />
-                <CardTitle>Apply for Certificate</CardTitle>
-                <CardDescription>
-                  Submit a new application for village certificate
-                </CardDescription>
+                <<CardTitle>Apply for NOC</CardTitle>
+                  <CardDescription>
+                    Submit a new application for No Objection Certificate
+                  </CardDescription>
               </CardHeader>
               <CardContent>
                 <Link to="/apply">
@@ -99,13 +99,13 @@ const Index = () => {
                 </ul>
               </div>
               <div>
-                <h4 className="font-medium text-foreground mb-2">Certificate Types:</h4>
-                <ul className="space-y-1">
-                  <li>• Birth Certificate</li>
-                  <li>• Residence Certificate</li>
-                  <li>• Income Certificate</li>
-                  <li>• Character Certificate</li>
-                </ul>
+                <h4 className="font-medium text-foreground mb-2">Available Services:</h4>
+                  <ul className="space-y-1">
+                    <li>• No Objection Certificate (NOC)</li>
+                    <li>• Multi-village support</li>
+                    <li>• Digital document verification</li>
+                    <li>• PDF certificate download</li>
+                  </ul>
               </div>
             </div>
           </div>
