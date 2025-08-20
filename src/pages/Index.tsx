@@ -33,7 +33,7 @@ const Index = () => {
             <Card className="border-2 hover:border-primary/50 transition-colors">
               <CardHeader className="text-center">
                 <FileText className="mx-auto h-12 w-12 text-primary mb-4" />
-                <<CardTitle>Apply for NOC</CardTitle>
+               <CardTitle>Apply for NOC</CardTitle>
                   <CardDescription>
                     Submit a new application for No Objection Certificate
                   </CardDescription>
