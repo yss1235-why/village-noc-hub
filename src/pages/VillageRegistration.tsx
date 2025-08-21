@@ -25,25 +25,54 @@ const VillageRegistration = () => {
     signatureFile: null as File | null
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (formData.password !== formData.confirmPassword) {
-      toast({
-        title: "Error",
-        description: "Passwords do not match.",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  
+  if (formData.password !== formData.confirmPassword) {
     toast({
-      title: "Registration Submitted",
-      description: "Your village registration request has been submitted for approval.",
+      title: "Error",
+      description: "Passwords do not match.",
+      variant: "destructive",
     });
-    
-    navigate("/");
-  };
+    return;
+  }
+
+  try {
+    const response = await fetch('/.netlify/functions/villages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        villageName: formData.villageName,
+        district: formData.district,
+        state: formData.state,
+        pinCode: formData.pinCode,
+        adminName: formData.adminName,
+        email: formData.email
+      })
+    });
+
+    const result = await response.json();
+
+    if (response.ok) {
+      toast({
+        title: "Registration Submitted",
+        description: "Your village registration request has been submitted for approval.",
+      });
+      navigate("/");
+    } else {
+      throw new Error(result.error || 'Registration failed');
+    }
+  } catch (error) {
+    console.error('Registration error:', error);
+    toast({
+      title: "Registration Failed",
+      description: "Please try again later.",
+      variant: "destructive",
+    });
+  }
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/30">
