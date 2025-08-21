@@ -27,10 +27,9 @@ const [formData, setFormData] = useState({
   email: ""
 });
 
-const [villages, setVillages] = useState([
+const [villages, setVillages] = useState([]);
 const [searchValue, setSearchValue] = useState("");
 const [isVillagesLoading, setIsVillagesLoading] = useState(true);
-]);
 
 useEffect(() => {
   // Load villages from database
