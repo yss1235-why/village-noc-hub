@@ -13,13 +13,13 @@ export const handler = async (event, context) => {
 
   try {
     if (event.httpMethod === 'GET') {
-      // Get all approved villages
-      const villages = await sql`
-        SELECT id, name, district, state, pin_code 
-        FROM villages 
-        WHERE status = 'approved'
-        ORDER BY name
-      `;
+      // Get all approved villages with more details
+        const villages = await sql`
+          SELECT id, name, district, state, pin_code, admin_name, created_at
+          FROM villages 
+          WHERE status = 'approved'
+          ORDER BY state, district, name
+        `;
       
       return {
         statusCode: 200,
