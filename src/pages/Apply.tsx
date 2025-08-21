@@ -1,10 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, FileText } from "lucide-react";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
@@ -25,11 +28,33 @@ const [formData, setFormData] = useState({
 });
 
 const [villages, setVillages] = useState([
-  { id: "1", name: "Zingsui Sambu Village", district: "Kamjong", state: "Manipur" },
-  { id: "2", name: "Sample Village 2", district: "Ukhrul", state: "Manipur" },
+const [searchValue, setSearchValue] = useState("");
+const [isVillagesLoading, setIsVillagesLoading] = useState(true);
 ]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+useEffect(() => {
+  // Load villages from database
+  const loadVillages = async () => {
+    setIsVillagesLoading(true);
+    try {
+      const response = await fetch('/.netlify/functions/villages');
+      const result = await response.json();
+      if (response.ok && result.villages) {
+        setVillages(result.villages);
+      } else {
+        console.error('Failed to load villages:', result.error);
+      }
+    } catch (error) {
+      console.error('Failed to load villages:', error);
+    } finally {
+      setIsVillagesLoading(false);
+    }
+  };
+  
+  loadVillages();
+}, []);
+
+const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
   
   // Validate required files
@@ -42,33 +67,64 @@ const [villages, setVillages] = useState([
     return;
   }
   
-  // Generate application number based on selected village
-  const now = new Date();
-  const selectedVillage = villages.find(v => v.id === formData.villageId);
-  const villageCode = selectedVillage ? selectedVillage.name.split(' ').map(word => word.charAt(0)).join('').toUpperCase() : 'NOC';
-  const appNo = `${villageCode}${now.getDate().toString().padStart(2, '0')}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getFullYear()}${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}`;
-  
-  toast({
-    title: "NOC Application Submitted Successfully!",
-    description: `Your application number is: ${appNo}. Please save this number to check your status.`,
-  });
-  
-  console.log("NOC Application submitted:", { ...formData, applicationNumber: appNo });
-  
-  // Reset form after successful submission
-  setFormData({
-    salutation: "",
-    name: "",
-    relation: "",
-    fatherName: "",
-    address: "",
-    villageId: "",
-    purposeOfNOC: "",
-    aadhaarFile: null,
-    passportFile: null,
-    phone: "",
-    email: ""
-  });
+  try {
+    // Generate application number based on selected village
+    const now = new Date();
+    const selectedVillage = villages.find(v => v.id === formData.villageId);
+    const villageCode = selectedVillage ? selectedVillage.name.split(' ').map(word => word.charAt(0)).join('').toUpperCase() : 'NOC';
+    const appNo = `${villageCode}${now.getDate().toString().padStart(2, '0')}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getFullYear()}${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}`;
+    
+    // Submit to database
+    const response = await fetch('/.netlify/functions/applications', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        applicationNumber: appNo,
+        applicantName: formData.name,
+        fatherName: formData.fatherName,
+        address: formData.address,
+        villageId: formData.villageId,
+        purposeOfNOC: formData.purposeOfNOC,
+        phone: formData.phone,
+        email: formData.email
+      })
+    });
+
+    const result = await response.json();
+
+    if (response.ok) {
+      toast({
+        title: "NOC Application Submitted Successfully!",
+        description: `Your application number is: ${appNo}. Please save this number to check your status.`,
+      });
+      
+      // Reset form after successful submission
+      setFormData({
+        salutation: "",
+        name: "",
+        relation: "",
+        fatherName: "",
+        address: "",
+        villageId: "",
+        purposeOfNOC: "",
+        aadhaarFile: null,
+        passportFile: null,
+        phone: "",
+        email: ""
+      });
+    } else {
+      throw new Error(result.error || 'Submission failed');
+    }
+  } catch (error) {
+    console.error('Submission error:', error);
+    toast({
+      title: "Submission Failed",
+      description: "Please try again later.",
+      variant: "destructive",
+    });
+  }
 };
 
   const numberToWords = (num: number) => {
@@ -125,21 +181,74 @@ const [villages, setVillages] = useState([
   <div className="space-y-4">
     <h3 className="text-lg font-semibold">Village Selection</h3>
     
-    <div>
-      <Label htmlFor="villageId">Select Village *</Label>
-      <Select value={formData.villageId} onValueChange={(value) => setFormData({...formData, villageId: value})}>
-        <SelectTrigger>
-          <SelectValue placeholder="Choose your village" />
-        </SelectTrigger>
-        <SelectContent>
-          {villages.map((village) => (
-            <SelectItem key={village.id} value={village.id}>
-              {village.name}, {village.district}, {village.state}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
+   <div>
+  <Label htmlFor="villageId">Select Village *</Label>
+  <Popover>
+    <PopoverTrigger asChild>
+      <Button
+        variant="outline"
+        role="combobox"
+        aria-expanded={false}
+        className="w-full justify-between"
+        disabled={isVillagesLoading}
+      >
+        {formData.villageId
+          ? villages.find((village) => village.id === formData.villageId)
+              ? `${villages.find((village) => village.id === formData.villageId)?.name}, ${villages.find((village) => village.id === formData.villageId)?.district}, ${villages.find((village) => village.id === formData.villageId)?.state}`
+              : "Select village..."
+          : isVillagesLoading 
+            ? "Loading villages..."
+            : "Select village..."}
+        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+      </Button>
+    </PopoverTrigger>
+    <PopoverContent className="w-full p-0">
+      <Command>
+        <CommandInput 
+          placeholder="Search villages..." 
+          value={searchValue}
+          onValueChange={setSearchValue}
+        />
+        <CommandEmpty>
+          {isVillagesLoading ? "Loading villages..." : "No village found."}
+        </CommandEmpty>
+        <CommandGroup>
+          <CommandList>
+            {villages
+              .filter((village) =>
+                village.name.toLowerCase().includes(searchValue.toLowerCase()) ||
+                village.district.toLowerCase().includes(searchValue.toLowerCase()) ||
+                village.state.toLowerCase().includes(searchValue.toLowerCase())
+              )
+              .map((village) => (
+                <CommandItem
+                  key={village.id}
+                  value={village.id}
+                  onSelect={() => {
+                    setFormData({...formData, villageId: village.id});
+                    setSearchValue("");
+                  }}
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      formData.villageId === village.id ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  {village.name}, {village.district}, {village.state}
+                </CommandItem>
+              ))}
+          </CommandList>
+        </CommandGroup>
+      </Command>
+    </PopoverContent>
+  </Popover>
+  {villages.length === 0 && !isVillagesLoading && (
+    <p className="text-xs text-muted-foreground mt-1">
+      No approved villages available. Please contact administrator.
+    </p>
+  )}
+</div>
   </div>
 
   {/* Personal Information */}
@@ -280,8 +389,8 @@ const [villages, setVillages] = useState([
 
   {/* Submit Button */}
   <div className="flex gap-4">
-    <Button type="submit" className="flex-1" disabled={!formData.villageId}>
-      Submit NOC Application
+    <Button type="submit" className="flex-1" disabled={!formData.villageId || isVillagesLoading}>
+      {isVillagesLoading ? "Loading..." : "Submit NOC Application"}
     </Button>
   </div>
 </form>
