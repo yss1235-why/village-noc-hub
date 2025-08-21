@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { ArrowLeft, FileText, Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -27,7 +27,7 @@ const [formData, setFormData] = useState({
   email: ""
 });
 
-const [villages, setVillages] = useState([]);
+const [villages, setVillages] = useState<any[]>([]);
 const [searchValue, setSearchValue] = useState("");
 const [isVillagesLoading, setIsVillagesLoading] = useState(true);
 
@@ -126,23 +126,6 @@ const handleSubmit = async (e: React.FormEvent) => {
   }
 };
 
-  const numberToWords = (num: number) => {
-    // Simplified number to words conversion
-    if (num === 100000) return "One Lakh";
-    if (num === 200000) return "Two Lakh";
-    if (num === 300000) return "Three Lakh";
-    if (num === 500000) return "Five Lakh";
-    return num.toString();
-  };
-
-  const handleIncomeChange = (value: string) => {
-    const numValue = parseInt(value);
-    setFormData({
-      ...formData,
-      annualIncome: value,
-      annualIncomeWords: numberToWords(numValue)
-    });
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/30">
