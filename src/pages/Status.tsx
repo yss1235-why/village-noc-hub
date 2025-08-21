@@ -36,17 +36,35 @@ const Status = () => {
     }
   };
 
-  const handleSearch = async () => {
-    setIsLoading(true);
+ const handleSearch = async () => {
+  setIsLoading(true);
+  
+  try {
+    const response = await fetch(`/.netlify/functions/applications?applicationNumber=${applicationNumber}`);
+    const result = await response.json();
     
-    // Simulate API call
-    setTimeout(() => {
-      const result = mockApplications[applicationNumber];
-      setSearchResult(result || null);
-      setIsLoading(false);
-    }, 1000);
-  };
-
+    if (response.ok && result.application) {
+      setSearchResult({
+        applicationNumber: result.application.application_number,
+        name: result.application.applicant_name,
+        fatherName: result.application.father_name,
+        certificateType: "NOC", // Since we only do NOC now
+        status: result.application.status,
+        submittedDate: result.application.created_at,
+        approvedDate: result.application.approved_at,
+        approvedBy: result.application.approved_by ? "Village Admin" : null,
+        villageName: result.application.village_name
+      });
+    } else {
+      setSearchResult(null);
+    }
+  } catch (error) {
+    console.error('Search error:', error);
+    setSearchResult(null);
+  } finally {
+    setIsLoading(false);
+  }
+};
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "approved":
@@ -126,17 +144,13 @@ const Status = () => {
           <Card className="mb-8">
             <CardHeader>
               <CardTitle className="text-lg">Demo Application Numbers</CardTitle>
-              <CardDescription>Try these sample application numbers to see different statuses:</CardDescription>
+              <CardDescription>Try submitting an application first, then use the application number to check status:</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-2 text-sm">
-                <div className="flex justify-between items-center p-2 bg-muted rounded">
-                  <code>ZSV20122024</code>
-                  <Badge className="bg-success text-success-foreground">Approved</Badge>
-                </div>
-                <div className="flex justify-between items-center p-2 bg-muted rounded">
-                  <code>ZSV19122024</code>
-                  <Badge variant="secondary">Pending</Badge>
+                <div className="p-2 bg-muted rounded text-center">
+                  <p>Submit a NOC application first to get an application number</p>
+                  <p className="text-xs text-muted-foreground">Application numbers are generated automatically when you submit</p>
                 </div>
               </div>
             </CardContent>
