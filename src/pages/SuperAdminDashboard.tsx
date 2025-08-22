@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -33,28 +33,8 @@ const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [villageToDelete, setVillageToDelete] = useState<any>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const [villageRequests, setVillageRequests] = useState([
-    {
-      id: "1",
-      villageName: "Zingsui Sambu Village",
-      district: "Kamjong",
-      state: "Manipur",
-      adminName: "John Doe",
-      email: "john@village1.com",
-      status: "pending",
-      requestDate: "2024-12-20"
-    },
-    {
-      id: "2",
-      villageName: "Sample Village 2",
-      district: "Ukhrul", 
-      state: "Manipur",
-      adminName: "Jane Smith",
-      email: "jane@village2.com",
-      status: "approved",
-      requestDate: "2024-12-18"
-    }
-  ]);
+  const [villageRequests, setVillageRequests] = useState([]);
+  const [isLoadingVillages, setIsLoadingVillages] = useState(true);
 
   const handleLogout = () => {
     toast({
@@ -154,10 +134,42 @@ const [isChangingPassword, setIsChangingPassword] = useState(false);
         description: "Failed to change password. Please try again.",
         variant: "destructive",
       });
-  } finally {
-      setIsChangingPassword(false);
+ } finally {
+      setIsDeleting(false);
     }
   };
+
+  const loadVillages = async () => {
+    setIsLoadingVillages(true);
+    try {
+      const response = await fetch('/.netlify/functions/get-all-villages');
+      const result = await response.json();
+      
+      if (response.ok && result.villages) {
+        setVillageRequests(result.villages);
+      } else {
+        console.error('Failed to load villages:', result.error);
+        toast({
+          title: "Error",
+          description: "Failed to load villages.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load villages:', error);
+      toast({
+        title: "Error",
+        description: "Failed to connect to server.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingVillages(false);
+    }
+  };
+
+  useEffect(() => {
+    loadVillages();
+  }, []);
 
   const handleDeleteVillage = (village: any) => {
     setVillageToDelete(village);
