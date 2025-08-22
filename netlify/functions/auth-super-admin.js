@@ -1,6 +1,4 @@
 import { sql } from './utils/db.js';
-import bcrypt from 'bcrypt';
-
 export const handler = async (event, context) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
