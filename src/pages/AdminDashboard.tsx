@@ -4,14 +4,189 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LogOut, CheckCircle, XCircle, Clock, Eye, FileText, Users, AlertCircle } from "lucide-react";
+import { LogOut, CheckCircle, XCircle, Clock, Eye, FileText, Users, AlertCircle, Settings, EyeOff, ChevronDown, Key, Building2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Password change state
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: ""
+  });
+  const [showPasswords, setShowPasswords] = useState({
+    current: false,
+    new: false,
+    confirm: false
+  });
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  // Village info state
+  const [showVillageInfo, setShowVillageInfo] = useState(false);
+  const [villageForm, setVillageForm] = useState({
+    villageName: "",
+    district: "",
+    state: "",
+    pinCode: "",
+    adminName: "",
+    adminEmail: ""
+  });
+  const [isUpdatingVillage, setIsUpdatingVillage] = useState(false);
+ const [isLoadingVillageInfo, setIsLoadingVillageInfo] = useState(false);
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      toast({
+        title: "Error",
+        description: "New passwords do not match.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (passwordForm.newPassword.length < 6) {
+      toast({
+        title: "Error",
+        description: "New password must be at least 6 characters long.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsChangingPassword(true);
+
+    try {
+      const response = await fetch('/.netlify/functions/change-village-admin-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          currentPassword: passwordForm.currentPassword,
+          newPassword: passwordForm.newPassword,
+          villageId: 'zingsui-village-1' // In real app, get this from user session
+        })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: "Password Changed",
+          description: "Your password has been updated successfully.",
+        });
+        setShowChangePassword(false);
+        setPasswordForm({
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: ""
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to change password.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to change password. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
+  const loadVillageInfo = async () => {
+    setIsLoadingVillageInfo(true);
+    try {
+      const response = await fetch('/.netlify/functions/update-village-info?villageId=zingsui-village-1');
+      const result = await response.json();
+      
+      if (response.ok && result.village) {
+        setVillageForm({
+          villageName: result.village.name,
+          district: result.village.district,
+          state: result.village.state,
+          pinCode: result.village.pin_code,
+          adminName: result.village.admin_name,
+          adminEmail: result.village.admin_email
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load village information.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingVillageInfo(false);
+    }
+  };
+
+  const handleUpdateVillageInfo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsUpdatingVillage(true);
+
+    try {
+      const response = await fetch('/.netlify/functions/update-village-info', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          villageId: 'zingsui-village-1', // In real app, get this from user session
+          villageName: villageForm.villageName,
+          district: villageForm.district,
+          state: villageForm.state,
+          pinCode: villageForm.pinCode,
+          adminName: villageForm.adminName,
+          adminEmail: villageForm.adminEmail
+        })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: "Village Information Updated",
+          description: "Your village information has been updated successfully.",
+        });
+        setShowVillageInfo(false);
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to update village information.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update village information. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdatingVillage(false);
+    }
+  };
+
+  const handleShowVillageInfo = () => {
+    setShowVillageInfo(true);
+    loadVillageInfo();
+  };
   // Mock data for applications
   const [applications, setApplications] = useState([
     {
@@ -116,15 +291,40 @@ const AdminDashboard = () => {
               <h1 className="text-xl font-bold">Admin Dashboard</h1>
               <p className="text-sm text-primary-foreground/80">Zingsui Sambu Village - Certificate Management</p>
             </div>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={handleLogout}
-              className="text-primary-foreground hover:bg-primary-foreground/10"
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Logout
-            </Button>
+            <div className="flex gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-primary-foreground hover:bg-primary-foreground/10"
+                  >
+                    <Settings className="h-4 w-4 mr-2" />
+                    Settings
+                    <ChevronDown className="h-3 w-3 ml-1" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => setShowChangePassword(true)}>
+                    <Key className="h-4 w-4 mr-2" />
+                    Change Password
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleShowVillageInfo}>
+                    <Building2 className="h-4 w-4 mr-2" />
+                    Village Information
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleLogout}
+                className="text-primary-foreground hover:bg-primary-foreground/10"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -327,7 +527,235 @@ const AdminDashboard = () => {
               </TabsContent>
             </Tabs>
           </CardContent>
-        </Card>
+       </Card>
+
+        {/* Village Information Dialog */}
+        {showVillageInfo && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <Card className="w-full max-w-md mx-4">
+              <CardHeader>
+                <CardTitle>Village Information</CardTitle>
+                <CardDescription>Update your village details</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isLoadingVillageInfo ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="text-sm text-muted-foreground">Loading village information...</div>
+                  </div>
+                ) : (
+                  <form onSubmit={handleUpdateVillageInfo} className="space-y-4">
+                    <div>
+                      <Label htmlFor="villageName">Village Name *</Label>
+                      <Input
+                        id="villageName"
+                        value={villageForm.villageName}
+                        onChange={(e) => setVillageForm({...villageForm, villageName: e.target.value})}
+                        placeholder="Enter village name"
+                        required
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="district">District *</Label>
+                        <Input
+                          id="district"
+                          value={villageForm.district}
+                          onChange={(e) => setVillageForm({...villageForm, district: e.target.value})}
+                          placeholder="Enter district"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="state">State *</Label>
+                        <Input
+                          id="state"
+                          value={villageForm.state}
+                          onChange={(e) => setVillageForm({...villageForm, state: e.target.value})}
+                          placeholder="Enter state"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="pinCode">PIN Code *</Label>
+                      <Input
+                        id="pinCode"
+                        value={villageForm.pinCode}
+                        onChange={(e) => setVillageForm({...villageForm, pinCode: e.target.value})}
+                        placeholder="Enter PIN code"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="adminName">Admin Name *</Label>
+                      <Input
+                        id="adminName"
+                        value={villageForm.adminName}
+                        onChange={(e) => setVillageForm({...villageForm, adminName: e.target.value})}
+                        placeholder="Enter admin name"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="adminEmail">Admin Email *</Label>
+                      <Input
+                        id="adminEmail"
+                        type="email"
+                        value={villageForm.adminEmail}
+                        onChange={(e) => setVillageForm({...villageForm, adminEmail: e.target.value})}
+                        placeholder="Enter admin email"
+                        required
+                      />
+                    </div>
+
+                    <div className="flex gap-2 pt-4">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setShowVillageInfo(false)}
+                        className="flex-1"
+                      >
+                        Cancel
+                      </Button>
+                      <Button 
+                        type="submit" 
+                        disabled={isUpdatingVillage}
+                        className="flex-1"
+                      >
+                        {isUpdatingVillage ? "Updating..." : "Update Information"}
+                      </Button>
+                    </div>
+                  </form>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Change Password Dialog */}
+        {showChangePassword && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <Card className="w-full max-w-md mx-4">
+              <CardHeader>
+                <CardTitle>Change Password</CardTitle>
+                <CardDescription>Update your admin password</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleChangePassword} className="space-y-4">
+                  <div>
+                    <Label htmlFor="currentPassword">Current Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="currentPassword"
+                        type={showPasswords.current ? "text" : "password"}
+                        value={passwordForm.currentPassword}
+                        onChange={(e) => setPasswordForm({...passwordForm, currentPassword: e.target.value})}
+                        placeholder="Enter current password"
+                        required
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                        onClick={() => setShowPasswords({...showPasswords, current: !showPasswords.current})}
+                      >
+                        {showPasswords.current ? (
+                          <EyeOff className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="newPassword">New Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="newPassword"
+                        type={showPasswords.new ? "text" : "password"}
+                        value={passwordForm.newPassword}
+                        onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})}
+                        placeholder="Enter new password"
+                        required
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                        onClick={() => setShowPasswords({...showPasswords, new: !showPasswords.new})}
+                      >
+                        {showPasswords.new ? (
+                          <EyeOff className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="confirmPassword"
+                        type={showPasswords.confirm ? "text" : "password"}
+                        value={passwordForm.confirmPassword}
+                        onChange={(e) => setPasswordForm({...passwordForm, confirmPassword: e.target.value})}
+                        placeholder="Confirm new password"
+                        required
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                        onClick={() => setShowPasswords({...showPasswords, confirm: !showPasswords.confirm})}
+                      >
+                        {showPasswords.confirm ? (
+                          <EyeOff className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 pt-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setShowChangePassword(false);
+                        setPasswordForm({
+                          currentPassword: "",
+                          newPassword: "",
+                          confirmPassword: ""
+                        });
+                      }}
+                      className="flex-1"
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      type="submit" 
+                      disabled={isChangingPassword}
+                      className="flex-1"
+                    >
+                      {isChangingPassword ? "Changing..." : "Change Password"}
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </main>
     </div>
   );
