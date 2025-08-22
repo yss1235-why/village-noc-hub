@@ -136,14 +136,6 @@ const SuperAdminLogin = () => {
                   {isLoading ? "Logging in..." : "Login as Super Admin"}
                 </Button>
               </form>
-
-              <div className="mt-6 p-4 bg-muted rounded-lg">
-                <h4 className="text-sm font-medium mb-2">Demo Credentials</h4>
-                <div className="text-xs space-y-1 text-muted-foreground">
-                  <p><strong>Username:</strong> superadmin</p>
-                  <p><strong>Password:</strong> super123</p>
-                </div>
-              </div>
             </CardContent>
           </Card>
         </div>
