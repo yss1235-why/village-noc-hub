@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LogOut, CheckCircle, XCircle, Clock, Crown, Building, Users, Settings, Eye, EyeOff } from "lucide-react";
+import { LogOut, CheckCircle, XCircle, Clock, Crown, Building, Users, Settings, Eye, EyeOff, Trash2, AlertCircle } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
@@ -26,7 +26,12 @@ const SuperAdminDashboard = () => {
     new: false,
     confirm: false
   });
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
+const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  // Delete village state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [villageToDelete, setVillageToDelete] = useState<any>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [villageRequests, setVillageRequests] = useState([
     {
@@ -149,8 +154,61 @@ const SuperAdminDashboard = () => {
         description: "Failed to change password. Please try again.",
         variant: "destructive",
       });
-    } finally {
+  } finally {
       setIsChangingPassword(false);
+    }
+  };
+
+  const handleDeleteVillage = (village: any) => {
+    setVillageToDelete(village);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteVillage = async () => {
+    if (!villageToDelete) return;
+
+    setIsDeleting(true);
+
+    try {
+      const response = await fetch('/.netlify/functions/delete-village', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          villageId: villageToDelete.id
+        })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        // Remove from state
+        setVillageRequests(prev => 
+          prev.filter(village => village.id !== villageToDelete.id)
+        );
+        
+        toast({
+          title: "Village Deleted",
+          description: result.message || "Village has been deleted successfully.",
+        });
+        setShowDeleteConfirm(false);
+        setVillageToDelete(null);
+      } else {
+        toast({
+          title: "Delete Failed",
+          description: result.error || "Failed to delete village.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Delete Failed",
+        description: "Failed to delete village. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -311,13 +369,14 @@ const SuperAdminDashboard = () => {
                 </Table>
               </TabsContent>
 
-              <TabsContent value="approved" className="space-y-4">
+             <TabsContent value="approved" className="space-y-4">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Village Details</TableHead>
                       <TableHead>Admin Details</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -335,7 +394,18 @@ const SuperAdminDashboard = () => {
                             <p className="text-sm text-muted-foreground">{village.email}</p>
                           </div>
                         </TableCell>
-                        <TableCell>{getStatusBadge(village.status)}</TableCell>
+                       <TableCell>{getStatusBadge(village.status)}</TableCell>
+                        <TableCell>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDeleteVillage(village)}
+                            className="text-destructive hover:text-destructive-foreground hover:bg-destructive"
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Delete
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -461,6 +531,67 @@ const SuperAdminDashboard = () => {
                     </Button>
                   </div>
                 </form>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Delete Village Confirmation Dialog */}
+        {showDeleteConfirm && villageToDelete && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <Card className="w-full max-w-md mx-4">
+              <CardHeader>
+                <CardTitle className="text-destructive">Delete Village</CardTitle>
+                <CardDescription>
+                  Are you sure you want to delete this village? This action cannot be undone.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="bg-muted p-4 rounded-lg">
+                  <h4 className="font-medium">{villageToDelete.villageName}</h4>
+                  <p className="text-sm text-muted-foreground">
+                    {villageToDelete.district}, {villageToDelete.state}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Admin: {villageToDelete.adminName}
+                  </p>
+                </div>
+
+                <div className="bg-destructive/10 border border-destructive/20 p-4 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="h-5 w-5 text-destructive mt-0.5" />
+                    <div>
+                      <h5 className="font-medium text-destructive">Warning</h5>
+                      <p className="text-sm text-destructive/80">
+                        This will permanently delete the village and all associated admin accounts. 
+                        Applications from this village will be preserved but orphaned.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowDeleteConfirm(false);
+                      setVillageToDelete(null);
+                    }}
+                    className="flex-1"
+                    disabled={isDeleting}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={confirmDeleteVillage}
+                    disabled={isDeleting}
+                    variant="destructive"
+                    className="flex-1"
+                  >
+                    {isDeleting ? "Deleting..." : "Delete Village"}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>
