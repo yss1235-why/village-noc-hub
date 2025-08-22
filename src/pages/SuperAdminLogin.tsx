@@ -18,13 +18,25 @@ const SuperAdminLogin = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleLogin = async (e: React.FormEvent) => {
+ const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Mock authentication
-    setTimeout(() => {
-      if (credentials.username === "superadmin" && credentials.password === "super123") {
+    try {
+      const response = await fetch('/.netlify/functions/auth-super-admin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: credentials.username,
+          password: credentials.password
+        })
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
         toast({
           title: "Login Successful",
           description: "Welcome to the super admin dashboard.",
@@ -33,12 +45,19 @@ const SuperAdminLogin = () => {
       } else {
         toast({
           title: "Login Failed",
-          description: "Invalid super admin credentials.",
+          description: result.error || "Invalid super admin credentials.",
           variant: "destructive",
         });
       }
+    } catch (error) {
+      toast({
+        title: "Login Failed",
+        description: "Connection error. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
