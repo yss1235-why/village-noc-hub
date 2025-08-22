@@ -113,15 +113,20 @@ const Index = () => {
       </main>
 
       {/* Footer */}
-      <footer className="bg-primary text-primary-foreground py-6 mt-12">
+     <footer className="bg-primary text-primary-foreground py-6 mt-12">
   <div className="container mx-auto px-4">
     <div className="flex flex-col md:flex-row justify-between items-center">
       <p className="text-sm">Developed and designed by Innovative Archive</p>
-      <Link to="/village/register">
-        <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary-foreground/10 mt-2 md:mt-0">
-          Register Your Village
-        </Button>
-      </Link>
+      <div className="flex items-center gap-4 mt-2 md:mt-0">
+        <Link to="/village/register">
+          <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary-foreground/10">
+            Register Your Village
+          </Button>
+        </Link>
+        <Link to="/super-admin" className="text-xs text-primary-foreground/70 hover:text-primary-foreground/90 underline">
+          System Admin
+        </Link>
+      </div>
     </div>
   </div>
 </footer>
