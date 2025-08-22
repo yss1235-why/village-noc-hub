@@ -44,33 +44,87 @@ const [isChangingPassword, setIsChangingPassword] = useState(false);
     navigate("/");
   };
 
-  const handleApproveVillage = (villageId: string) => {
-    setVillageRequests(prev => 
-      prev.map(village => 
-        village.id === villageId 
-          ? { ...village, status: "approved" }
-          : village
-      )
-    );
-    toast({
-      title: "Village Approved",
-      description: "Village registration has been approved.",
-    });
+ const handleApproveVillage = async (villageId: string) => {
+    try {
+      const response = await fetch('/.netlify/functions/approve-village', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ villageId, action: 'approve' })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        // Update local state
+        setVillageRequests(prev => 
+          prev.map(village => 
+            village.id === villageId 
+              ? { ...village, status: "approved" }
+              : village
+          )
+        );
+        toast({
+          title: "Village Approved",
+          description: "Village registration has been approved.",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to approve village.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to approve village. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
- const handleRejectVillage = (villageId: string) => {
-    setVillageRequests(prev => 
-      prev.map(village => 
-        village.id === villageId 
-          ? { ...village, status: "rejected" }
-          : village
-      )
-    );
-    toast({
-      title: "Village Rejected",
-      description: "Village registration has been rejected.",
-      variant: "destructive",
-    });
+const handleRejectVillage = async (villageId: string) => {
+    try {
+      const response = await fetch('/.netlify/functions/approve-village', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ villageId, action: 'reject' })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        // Update local state
+        setVillageRequests(prev => 
+          prev.map(village => 
+            village.id === villageId 
+              ? { ...village, status: "rejected" }
+              : village
+          )
+        );
+        toast({
+          title: "Village Rejected",
+          description: "Village registration has been rejected.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to reject village.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to reject village. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleChangePassword = async (e: React.FormEvent) => {
@@ -327,7 +381,12 @@ const [isChangingPassword, setIsChangingPassword] = useState(false);
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="pending" className="space-y-4">
+             <TabsContent value="pending" className="space-y-4">
+                {isLoadingVillages ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="text-sm text-muted-foreground">Loading villages...</div>
+                  </div>
+                ) : pendingVillages.length > 0 ? (
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -377,11 +436,22 @@ const [isChangingPassword, setIsChangingPassword] = useState(false);
                         </TableCell>
                       </TableRow>
                     ))}
-                  </TableBody>
+                </TableBody>
                 </Table>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <AlertCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No pending villages</p>
+                  </div>
+                )}
               </TabsContent>
 
-             <TabsContent value="approved" className="space-y-4">
+            <TabsContent value="approved" className="space-y-4">
+                {isLoadingVillages ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="text-sm text-muted-foreground">Loading villages...</div>
+                  </div>
+                ) : approvedVillages.length > 0 ? (
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -420,8 +490,14 @@ const [isChangingPassword, setIsChangingPassword] = useState(false);
                         </TableCell>
                       </TableRow>
                     ))}
-                  </TableBody>
+                 </TableBody>
                 </Table>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <CheckCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No approved villages</p>
+                  </div>
+                )}
               </TabsContent>
            </Tabs>
           </CardContent>
