@@ -22,13 +22,13 @@ export const handler = async (event, context) => {
 try {
     const { username, password } = JSON.parse(event.body);
 
-    // First, check if user exists in database
+   // First, check if user exists in database (check both email formats)
     const user = await sql`
       SELECT id, email, password_hash, role 
       FROM users 
-      WHERE email = ${username} AND role = 'super_admin' AND is_approved = true
+      WHERE (email = ${username} OR email = ${username + '@noc.com'} OR email = 'superadmin@noc.com') 
+      AND role = 'super_admin' AND is_approved = true
     `;
-
     if (user.length > 0) {
       // Check database password
       const isValidPassword = await bcrypt.compare(password, user[0].password_hash);
