@@ -182,17 +182,16 @@ const handleRejectVillage = async (villageId: string) => {
           variant: "destructive",
         });
       }
-    } catch (error) {
+   } catch (error) {
       toast({
         title: "Error",
         description: "Failed to change password. Please try again.",
         variant: "destructive",
       });
- } finally {
-      setIsDeleting(false);
+    } finally {
+      setIsChangingPassword(false);
     }
   };
-
   const loadVillages = async () => {
     setIsLoadingVillages(true);
     try {
