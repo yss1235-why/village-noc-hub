@@ -30,10 +30,25 @@ export const handler = async (event, context) => {
       };
     }
 
-    // For now, just return success since we don't have a documents table
-    // In a real implementation, you would:
-    // await sql`UPDATE village_documents SET certificate_template = ${template} WHERE village_id = ${villageId}`;
+   // Create certificate_templates table if it doesn't exist  
+    await sql`
+      CREATE TABLE IF NOT EXISTS certificate_templates (
+        id SERIAL PRIMARY KEY,
+        village_id VARCHAR(255) NOT NULL UNIQUE,
+        template TEXT NOT NULL,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
 
+    // Update certificate template
+    await sql`
+      INSERT INTO certificate_templates (village_id, template)
+      VALUES (${villageId}, ${template})
+      ON CONFLICT (village_id)
+      DO UPDATE SET 
+        template = EXCLUDED.template,
+        updated_at = CURRENT_TIMESTAMP
+    `;
     return {
       statusCode: 200,
       headers,
