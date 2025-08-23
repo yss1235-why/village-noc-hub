@@ -25,6 +25,8 @@ const AdminDashboard = () => {
   useEffect(() => {
     if (!villageInfo) {
       navigate('/admin');
+    } else {
+      loadApplications();
     }
   }, [villageInfo, navigate]);
 
@@ -200,46 +202,8 @@ const AdminDashboard = () => {
     setShowVillageInfo(true);
     loadVillageInfo();
   };
-  // Mock data for applications
-  const [applications, setApplications] = useState([
-    {
-      id: "ZSV20122024",
-      name: "John Doe",
-      fatherName: "Robert Doe",
-      certificateType: "Birth",
-      status: "approved",
-      submittedDate: "2024-12-15",
-      approvedDate: "2024-12-18",
-    },
-    {
-      id: "ZSV19122024",
-      name: "Jane Smith",
-      fatherName: "Michael Smith",
-      certificateType: "Resident",
-      status: "pending",
-      submittedDate: "2024-12-19",
-      approvedDate: null,
-    },
-    {
-      id: "ZSV18122024",
-      name: "Alice Johnson",
-      fatherName: "David Johnson",
-      certificateType: "Birth",
-      status: "pending",
-      submittedDate: "2024-12-18",
-      approvedDate: null,
-    },
-    {
-      id: "ZSV17122024",
-      name: "Bob Wilson",
-      fatherName: "Tom Wilson",
-      certificateType: "Resident",
-      status: "rejected",
-      submittedDate: "2024-12-17",
-      approvedDate: null,
-    },
-  ]);
-
+ const [applications, setApplications] = useState([]);
+  const [isLoadingApplications, setIsLoadingApplications] = useState(true);
  const handleLogout = () => {
     localStorage.removeItem('villageAdmin');
     toast({
@@ -249,35 +213,125 @@ const AdminDashboard = () => {
     navigate("/");
   };
 
-  const handleApprove = (applicationId: string) => {
-    setApplications(apps => 
-      apps.map(app => 
-        app.id === applicationId 
-          ? { ...app, status: "approved", approvedDate: new Date().toISOString().split('T')[0] }
-          : app
-      )
-    );
-    toast({
-      title: "Application Approved",
-      description: `Application ${applicationId} has been approved.`,
-    });
+  const loadApplications = async () => {
+    if (!villageInfo?.villageId) return;
+    
+    setIsLoadingApplications(true);
+    try {
+      const response = await fetch(`/.netlify/functions/get-village-applications?villageId=${villageInfo.villageId}`);
+      const result = await response.json();
+      
+      if (response.ok && result.applications) {
+        setApplications(result.applications);
+      } else {
+        console.error('Failed to load applications:', result.error);
+        toast({
+          title: "Error",
+          description: "Failed to load applications.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load applications:', error);
+      toast({
+        title: "Error",
+        description: "Failed to connect to server.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingApplications(false);
+    }
   };
 
-  const handleReject = (applicationId: string) => {
-    setApplications(apps => 
-      apps.map(app => 
-        app.id === applicationId 
-          ? { ...app, status: "rejected" }
-          : app
-      )
-    );
-    toast({
-      title: "Application Rejected",
-      description: `Application ${applicationId} has been rejected.`,
-      variant: "destructive",
-    });
+  const handleApprove = async (applicationId: string) => {
+    try {
+      const response = await fetch('/.netlify/functions/update-application-status', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          applicationId,
+          status: 'approved',
+          approvedBy: villageInfo?.id
+        })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        // Update local state
+        setApplications(apps => 
+          apps.map(app => 
+            app.id === applicationId 
+              ? { ...app, status: "approved", approvedDate: new Date().toISOString() }
+              : app
+          )
+        );
+        toast({
+          title: "Application Approved",
+          description: `Application ${applicationId} has been approved.`,
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to approve application.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to approve application. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
+  const handleReject = async (applicationId: string) => {
+    try {
+      const response = await fetch('/.netlify/functions/update-application-status', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          applicationId,
+          status: 'rejected'
+        })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        // Update local state
+        setApplications(apps => 
+          apps.map(app => 
+            app.id === applicationId 
+              ? { ...app, status: "rejected" }
+              : app
+          )
+        );
+        toast({
+          title: "Application Rejected",
+          description: `Application ${applicationId} has been rejected.`,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to reject application.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to reject application. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "approved":
@@ -424,36 +478,43 @@ const AdminDashboard = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {pendingApplications.map((app) => (
-                        <TableRow key={app.id}>
-                          <TableCell className="font-mono text-sm">{app.id}</TableCell>
-                          <TableCell>
-                            <div>
-                              <p className="font-medium">{app.name}</p>
-                              <p className="text-sm text-muted-foreground">S/o {app.fatherName}</p>
-                            </div>
+                      {isLoadingApplications ? (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center py-8">
+                            <div className="text-sm text-muted-foreground">Loading applications...</div>
                           </TableCell>
-                          <TableCell>{app.certificateType}</TableCell>
-                          <TableCell>{new Date(app.submittedDate).toLocaleDateString()}</TableCell>
-                          <TableCell>{getStatusBadge(app.status)}</TableCell>
+                        </TableRow>
+                      ) : pendingApplications.length > 0 ? (
+                        pendingApplications.map((app) => (
+                          <TableRow key={app.id}>
+                            <TableCell className="font-mono text-sm">{app.application_number}</TableCell>
+                            <TableCell>
+                              <div>
+                                <p className="font-medium">{app.applicant_name}</p>
+                                <p className="text-sm text-muted-foreground">S/o {app.father_name}</p>
+                              </div>
+                            </TableCell>
+                            <TableCell>NOC</TableCell>
+                            <TableCell>{new Date(app.created_at).toLocaleDateString()}</TableCell>
+                            <TableCell>{getStatusBadge(app.status)}</TableCell>
                           <TableCell>
                             <div className="flex gap-2">
-                              <Button
-                                size="sm"
-                                onClick={() => handleApprove(app.id)}
-                                className="bg-success text-success-foreground hover:bg-success/90"
-                              >
-                                <CheckCircle className="h-4 w-4 mr-1" />
-                                Approve
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => handleReject(app.id)}
-                              >
-                                <XCircle className="h-4 w-4 mr-1" />
-                                Reject
-                              </Button>
+                             <Button
+                              size="sm"
+                              onClick={() => handleApprove(app.id)}
+                              className="bg-success text-success-foreground hover:bg-success/90"
+                            >
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                              Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleReject(app.id)}
+                            >
+                              <XCircle className="h-4 w-4 mr-1" />
+                              Reject
+                            </Button>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -481,19 +542,35 @@ const AdminDashboard = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {approvedApplications.map((app) => (
-                        <TableRow key={app.id}>
-                          <TableCell className="font-mono text-sm">{app.id}</TableCell>
-                          <TableCell>
-                            <div>
-                              <p className="font-medium">{app.name}</p>
-                              <p className="text-sm text-muted-foreground">S/o {app.fatherName}</p>
-                            </div>
+                     {isLoadingApplications ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center py-8">
+                            <div className="text-sm text-muted-foreground">Loading applications...</div>
                           </TableCell>
-                          <TableCell>{app.certificateType}</TableCell>
-                          <TableCell>{app.approvedDate ? new Date(app.approvedDate).toLocaleDateString() : "-"}</TableCell>
-                          <TableCell>{getStatusBadge(app.status)}</TableCell>
                         </TableRow>
+                      ) : approvedApplications.length > 0 ? (
+                        approvedApplications.map((app) => (
+                          <TableRow key={app.id}>
+                            <TableCell className="font-mono text-sm">{app.application_number}</TableCell>
+                            <TableCell>
+                              <div>
+                                <p className="font-medium">{app.applicant_name}</p>
+                                <p className="text-sm text-muted-foreground">S/o {app.father_name}</p>
+                              </div>
+                            </TableCell>
+                            <TableCell>NOC</TableCell>
+                            <TableCell>{app.approved_at ? new Date(app.approved_at).toLocaleDateString() : "-"}</TableCell>
+                            <TableCell>{getStatusBadge(app.status)}</TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center py-8">
+                            <CheckCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                            <p>No approved applications</p>
+                          </TableCell>
+                        </TableRow>
+                      )}
                       ))}
                     </TableBody>
                   </Table>
@@ -518,19 +595,35 @@ const AdminDashboard = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {rejectedApplications.map((app) => (
-                        <TableRow key={app.id}>
-                          <TableCell className="font-mono text-sm">{app.id}</TableCell>
-                          <TableCell>
-                            <div>
-                              <p className="font-medium">{app.name}</p>
-                              <p className="text-sm text-muted-foreground">S/o {app.fatherName}</p>
-                            </div>
+                    {isLoadingApplications ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center py-8">
+                            <div className="text-sm text-muted-foreground">Loading applications...</div>
                           </TableCell>
-                          <TableCell>{app.certificateType}</TableCell>
-                          <TableCell>{new Date(app.submittedDate).toLocaleDateString()}</TableCell>
-                          <TableCell>{getStatusBadge(app.status)}</TableCell>
                         </TableRow>
+                      ) : rejectedApplications.length > 0 ? (
+                        rejectedApplications.map((app) => (
+                          <TableRow key={app.id}>
+                            <TableCell className="font-mono text-sm">{app.application_number}</TableCell>
+                            <TableCell>
+                              <div>
+                                <p className="font-medium">{app.applicant_name}</p>
+                                <p className="text-sm text-muted-foreground">S/o {app.father_name}</p>
+                              </div>
+                            </TableCell>
+                            <TableCell>NOC</TableCell>
+                            <TableCell>{new Date(app.created_at).toLocaleDateString()}</TableCell>
+                            <TableCell>{getStatusBadge(app.status)}</TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center py-8">
+                            <XCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                            <p>No rejected applications</p>
+                          </TableCell>
+                        </TableRow>
+                      )}
                       ))}
                     </TableBody>
                   </Table>
