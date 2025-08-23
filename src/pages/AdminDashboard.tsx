@@ -332,7 +332,7 @@ Headman/Chairman
     }));
   };
 
-  cconst handleDocumentUpload = async (documentType: string) => {
+ const handleDocumentUpload = async (documentType: string) => {
     const file = documentFiles[documentType];
     if (!file) return;
 
