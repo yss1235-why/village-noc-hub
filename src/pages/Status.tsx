@@ -77,14 +77,36 @@ const Status = () => {
         return <Badge variant="outline">Unknown</Badge>;
     }
   };
+const handleDownload = async () => {
+  try {
+    const response = await fetch('/.netlify/functions/generate-certificate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        applicationId: searchResult.applicationId
+      })
+    });
 
-  const handleDownload = () => {
-    // In real implementation, this would download the actual certificate
-    const link = document.createElement('a');
-    link.href = '#'; // Would be actual certificate URL
-    link.download = `certificate-${searchResult.applicationNumber}.pdf`;
-    link.click();
-  };
+    if (response.ok) {
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `certificate-${searchResult.applicationNumber}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } else {
+      throw new Error('Failed to generate certificate');
+    }
+  } catch (error) {
+    console.error('Download error:', error);
+    alert('Failed to download certificate. Please try again.');
+  }
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/30">
