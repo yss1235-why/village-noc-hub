@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LogOut, CheckCircle, XCircle, Clock, Crown, Building, Users, Settings, Eye, EyeOff, Trash2, AlertCircle } from "lucide-react";
+import { LogOut, CheckCircle, XCircle, Clock, Crown, Building, Users, Settings, Eye, EyeOff, Trash2, AlertCircle, Key } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
@@ -28,10 +28,23 @@ const SuperAdminDashboard = () => {
   });
 const [isChangingPassword, setIsChangingPassword] = useState(false);
 
-  // Delete village state
+// Delete village state
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [villageToDelete, setVillageToDelete] = useState<any>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Change admin password state
+  const [showChangeAdminPassword, setShowChangeAdminPassword] = useState(false);
+  const [adminToChangePassword, setAdminToChangePassword] = useState<any>(null);
+  const [adminPasswordForm, setAdminPasswordForm] = useState({
+    newPassword: "",
+    confirmPassword: ""
+  });
+  const [showAdminPasswords, setShowAdminPasswords] = useState({
+    new: false,
+    confirm: false
+  });
+  const [isChangingAdminPassword, setIsChangingAdminPassword] = useState(false);
 
   const [villageRequests, setVillageRequests] = useState([]);
   const [isLoadingVillages, setIsLoadingVillages] = useState(true);
@@ -229,7 +242,7 @@ const handleRejectVillage = async (villageId: string) => {
     setShowDeleteConfirm(true);
   };
 
-  const confirmDeleteVillage = async () => {
+ const confirmDeleteVillage = async () => {
     if (!villageToDelete) return;
 
     setIsDeleting(true);
@@ -277,6 +290,76 @@ const handleRejectVillage = async (villageId: string) => {
     }
   };
 
+  const handleChangeAdminPassword = (village: any) => {
+    setAdminToChangePassword(village);
+    setShowChangeAdminPassword(true);
+  };
+
+  const confirmChangeAdminPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (adminPasswordForm.newPassword !== adminPasswordForm.confirmPassword) {
+      toast({
+        title: "Error",
+        description: "Passwords do not match.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (adminPasswordForm.newPassword.length < 6) {
+      toast({
+        title: "Error",
+        description: "Password must be at least 6 characters long.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsChangingAdminPassword(true);
+
+    try {
+      const response = await fetch('/.netlify/functions/change-admin-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          villageId: adminToChangePassword.id,
+          newPassword: adminPasswordForm.newPassword
+        })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: "Password Changed",
+          description: `Password for ${adminToChangePassword.adminName} has been updated successfully.`,
+        });
+        setShowChangeAdminPassword(false);
+        setAdminToChangePassword(null);
+        setAdminPasswordForm({
+          newPassword: "",
+          confirmPassword: ""
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to change admin password.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to change admin password. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsChangingAdminPassword(false);
+    }
+  };
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "approved":
@@ -405,13 +488,12 @@ const handleRejectVillage = async (villageId: string) => {
                             <p className="text-sm text-muted-foreground">{village.district}, {village.state}</p>
                           </div>
                         </TableCell>
-                        <TableCell>
+                       <TableCell>
                           <div>
                             <p className="font-medium">{village.adminName}</p>
                             <p className="text-sm text-muted-foreground">{village.email}</p>
                           </div>
                         </TableCell>
-                        <TableCell>{new Date(village.requestDate).toLocaleDateString()}</TableCell>
                         <TableCell>{getStatusBadge(village.status)}</TableCell>
                         <TableCell>
                           <div className="flex gap-2">
@@ -475,17 +557,27 @@ const handleRejectVillage = async (villageId: string) => {
                             <p className="text-sm text-muted-foreground">{village.email}</p>
                           </div>
                         </TableCell>
-                       <TableCell>{getStatusBadge(village.status)}</TableCell>
-                        <TableCell>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleDeleteVillage(village)}
-                            className="text-destructive hover:text-destructive-foreground hover:bg-destructive"
-                          >
-                            <Trash2 className="h-4 w-4 mr-1" />
-                            Delete
-                          </Button>
+                     <TableCell>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleChangeAdminPassword(village)}
+                              className="text-primary hover:text-primary-foreground hover:bg-primary"
+                            >
+                              <Key className="h-4 w-4 mr-1" />
+                              Reset Password
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleDeleteVillage(village)}
+                              className="text-destructive hover:text-destructive-foreground hover:bg-destructive"
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              Delete
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -624,6 +716,114 @@ const handleRejectVillage = async (villageId: string) => {
         )}
 
         {/* Delete Village Confirmation Dialog */}
+       {/* Change Admin Password Dialog */}
+        {showChangeAdminPassword && adminToChangePassword && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <Card className="w-full max-w-md mx-4">
+              <CardHeader>
+                <CardTitle>Change Admin Password</CardTitle>
+                <CardDescription>
+                  Set a new password for the village admin
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="bg-muted p-4 rounded-lg mb-4">
+                  <h4 className="font-medium">{adminToChangePassword.villageName}</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Admin: {adminToChangePassword.adminName}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Email: {adminToChangePassword.email}
+                  </p>
+                </div>
+
+                <form onSubmit={confirmChangeAdminPassword} className="space-y-4">
+                  <div>
+                    <Label htmlFor="newAdminPassword">New Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="newAdminPassword"
+                        type={showAdminPasswords.new ? "text" : "password"}
+                        value={adminPasswordForm.newPassword}
+                        onChange={(e) => setAdminPasswordForm({...adminPasswordForm, newPassword: e.target.value})}
+                        placeholder="Enter new password"
+                        required
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                        onClick={() => setShowAdminPasswords({...showAdminPasswords, new: !showAdminPasswords.new})}
+                      >
+                        {showAdminPasswords.new ? (
+                          <EyeOff className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="confirmAdminPassword">Confirm New Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="confirmAdminPassword"
+                        type={showAdminPasswords.confirm ? "text" : "password"}
+                        value={adminPasswordForm.confirmPassword}
+                        onChange={(e) => setAdminPasswordForm({...adminPasswordForm, confirmPassword: e.target.value})}
+                        placeholder="Confirm new password"
+                        required
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                        onClick={() => setShowAdminPasswords({...showAdminPasswords, confirm: !showAdminPasswords.confirm})}
+                      >
+                        {showAdminPasswords.confirm ? (
+                          <EyeOff className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 pt-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setShowChangeAdminPassword(false);
+                        setAdminToChangePassword(null);
+                        setAdminPasswordForm({
+                          newPassword: "",
+                          confirmPassword: ""
+                        });
+                      }}
+                      className="flex-1"
+                      disabled={isChangingAdminPassword}
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      type="submit"
+                      disabled={isChangingAdminPassword}
+                      className="flex-1"
+                    >
+                      {isChangingAdminPassword ? "Changing..." : "Change Password"}
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+      {/* Delete Village Confirmation Dialog */}
         {showDeleteConfirm && villageToDelete && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <Card className="w-full max-w-md mx-4">
