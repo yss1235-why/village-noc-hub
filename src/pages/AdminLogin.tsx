@@ -22,24 +22,49 @@ const AdminLogin = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Mock authentication - in real app, this would call Supabase auth
-    setTimeout(() => {
-      if (credentials.username === "headman" && credentials.password === "admin123") {
+  try {
+      const response = await fetch('/.netlify/functions/auth-village-admin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: credentials.email,
+          password: credentials.password
+        })
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
         toast({
           title: "Login Successful",
-          description: "Welcome to the admin dashboard.",
+          description: `Welcome to ${result.village.name} admin dashboard.`,
         });
+        // In a real app, you'd store the session/token here
+        localStorage.setItem('villageAdmin', JSON.stringify({
+          id: result.user.id,
+          email: result.user.email,
+          villageId: result.village.id,
+          villageName: result.village.name
+        }));
         navigate("/admin/dashboard");
       } else {
         toast({
           title: "Login Failed",
-          description: "Invalid username or password.",
+          description: result.error || "Invalid email or password.",
           variant: "destructive",
         });
       }
+    } catch (error) {
+      toast({
+        title: "Login Failed",
+        description: "Unable to connect to server. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    }, 1000);
-  };
+    }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/30">
@@ -76,14 +101,14 @@ const AdminLogin = () => {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleLogin} className="space-y-4">
-                <div>
-                  <Label htmlFor="username">Username</Label>
+               <div>
+                  <Label htmlFor="email">Email Address</Label>
                   <Input
-                    id="username"
-                    type="text"
-                    value={credentials.username}
-                    onChange={(e) => setCredentials({...credentials, username: e.target.value})}
-                    placeholder="Enter your username"
+                    id="email"
+                    type="email"
+                    value={credentials.email}
+                    onChange={(e) => setCredentials({...credentials, email: e.target.value})}
+                    placeholder="Enter your email address"
                     required
                   />
                 </div>
@@ -124,12 +149,12 @@ const AdminLogin = () => {
                 </Button>
               </form>
 
-              {/* Demo Credentials */}
-              <div className="mt-6 p-4 bg-muted rounded-lg">
-                <h4 className="text-sm font-medium mb-2">Demo Credentials</h4>
+             <div className="mt-6 p-4 bg-muted rounded-lg">
+                <h4 className="text-sm font-medium mb-2">Login Instructions</h4>
                 <div className="text-xs space-y-1 text-muted-foreground">
-                  <p><strong>Username:</strong> headman</p>
-                  <p><strong>Password:</strong> admin123</p>
+                  <p>• Use the email address you provided during village registration</p>
+                  <p>• Contact the super admin if you forgot your password</p>
+                  <p>• Your village must be approved before you can log in</p>
                 </div>
               </div>
             </CardContent>
