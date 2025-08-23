@@ -81,26 +81,13 @@ export const handler = async (event, context) => {
       signature: documentsMap.signature || null,
       seal: documentsMap.seal || null,
       roundSeal: documentsMap.roundSeal || null,
-      certificateTemplate: template[0]?.template || `No Objection Certificate.
-This is to certify that
-{{TITLE}}
-{{APPLICANT_NAME}}
-{{RELATION}}
-{{FATHER_NAME}}
-is an inhabitant of House no.
-{{HOUSE_NUMBER}},
-{{VILLAGE_NAME}} Village, Under
-Post Office {{POST_OFFICE}}, Police Station {{POLICE_STATION}}
-Sub-division {{SUB_DIVISION}},
-{{DISTRICT}} Dist
-{{STATE}} - {{PIN_CODE}}.
-He/She belongs to {{TRIBE_NAME}} Tribe,
-{{RELIGION}} Religion by faith.
-He/She is a citizen of the {{VILLAGE_NAME}} Village by Birth.
-As per the family data collected by the Village his/her annual income is
-{{ANNUAL_INCOME_NUMBER}} in word {{ANNUAL_INCOME_WORDS}} only.
+     certificateTemplate: template[0]?.template || `This is to certify that {{TITLE}} {{APPLICANT_NAME}} is an inhabitant of House no. {{HOUSE_NUMBER}}, {{VILLAGE_NAME}} Village, Under Post Office {{POST_OFFICE}}, Police Station {{POLICE_STATION}} Sub-division {{SUB_DIVISION}}, {{DISTRICT}} Dist {{STATE}} - {{PIN_CODE}}.
+
+He/She belongs to {{TRIBE_NAME}} Tribe, {{RELIGION}} Religion by faith. He/She is a citizen of the {{VILLAGE_NAME}} Village by Birth. As per the family data collected by the Village his/her annual income is {{ANNUAL_INCOME_NUMBER}} in word {{ANNUAL_INCOME_WORDS}} only.
+
 To the best of my knowledge and belief, He/She does not have any negative remarks in the Village record.
-He/She is not related to me.
+
+He/She is not related to me.`
 
 Date: {{ISSUE_DATE}}
 Place: {{VILLAGE_NAME}}
