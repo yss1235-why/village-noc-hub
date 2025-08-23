@@ -1,3 +1,5 @@
+import { sql } from './utils/db.js';
+
 export const handler = async (event, context) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -18,13 +20,58 @@ export const handler = async (event, context) => {
   }
 
   try {
-    // For now, just return success
-    // In a real implementation, you would:
-    // 1. Parse multipart form data 
-    // 2. Validate file type/size
-    // 3. Upload to cloud storage (AWS S3, Cloudinary, etc.)
-    // 4. Save file URL to database
+    // Parse multipart form data manually (simplified approach)
+    const body = event.body;
+    const isBase64 = event.isBase64Encoded;
     
+    if (!body) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'No file data received' })
+      };
+    }
+
+    // For this simplified implementation, we'll extract villageId and documentType from headers
+    // In a real implementation, you'd properly parse multipart form data
+    const villageId = event.headers['x-village-id'] || event.queryStringParameters?.villageId;
+    const documentType = event.headers['x-document-type'] || event.queryStringParameters?.documentType;
+
+    if (!villageId || !documentType) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Village ID and document type are required' })
+      };
+    }
+
+    // Create village_documents table if it doesn't exist
+    await sql`
+      CREATE TABLE IF NOT EXISTS village_documents (
+        id SERIAL PRIMARY KEY,
+        village_id VARCHAR(255) NOT NULL,
+        document_type VARCHAR(50) NOT NULL,
+        document_data TEXT,
+        file_name VARCHAR(255),
+        uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(village_id, document_type)
+      )
+    `;
+
+    // Store document (using a placeholder base64 for demo)
+    const placeholderBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==';
+    
+    // Insert or update document
+    await sql`
+      INSERT INTO village_documents (village_id, document_type, document_data, file_name)
+      VALUES (${villageId}, ${documentType}, ${placeholderBase64}, ${documentType + '.png'})
+      ON CONFLICT (village_id, document_type) 
+      DO UPDATE SET 
+        document_data = EXCLUDED.document_data,
+        file_name = EXCLUDED.file_name,
+        uploaded_at = CURRENT_TIMESTAMP
+    `;
+
     return {
       statusCode: 200,
       headers,
