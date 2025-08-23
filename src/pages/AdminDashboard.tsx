@@ -464,8 +464,12 @@ const AdminDashboard = () => {
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="pending" className="space-y-4">
-                {pendingApplications.length > 0 ? (
+<TabsContent value="pending" className="space-y-4">
+                {isLoadingApplications ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="text-sm text-muted-foreground">Loading applications...</div>
+                  </div>
+                ) : pendingApplications.length > 0 ? (
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -478,43 +482,36 @@ const AdminDashboard = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {isLoadingApplications ? (
-                        <TableRow>
-                          <TableCell colSpan={6} className="text-center py-8">
-                            <div className="text-sm text-muted-foreground">Loading applications...</div>
+                      {pendingApplications.map((app) => (
+                        <TableRow key={app.id}>
+                          <TableCell className="font-mono text-sm">{app.application_number}</TableCell>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium">{app.applicant_name}</p>
+                              <p className="text-sm text-muted-foreground">S/o {app.father_name}</p>
+                            </div>
                           </TableCell>
-                        </TableRow>
-                      ) : pendingApplications.length > 0 ? (
-                        pendingApplications.map((app) => (
-                          <TableRow key={app.id}>
-                            <TableCell className="font-mono text-sm">{app.application_number}</TableCell>
-                            <TableCell>
-                              <div>
-                                <p className="font-medium">{app.applicant_name}</p>
-                                <p className="text-sm text-muted-foreground">S/o {app.father_name}</p>
-                              </div>
-                            </TableCell>
-                            <TableCell>NOC</TableCell>
-                            <TableCell>{new Date(app.created_at).toLocaleDateString()}</TableCell>
-                            <TableCell>{getStatusBadge(app.status)}</TableCell>
+                          <TableCell>NOC</TableCell>
+                          <TableCell>{new Date(app.created_at).toLocaleDateString()}</TableCell>
+                          <TableCell>{getStatusBadge(app.status)}</TableCell>
                           <TableCell>
                             <div className="flex gap-2">
-                             <Button
-                              size="sm"
-                              onClick={() => handleApprove(app.id)}
-                              className="bg-success text-success-foreground hover:bg-success/90"
-                            >
-                              <CheckCircle className="h-4 w-4 mr-1" />
-                              Approve
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => handleReject(app.id)}
-                            >
-                              <XCircle className="h-4 w-4 mr-1" />
-                              Reject
-                            </Button>
+                              <Button
+                                size="sm"
+                                onClick={() => handleApprove(app.id)}
+                                className="bg-success text-success-foreground hover:bg-success/90"
+                              >
+                                <CheckCircle className="h-4 w-4 mr-1" />
+                                Approve
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleReject(app.id)}
+                              >
+                                <XCircle className="h-4 w-4 mr-1" />
+                                Reject
+                              </Button>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -529,61 +526,53 @@ const AdminDashboard = () => {
                 )}
               </TabsContent>
 
-              <TabsContent value="approved" className="space-y-4">
-                {approvedApplications.length > 0 ? (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Application No.</TableHead>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Approved Date</TableHead>
-                        <TableHead>Status</TableHead>
+             <TabsContent value="approved" className="space-y-4">
+              {isLoadingApplications ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-sm text-muted-foreground">Loading applications...</div>
+                </div>
+              ) : approvedApplications.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Application No.</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Approved Date</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {approvedApplications.map((app) => (
+                      <TableRow key={app.id}>
+                        <TableCell className="font-mono text-sm">{app.application_number}</TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{app.applicant_name}</p>
+                            <p className="text-sm text-muted-foreground">S/o {app.father_name}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>NOC</TableCell>
+                        <TableCell>{app.approved_at ? new Date(app.approved_at).toLocaleDateString() : "-"}</TableCell>
+                        <TableCell>{getStatusBadge(app.status)}</TableCell>
                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                     {isLoadingApplications ? (
-                        <TableRow>
-                          <TableCell colSpan={5} className="text-center py-8">
-                            <div className="text-sm text-muted-foreground">Loading applications...</div>
-                          </TableCell>
-                        </TableRow>
-                      ) : approvedApplications.length > 0 ? (
-                        approvedApplications.map((app) => (
-                          <TableRow key={app.id}>
-                            <TableCell className="font-mono text-sm">{app.application_number}</TableCell>
-                            <TableCell>
-                              <div>
-                                <p className="font-medium">{app.applicant_name}</p>
-                                <p className="text-sm text-muted-foreground">S/o {app.father_name}</p>
-                              </div>
-                            </TableCell>
-                            <TableCell>NOC</TableCell>
-                            <TableCell>{app.approved_at ? new Date(app.approved_at).toLocaleDateString() : "-"}</TableCell>
-                            <TableCell>{getStatusBadge(app.status)}</TableCell>
-                          </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={5} className="text-center py-8">
-                            <CheckCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                            <p>No approved applications</p>
-                          </TableCell>
-                        </TableRow>
-                      )}
-                      ))}
-                    </TableBody>
-                  </Table>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <CheckCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>No approved applications</p>
-                  </div>
-                )}
-              </TabsContent>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <CheckCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No approved applications</p>
+                </div>
+              )}
+           </TabsContent>
 
-              <TabsContent value="rejected" className="space-y-4">
-                {rejectedApplications.length > 0 ? (
+             <TabsContent value="rejected" className="space-y-4">
+                {isLoadingApplications ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="text-sm text-muted-foreground">Loading applications...</div>
+                  </div>
+                ) : rejectedApplications.length > 0 ? (
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -595,35 +584,19 @@ const AdminDashboard = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                    {isLoadingApplications ? (
-                        <TableRow>
-                          <TableCell colSpan={5} className="text-center py-8">
-                            <div className="text-sm text-muted-foreground">Loading applications...</div>
+                      {rejectedApplications.map((app) => (
+                        <TableRow key={app.id}>
+                          <TableCell className="font-mono text-sm">{app.application_number}</TableCell>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium">{app.applicant_name}</p>
+                              <p className="text-sm text-muted-foreground">S/o {app.father_name}</p>
+                            </div>
                           </TableCell>
+                          <TableCell>NOC</TableCell>
+                          <TableCell>{new Date(app.created_at).toLocaleDateString()}</TableCell>
+                          <TableCell>{getStatusBadge(app.status)}</TableCell>
                         </TableRow>
-                      ) : rejectedApplications.length > 0 ? (
-                        rejectedApplications.map((app) => (
-                          <TableRow key={app.id}>
-                            <TableCell className="font-mono text-sm">{app.application_number}</TableCell>
-                            <TableCell>
-                              <div>
-                                <p className="font-medium">{app.applicant_name}</p>
-                                <p className="text-sm text-muted-foreground">S/o {app.father_name}</p>
-                              </div>
-                            </TableCell>
-                            <TableCell>NOC</TableCell>
-                            <TableCell>{new Date(app.created_at).toLocaleDateString()}</TableCell>
-                            <TableCell>{getStatusBadge(app.status)}</TableCell>
-                          </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={5} className="text-center py-8">
-                            <XCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                            <p>No rejected applications</p>
-                          </TableCell>
-                        </TableRow>
-                      )}
                       ))}
                     </TableBody>
                   </Table>
@@ -633,10 +606,9 @@ const AdminDashboard = () => {
                     <p>No rejected applications</p>
                   </div>
                 )}
-              </TabsContent>
-            </Tabs>
+             </Tabs>
           </CardContent>
-       </Card>
+        </Card>
 
         {/* Village Information Dialog */}
         {showVillageInfo && (
