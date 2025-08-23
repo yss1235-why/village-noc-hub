@@ -281,12 +281,14 @@ Headman/Chairman
     
     if (response.ok) {
      setDocuments({
-        letterhead: result.documents?.letterhead?.data || null,
-        signature: result.documents?.signature?.data || null,
-        seal: result.documents?.seal?.data || null,
-        roundSeal: result.documents?.roundSeal?.data || null
+        letterhead: result.documents?.letterhead?.data || null, // Add .documents
+        signature: result.documents?.signature?.data || null,   // Add .documents
+        seal: result.documents?.seal?.data || null,             // Add .documents
+        roundSeal: result.documents?.roundSeal?.data || null    // Add .documents
       });
-      setCertificateTemplate(result.documents?.certificateTemplate || getDefaultTemplate());
+      setCertificateTemplate(result.documents?.certificateTemplate || getDefaultTemplate()); // Add .documents
+    }
+    teTemplate(result.documents?.certificateTemplate || getDefaultTemplate());
     }
     } catch (error) {
       toast({
