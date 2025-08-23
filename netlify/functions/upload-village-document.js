@@ -1,5 +1,3 @@
-import { sql } from './utils/db.js';
-
 export const handler = async (event, context) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -20,7 +18,8 @@ export const handler = async (event, context) => {
   }
 
   try {
-    // For now, just return success - in real implementation you'd:
+    // For now, just return success
+    // In a real implementation, you would:
     // 1. Parse multipart form data 
     // 2. Validate file type/size
     // 3. Upload to cloud storage (AWS S3, Cloudinary, etc.)
