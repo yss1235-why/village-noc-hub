@@ -42,20 +42,20 @@ const Status = () => {
   try {
     const response = await fetch(`/.netlify/functions/applications?applicationNumber=${applicationNumber}`);
     const result = await response.json();
-    
     if (response.ok && result.application) {
-      setSearchResult({
-        applicationNumber: result.application.application_number,
-        name: result.application.applicant_name,
-        fatherName: result.application.father_name,
-        certificateType: "NOC", // Since we only do NOC now
-        status: result.application.status,
-        submittedDate: result.application.created_at,
-        approvedDate: result.application.approved_at,
-        approvedBy: result.application.approved_by ? "Village Admin" : null,
-        villageName: result.application.village_name
-      });
-    } else {
+  setSearchResult({
+    applicationId: result.application.id, // Add this line
+    applicationNumber: result.application.application_number,
+    name: result.application.applicant_name,
+    fatherName: result.application.father_name,
+    certificateType: "NOC", // Since we only do NOC now
+    status: result.application.status,
+    submittedDate: result.application.created_at,
+    approvedDate: result.application.approved_at,
+    approvedBy: result.application.approved_by ? "Village Admin" : null,
+    villageName: result.application.village_name
+  });
+} else {
       setSearchResult(null);
     }
   } catch (error) {
@@ -78,7 +78,14 @@ const Status = () => {
     }
   };
 const handleDownload = async () => {
+  if (!searchResult || !searchResult.applicationId) {
+    alert('Application ID not found. Please try searching again.');
+    return;
+  }
+
   try {
+    console.log('Downloading certificate for application:', searchResult.applicationId);
+    
     const response = await fetch('/.netlify/functions/generate-certificate', {
       method: 'POST',
       headers: {
@@ -100,14 +107,15 @@ const handleDownload = async () => {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } else {
-      throw new Error('Failed to generate certificate');
+      const errorText = await response.text();
+      console.error('Server error:', errorText);
+      throw new Error(`Failed to generate certificate: ${response.status}`);
     }
   } catch (error) {
     console.error('Download error:', error);
-    alert('Failed to download certificate. Please try again.');
+    alert(`Failed to download certificate: ${error.message}`);
   }
 };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/30">
       {/* Header */}
