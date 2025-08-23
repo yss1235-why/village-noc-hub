@@ -98,10 +98,10 @@ Headman/Chairman
     };
 
     return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify(documents)
-    };
+  statusCode: 200,
+  headers,
+  body: JSON.stringify({ documents }) // Wrap in documents object
+};
 
   } catch (error) {
     console.error('Get village documents error:', error);
