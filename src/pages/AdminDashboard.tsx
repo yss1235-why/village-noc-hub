@@ -341,7 +341,85 @@ Headman/Chairman
     try {
       // Convert file to base64 for simple storage
       const reader = new FileReader();
-      reader.onloadend = async () => {
+     const handleDocumentUpload = async (documentType: string) => {
+    const file = documentFiles[documentType];
+    if (!file) return;
+
+    setIsUploadingDocument(true);
+    
+    try {
+      // Convert file to base64 for simple storage
+      const reader = new FileReader();
+      
+      const uploadPromise = new Promise<void>((resolve, reject) => {
+        reader.onloadend = async () => {
+          try {
+            const base64String = reader.result as string;
+            
+            const response = await fetch(`/.netlify/functions/upload-village-document?villageId=${villageInfo?.villageId}&documentType=${documentType}`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-village-id': villageInfo?.villageId || '',
+                'x-document-type': documentType,
+              },
+              body: JSON.stringify({
+                document: base64String,
+                documentType,
+                villageId: villageInfo?.villageId
+              })
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+              toast({
+                title: "Document Uploaded",
+                description: `${documentType.charAt(0).toUpperCase() + documentType.slice(1)} has been uploaded successfully.`,
+              });
+              
+              loadDocuments();
+              setDocumentFiles(prev => ({
+                ...prev,
+                [documentType]: null
+              }));
+              resolve();
+            } else {
+              toast({
+                title: "Upload Failed",
+                description: result.error || "Failed to upload document.",
+                variant: "destructive",
+              });
+              reject(new Error(result.error || "Upload failed"));
+            }
+          } catch (error) {
+            toast({
+              title: "Upload Failed",
+              description: "Failed to upload document. Please try again.",
+              variant: "destructive",
+            });
+            reject(error);
+          }
+        };
+        
+        reader.onerror = () => {
+          reject(new Error("Failed to read file"));
+        };
+      });
+      
+      reader.readAsDataURL(file);
+      await uploadPromise;
+      
+    } catch (error) {
+      toast({
+        title: "Upload Failed",
+        description: "Failed to upload document. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingDocument(false);
+    }
+  };
         const base64String = reader.result as string;
         
         const response = await fetch(`/.netlify/functions/upload-village-document?villageId=${villageInfo?.villageId}&documentType=${documentType}`, {
