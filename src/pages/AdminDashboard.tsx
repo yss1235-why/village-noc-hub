@@ -522,10 +522,9 @@ const AdminDashboard = () => {
                   <div className="text-center py-8 text-muted-foreground">
                     <AlertCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
                     <p>No pending applications</p>
-                  </div>
+                 </div>
                 )}
               </TabsContent>
-
              <TabsContent value="approved" className="space-y-4">
               {isLoadingApplications ? (
                 <div className="flex items-center justify-center py-8">
@@ -563,9 +562,9 @@ const AdminDashboard = () => {
                 <div className="text-center py-8 text-muted-foreground">
                   <CheckCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>No approved applications</p>
-                </div>
-              )}
-           </TabsContent>
+               </div>
+                )}
+              </TabsContent>
 
              <TabsContent value="rejected" className="space-y-4">
                 {isLoadingApplications ? (
@@ -601,12 +600,13 @@ const AdminDashboard = () => {
                     </TableBody>
                   </Table>
                 ) : (
-                  <div className="text-center py-8 text-muted-foreground">
+                 <div className="text-center py-8 text-muted-foreground">
                     <XCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
                     <p>No rejected applications</p>
-                  </div>
+                 </div>
                 )}
-             </Tabs>
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
 
