@@ -58,20 +58,28 @@ export const handler = async (event, context) => {
       )
     `;
 
-    // Store document (using a placeholder base64 for demo)
-    const placeholderBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==';
+    // Get the actual uploaded file data from the request body
+    const requestData = JSON.parse(body);
+    const uploadedBase64 = requestData.document;
     
-    // Insert or update document
+    if (!uploadedBase64) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'No file data received' })
+      };
+    }
+    
+    // Insert or update document with the actual uploaded file
     await sql`
       INSERT INTO village_documents (village_id, document_type, document_data, file_name)
-      VALUES (${villageId}, ${documentType}, ${placeholderBase64}, ${documentType + '.png'})
+      VALUES (${villageId}, ${documentType}, ${uploadedBase64}, ${documentType + '.png'})
       ON CONFLICT (village_id, document_type) 
       DO UPDATE SET 
         document_data = EXCLUDED.document_data,
         file_name = EXCLUDED.file_name,
         uploaded_at = CURRENT_TIMESTAMP
     `;
-
     return {
       statusCode: 200,
       headers,
