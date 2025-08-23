@@ -274,20 +274,20 @@ Headman/Chairman
   };
 
   const loadDocuments = async () => {
-    setIsLoadingDocuments(true);
-    try {
-      const response = await fetch(`/.netlify/functions/get-village-documents?villageId=${villageInfo?.villageId}`);
-      const result = await response.json();
-      
-      if (response.ok) {
-       setDocuments({
-          letterhead: result.letterhead?.data || null,
-          signature: result.signature?.data || null,
-          seal: result.seal?.data || null,
-          roundSeal: result.roundSeal?.data || null
-        });
-        setCertificateTemplate(result.certificateTemplate || getDefaultTemplate());
-      }
+  setIsLoadingDocuments(true);
+  try {
+    const response = await fetch(`/.netlify/functions/get-village-documents?villageId=${villageInfo?.villageId}`);
+    const result = await response.json();
+    
+    if (response.ok) {
+     setDocuments({
+        letterhead: result.documents?.letterhead?.data || null,
+        signature: result.documents?.signature?.data || null,
+        seal: result.documents?.seal?.data || null,
+        roundSeal: result.documents?.roundSeal?.data || null
+      });
+      setCertificateTemplate(result.documents?.certificateTemplate || getDefaultTemplate());
+    }
     } catch (error) {
       toast({
         title: "Error",
