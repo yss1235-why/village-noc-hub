@@ -167,7 +167,7 @@ const AdminDashboard = () => {
   const loadVillageInfo = async () => {
     setIsLoadingVillageInfo(true);
     try {
-      const response = await fetch('/.netlify/functions/update-village-info?villageId=zingsui-village-1');
+     const response = await fetch(`/.netlify/functions/update-village-info?villageId=${villageInfo?.villageId}`);
       const result = await response.json();
       
       if (response.ok && result.village) {
@@ -202,7 +202,7 @@ const AdminDashboard = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          villageId: 'zingsui-village-1', // In real app, get this from user session
+         villageId: villageInfo?.villageId,
           villageName: villageForm.villageName,
           district: villageForm.district,
           state: villageForm.state,
