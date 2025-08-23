@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,19 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Get logged-in village info
+  const [villageInfo, setVillageInfo] = useState(() => {
+    const stored = localStorage.getItem('villageAdmin');
+    return stored ? JSON.parse(stored) : null;
+  });
+
+  // Redirect if not logged in
+  useEffect(() => {
+    if (!villageInfo) {
+      navigate('/admin');
+    }
+  }, [villageInfo, navigate]);
 
   // Password change state
   const [showChangePassword, setShowChangePassword] = useState(false);
@@ -227,7 +240,8 @@ const AdminDashboard = () => {
     },
   ]);
 
-  const handleLogout = () => {
+ const handleLogout = () => {
+    localStorage.removeItem('villageAdmin');
     toast({
       title: "Logged Out",
       description: "You have been successfully logged out.",
@@ -287,9 +301,11 @@ const AdminDashboard = () => {
       <header className="bg-primary text-primary-foreground py-4 shadow-lg">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between">
-            <div>
+           <div>
               <h1 className="text-xl font-bold">Admin Dashboard</h1>
-              <p className="text-sm text-primary-foreground/80">Zingsui Sambu Village - Certificate Management</p>
+              <p className="text-sm text-primary-foreground/80">
+                {villageInfo?.villageName || 'Village'} - Certificate Management
+              </p>
             </div>
             <div className="flex gap-2">
               <DropdownMenu>
