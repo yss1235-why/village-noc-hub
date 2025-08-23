@@ -30,14 +30,58 @@ export const handler = async (event, context) => {
       };
     }
 
-    // Get village documents - for now return null/default values
-    // In a real implementation, you'd fetch from a documents table
+   // Create village_documents table if it doesn't exist
+    await sql`
+      CREATE TABLE IF NOT EXISTS village_documents (
+        id SERIAL PRIMARY KEY,
+        village_id VARCHAR(255) NOT NULL,
+        document_type VARCHAR(50) NOT NULL,
+        document_data TEXT,
+        file_name VARCHAR(255),
+        uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(village_id, document_type)
+      )
+    `;
+
+    // Create certificate_templates table if it doesn't exist  
+    await sql`
+      CREATE TABLE IF NOT EXISTS certificate_templates (
+        id SERIAL PRIMARY KEY,
+        village_id VARCHAR(255) NOT NULL UNIQUE,
+        template TEXT NOT NULL,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+
+    // Get village documents from database
+    const docs = await sql`
+      SELECT document_type, document_data, file_name
+      FROM village_documents 
+      WHERE village_id = ${villageId}
+    `;
+
+    // Get certificate template
+    const template = await sql`
+      SELECT template
+      FROM certificate_templates 
+      WHERE village_id = ${villageId}
+    `;
+
+    // Format documents
+    const documentsMap = {};
+    docs.forEach(doc => {
+      documentsMap[doc.document_type] = {
+        data: doc.document_data,
+        filename: doc.file_name
+      };
+    });
+
     const documents = {
-      letterhead: null,
-      signature: null, 
-      seal: null,
-      roundSeal: null,
-      certificateTemplate: `No Objection Certificate.
+      letterhead: documentsMap.letterhead || null,
+      signature: documentsMap.signature || null,
+      seal: documentsMap.seal || null,
+      roundSeal: documentsMap.roundSeal || null,
+      certificateTemplate: template[0]?.template || `No Objection Certificate.
 This is to certify that
 {{TITLE}}
 {{APPLICANT_NAME}}
