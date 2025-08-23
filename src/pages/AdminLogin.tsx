@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 
 const AdminLogin = () => {
   const [credentials, setCredentials] = useState({
-    username: "",
+    email: "",
     password: ""
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -22,7 +22,7 @@ const AdminLogin = () => {
     e.preventDefault();
     setIsLoading(true);
 
-  try {
+    try {
       const response = await fetch('/.netlify/functions/auth-village-admin', {
         method: 'POST',
         headers: {
@@ -65,6 +65,7 @@ const AdminLogin = () => {
     } finally {
       setIsLoading(false);
     }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/30">
