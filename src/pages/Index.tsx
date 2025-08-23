@@ -84,29 +84,16 @@ const Index = () => {
             </Card>
           </div>
 
-          {/* Information Section */}
-          <div className="bg-card rounded-lg p-6 shadow-sm">
-            <h3 className="text-lg font-semibold mb-4">Certificate Information</h3>
-            <div className="grid md:grid-cols-2 gap-6 text-sm text-muted-foreground">
-              <div>
-                <h4 className="font-medium text-foreground mb-2">Village Details:</h4>
-                <ul className="space-y-1">
-                  <li>• Village: Zingsui Sambu</li>
-                  <li>• Post Office: Ukhrul</li>
-                  <li>• Police Station: Shangshak</li>
-                  <li>• Sub-division: Sahamphung</li>
-                  <li>• District: Kamjong, Manipur - 795145</li>
-                </ul>
+{/* Advertisements Section - For Future Use */}
+          <div className="bg-card rounded-lg p-6 shadow-sm border-2 border-dashed border-muted">
+            <div className="text-center py-8">
+              <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+                <Building2 className="h-8 w-8 text-muted-foreground" />
               </div>
-              <div>
-                <h4 className="font-medium text-foreground mb-2">Available Services:</h4>
-                  <ul className="space-y-1">
-                    <li>• No Objection Certificate (NOC)</li>
-                    <li>• Multi-village support</li>
-                    <li>• Digital document verification</li>
-                    <li>• PDF certificate download</li>
-                  </ul>
-              </div>
+              <h3 className="text-lg font-semibold mb-2 text-muted-foreground">Advertisement Space</h3>
+              <p className="text-sm text-muted-foreground">
+                This section is reserved for future advertisements and promotional content.
+              </p>
             </div>
           </div>
         </div>
