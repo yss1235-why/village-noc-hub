@@ -30,8 +30,8 @@ export const handler = async (event, context) => {
       };
     }
 
-    // For now just return success - in real implementation you'd:
-    // Update the certificate template in database
+    // For now, just return success since we don't have a documents table
+    // In a real implementation, you would:
     // await sql`UPDATE village_documents SET certificate_template = ${template} WHERE village_id = ${villageId}`;
 
     return {
