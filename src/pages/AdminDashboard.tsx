@@ -129,7 +129,7 @@ const AdminDashboard = () => {
         body: JSON.stringify({
           currentPassword: passwordForm.currentPassword,
           newPassword: passwordForm.newPassword,
-          villageId: 'zingsui-village-1' // In real app, get this from user session
+          villageId: villageInfo?.villageId
         })
       });
 
@@ -693,7 +693,7 @@ Headman/Chairman
                   </Button>
                 </DropdownMenuTrigger>
                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem onClick={() => setShowProfileManager(true)}>
+                <DropdownMenuItem onClick={() => { setShowProfileManager(true); loadProfileInfo(); }}>
                     <Users className="h-4 w-4 mr-2" />
                     My Profile
                   </DropdownMenuItem>
@@ -701,11 +701,11 @@ Headman/Chairman
                     <Building2 className="h-4 w-4 mr-2" />
                     Village Information
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setShowDocumentManager(true)}>
+                 <DropdownMenuItem onClick={() => { setShowDocumentManager(true); loadDocuments(); }}>
                     <FileText className="h-4 w-4 mr-2" />
                     Documents & Seals
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setShowTemplateManager(true)}>
+                 <DropdownMenuItem onClick={() => { setShowTemplateManager(true); loadDocuments(); }}>
                     <Eye className="h-4 w-4 mr-2" />
                     Certificate Template
                   </DropdownMenuItem>
