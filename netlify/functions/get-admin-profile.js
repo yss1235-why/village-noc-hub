@@ -1,0 +1,86 @@
+import { sql } from './utils/db.js';
+
+export const handler = async (event, context) => {
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'GET',
+  };
+
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 200, headers };
+  }
+
+  if (event.httpMethod !== 'GET') {
+    return {
+      statusCode: 405,
+      headers,
+      body: JSON.stringify({ error: 'Method not allowed' })
+    };
+  }
+
+  try {
+    const { villageId } = event.queryStringParameters;
+
+    if (!villageId) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Village ID is required' })
+      };
+    }
+
+    // Get admin profile from villages table
+    const village = await sql`
+      SELECT 
+        id,
+        admin_name as adminName,
+        admin_email as email,
+        name as villageName,
+        district,
+        state,
+        pin_code as pinCode
+      FROM villages 
+      WHERE id = ${villageId}
+    `;
+
+    if (village.length === 0) {
+      return {
+        statusCode: 404,
+        headers,
+        body: JSON.stringify({ error: 'Village not found' })
+      };
+    }
+
+    // Try to get additional user info (like phone) from users table
+    const user = await sql`
+      SELECT phone
+      FROM users 
+      WHERE village_id = ${villageId} AND role = 'village_admin'
+    `;
+
+    const profile = {
+      adminName: village[0].adminname,
+      email: village[0].email,
+      phone: user.length > 0 ? user[0].phone : '',
+      villageName: village[0].villagename,
+      district: village[0].district,
+      state: village[0].state,
+      pinCode: village[0].pincode
+    };
+
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({ profile })
+    };
+
+  } catch (error) {
+    console.error('Get admin profile error:', error);
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ error: 'Failed to load profile information' })
+    };
+  }
+};
