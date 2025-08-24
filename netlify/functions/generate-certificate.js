@@ -96,7 +96,7 @@ const timesFont = await pdfDoc.embedFont(StandardFonts.TimesRoman);
 const timesBoldFont = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
 
 // Generate QR Code
-const qrCodeDataUrl = await QRCode.toDataURL(`Application: ${app.application_number}\nName: ${app.applicant_name}\nRelation: ${app.relation || 'S/o'}\nPO: ${app.post_office || app.village_name}\nPS: ${app.police_station || app.district}\nVillage: ${app.village_name}`);
+const qrCodeDataUrl = await QRCode.toDataURL(`Application: ${app.application_number}\nName: ${app.applicant_name}\nRelation: ${app.relation}\nPO: ${app.post_office}\nPS: ${app.police_station}\nVillage: ${app.village_name}`);
 const qrCodeImage = await pdfDoc.embedPng(qrCodeDataUrl);
 
 // Embed images if they exist
@@ -219,6 +219,13 @@ page.drawText('TO WHOM IT MAY CONCERN', {
   size: 16,
   font: timesBoldFont,
 });
+// Function to convert text to proper case
+const toProperCase = (text) => {
+  if (!text) return text;
+  return text.toLowerCase().split(' ').map(word => 
+    word.charAt(0).toUpperCase() + word.slice(1)
+  ).join(' ');
+};
 
 // Check if template exists
 if (!template.length || !template[0]) {
@@ -230,67 +237,110 @@ if (!template.length || !template[0]) {
   };
 }
 
-// Check if template exists
-if (!template.length || !template[0]) {
-  console.log('7. No template found for village');
-  return {
-    statusCode: 400,
-    headers,
-    body: JSON.stringify({ error: 'No certificate template found for this village. Please contact the village admin to set up the template.' })
-  };
-}
+// Get current date
+const currentDate = new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
 
-// Certificate text
-const certificateText = template[0].template
-  .replace(/{{TITLE}}/g, app.title)
-  .replace(/{{APPLICANT_NAME}}/g, app.applicant_name)
-  .replace(/{{RELATION}}/g, app.relation)
-  .replace(/{{FATHER_NAME}}/g, app.father_name)
-  .replace(/{{HOUSE_NUMBER}}/g, app.house_number)
-  .replace(/{{VILLAGE_NAME}}/g, app.village_name)
-  .replace(/{{POST_OFFICE}}/g, app.post_office)
-  .replace(/{{POLICE_STATION}}/g, app.police_station)
-  .replace(/{{SUB_DIVISION}}/g, app.sub_division)
-  .replace(/{{DISTRICT}}/g, app.district)
-  .replace(/{{STATE}}/g, app.state)
-  .replace(/{{PIN_CODE}}/g, app.pin_code)
-  .replace(/{{TRIBE_NAME}}/g, app.tribe_name)
-  .replace(/{{RELIGION}}/g, app.religion)
-  .replace(/{{ANNUAL_INCOME_NUMBER}}/g, app.annual_income)
-  .replace(/{{ANNUAL_INCOME_WORDS}}/g, app.annual_income_words)
-  .replace(/\n/g, ' ')
-  .replace(/\r/g, ' ')
-  .replace(/\t/g, ' ')
-  .replace(/\s+/g, ' ')
-  .trim();
-// Split text into lines and draw
-const words = certificateText.split(' ');
-const lines = [];
-let currentLine = '';
-const maxWidth = width - 120;
+// Certificate text with proper formatting
+let certificateText = template[0].template
+  .replace(/{{TITLE}}/g, `**${toProperCase(app.title)}**`)
+  .replace(/{{APPLICANT_NAME}}/g, `**${toProperCase(app.applicant_name)}**`)
+  .replace(/{{RELATION}}/g, `**${toProperCase(app.relation)}**`)
+  .replace(/{{FATHER_NAME}}/g, `**${toProperCase(app.father_name)}**`)
+  .replace(/{{HOUSE_NUMBER}}/g, `**${app.house_number}**`)
+  .replace(/{{VILLAGE_NAME}}/g, `**${toProperCase(app.village_name)}**`)
+  .replace(/{{POST_OFFICE}}/g, `**${toProperCase(app.post_office)}**`)
+  .replace(/{{POLICE_STATION}}/g, `**${toProperCase(app.police_station)}**`)
+  .replace(/{{SUB_DIVISION}}/g, `**${toProperCase(app.sub_division)}**`)
+  .replace(/{{DISTRICT}}/g, `**${toProperCase(app.district)}**`)
+  .replace(/{{STATE}}/g, `**${toProperCase(app.state)}**`)
+  .replace(/{{PIN_CODE}}/g, `**${app.pin_code}**`)
+  .replace(/{{TRIBE_NAME}}/g, `**${toProperCase(app.tribe_name)}**`)
+  .replace(/{{RELIGION}}/g, `**${toProperCase(app.religion)}**`)
+  .replace(/{{ANNUAL_INCOME_NUMBER}}/g, `**${app.annual_income}**`)
+  .replace(/{{ANNUAL_INCOME_WORDS}}/g, `**${toProperCase(app.annual_income_words)}**`)
+  .replace(/{{ISSUE_DATE}}/g, currentDate)
+  .replace(/{{ADMIN_NAME}}/g, toProperCase(app.admin_name));
 
-for (const word of words) {
-  const testLine = currentLine + (currentLine ? ' ' : '') + word;
-  const textWidth = timesFont.widthOfTextAtSize(testLine, 14);
-  
-  if (textWidth > maxWidth && currentLine) {
-    lines.push(currentLine);
-    currentLine = word;
-  } else {
-    currentLine = testLine;
-  }
-}
-if (currentLine) lines.push(currentLine);
-
+// Remove unwanted text
+certificateText = certificateText.replace(/No Objection Certificate\.\s*/g, '');
+// Split text into paragraphs and draw with justification
+const paragraphs = certificateText.split('\n\n');
 let yPosition = height - 320;
-lines.forEach(line => {
-  page.drawText(line, {
-    x: 60,
-    y: yPosition,
-    size: 14,
-    font: timesFont,
-  });
-  yPosition -= 20;
+const maxWidth = width - 120;
+const leftMargin = 60;
+const rightMargin = width - 60;
+
+paragraphs.forEach(paragraph => {
+  if (paragraph.trim()) {
+    const words = paragraph.trim().split(' ');
+    const lines = [];
+    let currentLine = '';
+    
+    for (const word of words) {
+      const isBold = word.startsWith('**') && word.endsWith('**');
+      const cleanWord = isBold ? word.replace(/\*\*/g, '') : word;
+      const testFont = isBold ? timesBoldFont : timesFont;
+      const testLine = currentLine + (currentLine ? ' ' : '') + cleanWord;
+      const textWidth = testFont.widthOfTextAtSize(testLine, 14);
+      
+      if (textWidth > maxWidth && currentLine) {
+        lines.push(currentLine);
+        currentLine = cleanWord;
+      } else {
+        currentLine = testLine;
+      }
+    }
+    if (currentLine) lines.push(currentLine);
+
+    // Draw lines with justification
+    lines.forEach((line, index) => {
+      const lineWords = line.split(' ');
+      const isLastLine = index === lines.length - 1;
+      
+      if (lineWords.length === 1 || isLastLine) {
+        // Don't justify single words or last line
+        let xPosition = leftMargin;
+        lineWords.forEach(word => {
+          const isBold = paragraph.includes(`**${word}**`);
+          const font = isBold ? timesBoldFont : timesFont;
+          page.drawText(word, {
+            x: xPosition,
+            y: yPosition,
+            size: 14,
+            font: font,
+          });
+          xPosition += font.widthOfTextAtSize(word + ' ', 14);
+        });
+      } else {
+        // Justify the line
+        const totalWordsWidth = lineWords.reduce((sum, word) => {
+          const isBold = paragraph.includes(`**${word}**`);
+          const font = isBold ? timesBoldFont : timesFont;
+          return sum + font.widthOfTextAtSize(word, 14);
+        }, 0);
+        const spaceWidth = (maxWidth - totalWordsWidth) / (lineWords.length - 1);
+        
+        let xPosition = leftMargin;
+        lineWords.forEach((word, wordIndex) => {
+          const isBold = paragraph.includes(`**${word}**`);
+          const font = isBold ? timesBoldFont : timesFont;
+          page.drawText(word, {
+            x: xPosition,
+            y: yPosition,
+            size: 14,
+            font: font,
+          });
+          if (wordIndex < lineWords.length - 1) {
+            xPosition += font.widthOfTextAtSize(word, 14) + spaceWidth;
+          }
+        });
+      }
+      yPosition -= 20;
+    });
+    
+    // Add paragraph spacing
+    yPosition -= 10;
+  }
 });
 
 // QR Code
@@ -311,24 +361,39 @@ if (signatureImage) {
   });
 }
 
-// Official text
-page.drawText('Headman/Secretary', {
-  x: width - 200,
-  y: 140,
-  size: 10,
+// Date and Place (left side, below QR code)
+page.drawText(`Date: ${currentDate}`, {
+  x: 60,
+  y: 80,
+  size: 12,
   font: timesFont,
 });
 
-page.drawText(`${app.admin_name || 'Village Authority'}`, {
+page.drawText(`Place: ${toProperCase(app.sub_division)}`, {
+  x: 60,
+  y: 65,
+  size: 12,
+  font: timesFont,
+});
+
+// Official text (right side, aligned with signature)
+page.drawText(`${toProperCase(app.admin_name)}`, {
   x: width - 200,
-  y: 120,
+  y: 140,
   size: 12,
   font: timesBoldFont,
 });
 
-page.drawText(`Secretary, ${app.village_name} Village`, {
+page.drawText('Headman/Chairman', {
   x: width - 200,
-  y: 105,
+  y: 125,
+  size: 10,
+  font: timesFont,
+});
+
+page.drawText(`${toProperCase(app.village_name)} Village`, {
+  x: width - 200,
+  y: 110,
   size: 10,
   font: timesFont,
 });
