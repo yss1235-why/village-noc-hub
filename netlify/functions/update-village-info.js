@@ -34,8 +34,7 @@ export const handler = async (event, context) => {
 
     if (event.httpMethod === 'PUT') {
       // Update village information
-     const { villageId, villageName, district, state, pinCode, postOffice, policeStation, subDivision, adminName, adminEmail } = JSON.parse(event.body);
-      
+   const { villageId, villageName, district, state, pinCode, postOffice, policeStation, subDivision, adminName, adminEmail } = JSON.parse(event.body);
       // Check if village name already exists (excluding current village)
       const existingVillage = await sql`
         SELECT id FROM villages 
@@ -52,8 +51,6 @@ export const handler = async (event, context) => {
       
       // Update village information
       await sql`
-        UPDATE villages 
-        await sql`
         UPDATE villages 
         SET name = ${villageName}, 
             district = ${district}, 
@@ -86,6 +83,7 @@ export const handler = async (event, context) => {
 
   } catch (error) {
     console.error('Village update error:', error);
+    console.error('Error stack:', error.stack);
     return {
       statusCode: 500,
       headers,
