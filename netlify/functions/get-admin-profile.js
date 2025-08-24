@@ -34,15 +34,15 @@ export const handler = async (event, context) => {
    const village = await sql`
       SELECT 
         id,
-        admin_name as adminName,
+        admin_name,
         admin_email as email,
         name as villageName,
         district,
         state,
         pin_code as pinCode,
-        post_office as postOffice,
-        police_station as policeStation,
-        sub_division as subDivision
+        COALESCE(post_office, '') as postOffice,
+        COALESCE(police_station, '') as policeStation,
+        COALESCE(sub_division, '') as subDivision
       FROM villages 
       WHERE id = ${villageId}
     `;
@@ -61,8 +61,8 @@ export const handler = async (event, context) => {
       WHERE village_id = ${villageId} AND role = 'village_admin'
     `;
 
- const profile = {
-  adminName: village[0].adminname,     
+const profile = {
+  adminName: village[0].admin_name,     
   email: village[0].email,
   phone: user.length > 0 ? user[0].phone : '',
   villageName: village[0].villagename,  
@@ -71,9 +71,8 @@ export const handler = async (event, context) => {
   pinCode: village[0].pincode,
   postOffice: village[0].postoffice || '',
   policeStation: village[0].policestation || '',
-  subDivision: village[0].subdivision || ''
+  subDivision: village[0].subdivision || ''         
 };
-
     return {
       statusCode: 200,
       headers,
