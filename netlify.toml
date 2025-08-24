@@ -2,8 +2,15 @@
   functions = "netlify/functions"
   publish = "dist"
 
+[[plugins]]
+  package = "@netlify/plugin-functions-install-core"
+
 [functions]
   node_bundler = "esbuild"
+
+[build.environment]
+  PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = "true"
+  PUPPETEER_EXECUTABLE_PATH = "/usr/bin/google-chrome-stable"
 
 [[redirects]]
   from = "/api/*"
