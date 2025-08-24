@@ -273,7 +273,31 @@ Headman/Chairman
 {{VILLAGE_NAME}}`;
   };
 
- const loadDocuments = async () => {
+const loadDocuments = async () => {
+    setIsLoadingDocuments(true);
+    try {
+      const response = await fetch(`/.netlify/functions/get-village-documents?villageId=${villageInfo?.villageId}`);
+      const result = await response.json();
+      
+      if (response.ok) {
+        setDocuments({
+          letterhead: result.documents?.letterhead?.data || null,
+          signature: result.documents?.signature?.data || null,
+          seal: result.documents?.seal?.data || null,
+          roundSeal: result.documents?.roundSeal?.data || null
+        });
+        setCertificateTemplate(result.documents?.certificateTemplate || getDefaultTemplate());
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load documents.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingDocuments(false);
+    }
+  };
 
   const validatePNGFile = (file: File): boolean => {
     if (file.type !== 'image/png') {
@@ -308,7 +332,7 @@ Headman/Chairman
     }));
   };
 
-const handleDocumentUpload = async (documentType: string) => {
+  const handleDocumentUpload = async (documentType: string) => {
     const file = documentFiles[documentType];
     if (!file) return;
 
