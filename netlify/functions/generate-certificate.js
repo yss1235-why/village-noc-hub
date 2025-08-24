@@ -262,13 +262,26 @@ let certificateText = template[0].template
   .replace(/{{ADMIN_NAME}}/g, toProperCase(app.admin_name));
 
 // Remove unwanted text and clean up line breaks
-certificateText = certificateText.replace(/No Objection Certificate\.\s*/g, '');
+certificateText = certificateText
+  .replace(/No Objection Certificate\.\s*/g, '')
+  .replace(/Date:\s*\d{1,2}-\d{1,2}-\d{4}/g, '')  // Remove date from content
+  .replace(/Place:\s*\*\*[^*]+\*\*/g, '')         // Remove place from content
+  .replace(/\*\*[^*]+\*\*\s*Headman\/Chairman\s*\*\*[^*]+\*\*/g, '') // Remove admin signature from content
+  .replace(/Headman\/Chairman/g, '')               // Remove any remaining headman text
+  .replace(/\s+/g, ' ')                           // Clean up multiple spaces
+  .trim();
 
-// Clean up all problematic characters that cause PDF encoding issues
+
+// Clean up all problematic characters and add specific paragraph breaks
 certificateText = certificateText
   .replace(/\r\n/g, '\n')  // Convert Windows line endings
   .replace(/\r/g, '\n')    // Convert Mac line endings
   .replace(/\n{3,}/g, '\n\n') // Convert multiple line breaks to double
+  // Add paragraph breaks at your specified locations
+  .replace(/(\*\*\d+\*\*\.\s*)/g, '$1\n\n')  // After PIN code like **795142**.
+  .replace(/(undefined only\.\s*)/g, '$1\n\n')  // After "undefined only."
+  .replace(/(Village record\.\s*)/g, '$1\n\n')  // After "Village record."
+  .replace(/(He\/She is not related to me\.)/g, '\n\n$1')  // Make "He/She is not related" its own paragraph
   .trim();
 
 // Split text into paragraphs and draw with justification
@@ -282,66 +295,79 @@ paragraphs.forEach(paragraph => {
   if (paragraph.trim()) {
     // Replace any remaining single line breaks with spaces within paragraphs
     const cleanParagraph = paragraph.trim().replace(/\n/g, ' ').replace(/\s+/g, ' ');
-    const words = cleanParagraph.split(' ');
-    const lines = [];
-    let currentLine = '';
     
-    for (const word of words) {
+    // Create word objects with bold formatting info
+    const wordObjects = [];
+    const words = cleanParagraph.split(' ');
+    
+    words.forEach(word => {
       const isBold = word.startsWith('**') && word.endsWith('**');
       const cleanWord = isBold ? word.replace(/\*\*/g, '') : word;
-      const testFont = isBold ? timesBoldFont : timesFont;
-      const testLine = currentLine + (currentLine ? ' ' : '') + cleanWord;
+      if (cleanWord.trim()) {  // Only add non-empty words
+        wordObjects.push({
+          text: cleanWord,
+          isBold: isBold
+        });
+      }
+    });
+    
+    // Build lines with word objects
+    const lines = [];
+    let currentLine = [];
+    let currentLineText = '';
+    
+    for (const wordObj of wordObjects) {
+      const testFont = wordObj.isBold ? timesBoldFont : timesFont;
+      const testLine = currentLineText + (currentLineText ? ' ' : '') + wordObj.text;
       const textWidth = testFont.widthOfTextAtSize(testLine, 14);
       
-      if (textWidth > maxWidth && currentLine) {
+      if (textWidth > maxWidth && currentLine.length > 0) {
         lines.push(currentLine);
-        currentLine = cleanWord;
+        currentLine = [wordObj];
+        currentLineText = wordObj.text;
       } else {
-        currentLine = testLine;
+        currentLine.push(wordObj);
+        currentLineText = testLine;
       }
     }
-    if (currentLine) lines.push(currentLine);
+    if (currentLine.length > 0) lines.push(currentLine);
 
     // Draw lines with justification
     lines.forEach((line, index) => {
-      const lineWords = line.split(' ');
       const isLastLine = index === lines.length - 1;
       
-      if (lineWords.length === 1 || isLastLine) {
+      if (line.length === 1 || isLastLine) {
         // Don't justify single words or last line
         let xPosition = leftMargin;
-        lineWords.forEach(word => {
-         const isBold = cleanParagraph.includes(`**${word}**`);
-          const font = isBold ? timesBoldFont : timesFont;
-          page.drawText(word, {
+        line.forEach(wordObj => {
+          const font = wordObj.isBold ? timesBoldFont : timesFont;
+          page.drawText(wordObj.text, {
             x: xPosition,
             y: yPosition,
             size: 14,
             font: font,
           });
-          xPosition += font.widthOfTextAtSize(word + ' ', 14);
+          xPosition += font.widthOfTextAtSize(wordObj.text + ' ', 14);
         });
       } else {
         // Justify the line
-        const totalWordsWidth = lineWords.reduce((sum, word) => {
-          const isBold = paragraph.includes(`**${word}**`);
-          const font = isBold ? timesBoldFont : timesFont;
-          return sum + font.widthOfTextAtSize(word, 14);
+        const totalWordsWidth = line.reduce((sum, wordObj) => {
+          const font = wordObj.isBold ? timesBoldFont : timesFont;
+          return sum + font.widthOfTextAtSize(wordObj.text, 14);
         }, 0);
-        const spaceWidth = (maxWidth - totalWordsWidth) / (lineWords.length - 1);
+        const spaceWidth = (maxWidth - totalWordsWidth) / (line.length - 1);
         
         let xPosition = leftMargin;
-        lineWords.forEach((word, wordIndex) => {
-          const isBold = paragraph.includes(`**${word}**`);
-          const font = isBold ? timesBoldFont : timesFont;
-          page.drawText(word, {
+        line.forEach((wordObj, wordIndex) => {
+          const font = wordObj.isBold ? timesBoldFont : timesFont;
+          page.drawText(wordObj.text, {
             x: xPosition,
             y: yPosition,
             size: 14,
             font: font,
           });
-          if (wordIndex < lineWords.length - 1) {
-            xPosition += font.widthOfTextAtSize(word, 14) + spaceWidth;
+          if (wordIndex < line.length - 1) {
+            xPosition += font.widthOfTextAtSize(wordObj.text, 14) + spaceWidth;
           }
         });
       }
