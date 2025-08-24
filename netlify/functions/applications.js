@@ -49,14 +49,13 @@ export const handler = async (event, context) => {
       
       // Insert new NOC application
       const result = await sql`
-        INSERT INTO noc_applications (
-          application_number, applicant_name, father_name, address, 
-          village_id, purpose_of_noc, phone, email, status
-        )
-        VALUES (
-          ${applicationNumber}, ${applicantName}, ${fatherName}, ${address},
-          ${villageId}, ${purposeOfNOC}, ${phone}, ${email}, 'pending'
-        )
+INSERT INTO noc_applications (
+  application_number, title, applicant_name, relation, father_name, address, house_number,
+  village_id, tribe_name, religion, annual_income, annual_income_words, purpose_of_noc, phone, email, status
+) VALUES (
+  ${applicationNumber}, ${title}, ${applicantName}, ${relation}, ${fatherName}, ${address}, ${houseNumber},
+  ${villageId}, ${tribeName}, ${religion}, ${annualIncome}, ${annualIncomeWords}, ${purposeOfNOC}, ${phone}, ${email}, 'pending'
+)
         RETURNING id
       `;
       
