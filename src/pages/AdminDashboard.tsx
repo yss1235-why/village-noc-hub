@@ -255,13 +255,7 @@ const AdminDashboard = () => {
   };
 
   const getDefaultTemplate = () => {
-    return `No Objection Certificate.
-This is to certify that
-{{TITLE}}
-{{APPLICANT_NAME}}
-{{RELATION}}
-{{FATHER_NAME}}
-is an inhabitant of House no.
+   return `This is to certify that {{TITLE}} {{APPLICANT_NAME}} {{RELATION}} {{FATHER_NAME}} is an inhabitant of House no.
 {{HOUSE_NUMBER}},
 {{VILLAGE_NAME}} Village, Under
 Post Office {{POST_OFFICE}}, Police Station {{POLICE_STATION}}
