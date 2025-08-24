@@ -11,8 +11,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "puppeteer-core": "^22.0.0",
-    "@sparticuz/chromium": "^119.0.0",
+    "pdf-lib": "^1.17.1",
+    "qrcode": "^1.5.3",
     "@neondatabase/serverless": "^0.10.3",
     "bcrypt": "^5.1.1",
     "@hookform/resolvers": "^3.10.0",
