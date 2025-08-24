@@ -77,12 +77,21 @@ export const handler = async (event, context) => {
       };
     }
 
+    // If we get here, method is not supported
+    return {
+      statusCode: 405,
+      headers,
+      body: JSON.stringify({ error: 'Method not allowed. Only GET and PUT are supported.' })
+    };
+
   } catch (error) {
     console.error('Village update error:', error);
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: 'Failed to update village information' })
+      body: JSON.stringify({ 
+        error: 'Failed to update village information',
+        details: error.message
+      })
     };
   }
-};
