@@ -280,10 +280,21 @@ export const handler = async (event, context) => {
     `;
 
    // Generate PDF
- const browser = await puppeteer.launch({
-      args: [...chromium.args, '--hide-scrollbars', '--disable-web-security'],
+// Debug chromium path
+    const executablePath = await chromium.executablePath();
+    console.log('Chromium executable path:', executablePath);
+
+    const browser = await puppeteer.launch({
+      args: [
+        ...chromium.args,
+        '--hide-scrollbars',
+        '--disable-web-security',
+        '--disable-dev-shm-usage',
+        '--no-sandbox',
+        '--disable-setuid-sandbox'
+      ],
       defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
+      executablePath: executablePath,
       headless: 'new',
       ignoreHTTPSErrors: true,
     });
