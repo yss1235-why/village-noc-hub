@@ -170,14 +170,19 @@ page.drawRectangle({
   borderWidth: 1,
 });
 
-// Letterhead or Authority name
+// Letterhead or Authority name - Updated to reach borders with 2-3px gap
 if (letterheadImage) {
+  // Calculate letterhead width to reach both sides with 2-3px gap
+  const letterheadWidth = width - 66; // 30px border + 3px gap on each side = 66px total margin
+  const letterheadHeight = 120; // Increased proportionally from original 100px
+  
   page.drawImage(letterheadImage, {
-    x: width / 2 - 200,
-    y: height - 160,
-    width: 400,
-    height: 100,
+    x: 33, // 30px border + 3px gap
+    y: height - 180, // Adjusted Y position for larger height
+    width: letterheadWidth,
+    height: letterheadHeight,
   });
+}
 } else {
   page.drawText(app.village_name.toUpperCase() + ' VILLAGE AUTHORITY', {
     x: width / 2 - 200,
@@ -196,10 +201,10 @@ if (letterheadImage) {
   });
 }
 
-// Reference number and date
+// Reference number and date (adjusted for new letterhead position)
 page.drawText(`Rf. No. ${refNo}`, {
   x: 60,
-  y: height - 200,
+  y: height - 220, // Adjusted for larger letterhead
   size: 14,
   font: timesBoldFont,
   color: rgb(0.17, 0.35, 0.63),
@@ -207,15 +212,14 @@ page.drawText(`Rf. No. ${refNo}`, {
 
 page.drawText(`Dated: ${new Date().toLocaleDateString('en-GB').replace(/\//g, '-')}`, {
   x: width - 200,
-  y: height - 200,
+  y: height - 220, // Adjusted for larger letterhead
   size: 12,
   font: timesFont,
 });
-
-// Main title
+// Main title (adjusted position)
 page.drawText('TO WHOM IT MAY CONCERN', {
   x: width / 2 - 120,
-  y: height - 280,
+  y: height - 300, // Adjusted for larger letterhead
   size: 16,
   font: timesBoldFont,
 });
@@ -441,23 +445,23 @@ page.drawText(`${toProperCase(app.village_name)} Village`, {
   font: timesFont,
 });
 
-// Regular Seal (right side, below village name with more space)
+// Regular Seal (right side, below village name with more space) - Updated size
 if (sealImage) {
   page.drawImage(sealImage, {
-    x: width - 220,
-    y: 80,
-    width: 70,
-    height: 70,
+    x: width - 240, // Adjusted position for larger seal
+    y: 70, // Slightly adjusted position
+    width: 85, // Increased proportionally from 70
+    height: 85, // Increased proportionally from 70
   });
 }
 
-// Round Seal (right side, more spaced out)
+// Round Seal (right side, more spaced out) - Updated size
 if (roundSealImage) {
   page.drawImage(roundSealImage, {
-    x: width - 130,
-    y: 80,
-    width: 70,
-    height: 70,
+    x: width - 140, // Adjusted position for larger seal
+    y: 70, // Slightly adjusted position
+    width: 85, // Increased proportionally from 70
+    height: 85, // Increased proportionally from 70
   });
 }
 
