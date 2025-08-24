@@ -12,6 +12,29 @@ export const handler = async (event, context) => {
   }
 
   try {
+    // Create noc_applications table if it doesn't exist (with correct UUID type)
+    await sql`
+      CREATE TABLE IF NOT EXISTS noc_applications (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        application_number VARCHAR(50) UNIQUE NOT NULL,
+        applicant_name VARCHAR(255) NOT NULL,
+        father_name VARCHAR(255) NOT NULL,
+        address TEXT NOT NULL,
+        village_id UUID,
+        purpose_of_noc TEXT NOT NULL,
+        phone VARCHAR(20) NOT NULL,
+        email VARCHAR(255),
+        aadhaar_url VARCHAR(500),
+        passport_url VARCHAR(500),
+        status VARCHAR(50) DEFAULT 'pending',
+        admin_notes TEXT,
+        created_at TIMESTAMP DEFAULT NOW(),
+        approved_at TIMESTAMP,
+        approved_by UUID,
+        CONSTRAINT status_check CHECK (status IN ('pending', 'approved', 'rejected', 'needs_edit'))
+      )
+    `;
+
     if (event.httpMethod === 'POST') {
       const { 
         applicationNumber, 
@@ -48,7 +71,7 @@ export const handler = async (event, context) => {
       const { applicationNumber } = event.queryStringParameters;
       
       if (applicationNumber) {
-        // Get specific application by number
+      // Get specific application by number
         const application = await sql`
           SELECT a.*, v.name as village_name 
           FROM noc_applications a
