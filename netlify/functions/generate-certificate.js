@@ -12,9 +12,33 @@ export const handler = async (event, context) => {
     return { statusCode: 200, headers };
   }
 
-  try {
+ try {
     const { applicationId } = JSON.parse(event.body);
     console.log('1. Application ID:', applicationId);
+
+    // Create tables if they don't exist
+    await sql`
+      CREATE TABLE IF NOT EXISTS village_documents (
+        id SERIAL PRIMARY KEY,
+        village_id UUID NOT NULL,
+        document_type VARCHAR(50) NOT NULL,
+        document_data TEXT,
+        file_name VARCHAR(255),
+        uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(village_id, document_type)
+      )
+    `;
+
+    await sql`
+      CREATE TABLE IF NOT EXISTS certificate_templates (
+        id SERIAL PRIMARY KEY,
+        village_id UUID NOT NULL UNIQUE,
+        template TEXT NOT NULL,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+
+    // Get application data
 
     // Get application data
    const application = await sql`
