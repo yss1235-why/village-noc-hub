@@ -242,22 +242,27 @@ if (!template.length || !template[0]) {
 
 // Certificate text
 const certificateText = template[0].template
-  .replace(/{{TITLE}}/g, app.title || 'Mr./Ms.')
+  .replace(/{{TITLE}}/g, app.title)
   .replace(/{{APPLICANT_NAME}}/g, app.applicant_name)
-  .replace(/{{RELATION}}/g, app.relation || 'S/o')
+  .replace(/{{RELATION}}/g, app.relation)
   .replace(/{{FATHER_NAME}}/g, app.father_name)
-  .replace(/{{HOUSE_NUMBER}}/g, app.house_number || '')
+  .replace(/{{HOUSE_NUMBER}}/g, app.house_number)
   .replace(/{{VILLAGE_NAME}}/g, app.village_name)
-  .replace(/{{POST_OFFICE}}/g, app.post_office || app.village_name)
-  .replace(/{{POLICE_STATION}}/g, app.police_station || app.district)
-  .replace(/{{SUB_DIVISION}}/g, app.sub_division || app.district)
+  .replace(/{{POST_OFFICE}}/g, app.post_office)
+  .replace(/{{POLICE_STATION}}/g, app.police_station)
+  .replace(/{{SUB_DIVISION}}/g, app.sub_division)
   .replace(/{{DISTRICT}}/g, app.district)
   .replace(/{{STATE}}/g, app.state)
   .replace(/{{PIN_CODE}}/g, app.pin_code)
-  .replace(/{{TRIBE_NAME}}/g, app.tribe_name || '')
-  .replace(/{{RELIGION}}/g, app.religion || '')
-  .replace(/{{ANNUAL_INCOME_NUMBER}}/g, app.annual_income || 'Not specified')
-  .replace(/{{ANNUAL_INCOME_WORDS}}/g, app.annual_income_words || 'Not specified');
+  .replace(/{{TRIBE_NAME}}/g, app.tribe_name)
+  .replace(/{{RELIGION}}/g, app.religion)
+  .replace(/{{ANNUAL_INCOME_NUMBER}}/g, app.annual_income)
+  .replace(/{{ANNUAL_INCOME_WORDS}}/g, app.annual_income_words)
+  .replace(/\n/g, ' ')
+  .replace(/\r/g, ' ')
+  .replace(/\t/g, ' ')
+  .replace(/\s+/g, ' ')
+  .trim();
 // Split text into lines and draw
 const words = certificateText.split(' ');
 const lines = [];
