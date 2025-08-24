@@ -14,6 +14,7 @@ export const handler = async (event, context) => {
 
   try {
     const { applicationId } = JSON.parse(event.body);
+    console.log('1. Application ID:', applicationId);
 
     // Get application data
     const application = await sql`
@@ -22,8 +23,10 @@ export const handler = async (event, context) => {
       JOIN villages v ON a.village_id = v.id::varchar
       WHERE a.id = ${applicationId} AND a.status = 'approved'
     `;
+    console.log('2. Application found:', application.length > 0);
 
     if (!application.length) {
+      console.log('3. No application found or not approved');
       return {
         statusCode: 404,
         headers,
@@ -32,6 +35,7 @@ export const handler = async (event, context) => {
     }
 
     const app = application[0];
+    console.log('4. Application data:', app.applicant_name);
 
     // Get village documents and template
     const docs = await sql`
@@ -39,11 +43,13 @@ export const handler = async (event, context) => {
       FROM village_documents 
       WHERE village_id = ${app.village_id}
     `;
+    console.log('5. Documents found:', docs.length);
 
     const template = await sql`
       SELECT template FROM certificate_templates 
       WHERE village_id = ${app.village_id}
     `;
+    console.log('6. Template found:', template.length > 0);
 
     // Format documents
     const documentsMap = {};
@@ -276,12 +282,14 @@ export const handler = async (event, context) => {
       isBase64Encoded: true
     };
 
-  } catch (error) {
+ } catch (error) {
     console.error('Certificate generation error:', error);
+    console.error('Error details:', error.message);
+    console.error('Error stack:', error.stack);
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: 'Failed to generate certificate' })
+      body: JSON.stringify({ error: 'Failed to generate certificate', details: error.message })
     };
   }
 };
