@@ -42,8 +42,9 @@ exports.handler = async (event, context) => {
     // Get application data
 
     // Get application data
-   const application = await sql`
-      SELECT a.*, v.name as village_name, v.district, v.state, v.pin_code, v.admin_name
+  const application = await sql`
+      SELECT a.*, v.name as village_name, v.district, v.state, v.pin_code, 
+             v.admin_name, v.post_office, v.police_station, v.sub_division
       FROM noc_applications a
       JOIN villages v ON a.village_id::uuid = v.id
       WHERE a.id = ${applicationId} AND a.status = 'approved'
@@ -96,7 +97,7 @@ const timesFont = await pdfDoc.embedFont(StandardFonts.TimesRoman);
 const timesBoldFont = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
 
 // Generate QR Code
-const qrCodeDataUrl = await QRCode.toDataURL(`Application: ${app.application_number}\nName: ${app.applicant_name}\nRelation: ${app.relation}\nPO: ${app.post_office}\nPS: ${app.police_station}\nVillage: ${app.village_name}`);
+const qrCodeDataUrl = await QRCode.toDataURL(`Application: ${app.application_number}\nName: ${app.applicant_name}\nRelation: ${app.relation || 'N/A'}\nPO: ${app.post_office || 'N/A'}\nPS: ${app.police_station || 'N/A'}\nVillage: ${app.village_name}`);
 const qrCodeImage = await pdfDoc.embedPng(qrCodeDataUrl);
 
 // Embed images if they exist
@@ -182,7 +183,6 @@ if (letterheadImage) {
     width: letterheadWidth,
     height: letterheadHeight,
   });
-}
 } else {
   page.drawText(app.village_name.toUpperCase() + ' VILLAGE AUTHORITY', {
     x: width / 2 - 200,
@@ -416,7 +416,7 @@ page.drawText(`Date: ${currentDate}`, {
   font: timesFont,
 });
 
-page.drawText(`Place: ${toProperCase(app.sub_division)}`, {
+page.drawText(`Place: ${toProperCase(app.sub_division || app.district)}`, {
   x: 60,
   y: 65,
   size: 12,
