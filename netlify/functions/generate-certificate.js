@@ -261,8 +261,16 @@ let certificateText = template[0].template
   .replace(/{{ISSUE_DATE}}/g, currentDate)
   .replace(/{{ADMIN_NAME}}/g, toProperCase(app.admin_name));
 
-// Remove unwanted text
+// Remove unwanted text and clean up line breaks
 certificateText = certificateText.replace(/No Objection Certificate\.\s*/g, '');
+
+// Clean up all problematic characters that cause PDF encoding issues
+certificateText = certificateText
+  .replace(/\r\n/g, '\n')  // Convert Windows line endings
+  .replace(/\r/g, '\n')    // Convert Mac line endings
+  .replace(/\n{3,}/g, '\n\n') // Convert multiple line breaks to double
+  .trim();
+
 // Split text into paragraphs and draw with justification
 const paragraphs = certificateText.split('\n\n');
 let yPosition = height - 320;
@@ -272,7 +280,9 @@ const rightMargin = width - 60;
 
 paragraphs.forEach(paragraph => {
   if (paragraph.trim()) {
-    const words = paragraph.trim().split(' ');
+    // Replace any remaining single line breaks with spaces within paragraphs
+    const cleanParagraph = paragraph.trim().replace(/\n/g, ' ').replace(/\s+/g, ' ');
+    const words = cleanParagraph.split(' ');
     const lines = [];
     let currentLine = '';
     
@@ -301,7 +311,7 @@ paragraphs.forEach(paragraph => {
         // Don't justify single words or last line
         let xPosition = leftMargin;
         lineWords.forEach(word => {
-          const isBold = paragraph.includes(`**${word}**`);
+         const isBold = cleanParagraph.includes(`**${word}**`);
           const font = isBold ? timesBoldFont : timesFont;
           page.drawText(word, {
             x: xPosition,
