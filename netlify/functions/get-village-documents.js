@@ -47,7 +47,7 @@ export const handler = async (event, context) => {
     await sql`
       CREATE TABLE IF NOT EXISTS certificate_templates (
         id SERIAL PRIMARY KEY,
-        village_id VARCHAR(255) NOT NULL UNIQUE,
+        village_id UUID NOT NULL UNIQUE,
         template TEXT NOT NULL,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
