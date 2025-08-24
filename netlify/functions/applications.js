@@ -14,13 +14,20 @@ export const handler = async (event, context) => {
   try {
     // Create noc_applications table if it doesn't exist (with correct UUID type)
     await sql`
-      CREATE TABLE IF NOT EXISTS noc_applications (
+     CREATE TABLE IF NOT EXISTS noc_applications (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         application_number VARCHAR(50) UNIQUE NOT NULL,
+        title VARCHAR(10),
         applicant_name VARCHAR(255) NOT NULL,
+        relation VARCHAR(10),
         father_name VARCHAR(255) NOT NULL,
         address TEXT NOT NULL,
+        house_number VARCHAR(50),
         village_id UUID,
+        tribe_name VARCHAR(100),
+        religion VARCHAR(50),
+        annual_income VARCHAR(20),
+        annual_income_words TEXT,
         purpose_of_noc TEXT NOT NULL,
         phone VARCHAR(20) NOT NULL,
         email VARCHAR(255),
@@ -35,27 +42,50 @@ export const handler = async (event, context) => {
       )
     `;
 
+    // Add missing columns to existing table if they don't exist
+    try {
+      await sql`
+        ALTER TABLE noc_applications 
+        ADD COLUMN IF NOT EXISTS title VARCHAR(10),
+        ADD COLUMN IF NOT EXISTS relation VARCHAR(10),
+        ADD COLUMN IF NOT EXISTS house_number VARCHAR(50),
+        ADD COLUMN IF NOT EXISTS tribe_name VARCHAR(100),
+        ADD COLUMN IF NOT EXISTS religion VARCHAR(50),
+        ADD COLUMN IF NOT EXISTS annual_income VARCHAR(20),
+        ADD COLUMN IF NOT EXISTS annual_income_words TEXT
+      `;
+    } catch (error) {
+      console.log('Columns might already exist:', error.message);
+    }
+
     if (event.httpMethod === 'POST') {
       const { 
         applicationNumber, 
+        title,
         applicantName, 
+        relation,
         fatherName, 
         address, 
+        houseNumber,
         villageId, 
+        tribeName,
+        religion,
+        annualIncome,
+        annualIncomeWords,
         purposeOfNOC, 
         phone, 
         email 
       } = JSON.parse(event.body);
       
       // Insert new NOC application
-      const result = await sql`
-INSERT INTO noc_applications (
-  application_number, title, applicant_name, relation, father_name, address, house_number,
-  village_id, tribe_name, religion, annual_income, annual_income_words, purpose_of_noc, phone, email, status
-) VALUES (
-  ${applicationNumber}, ${title}, ${applicantName}, ${relation}, ${fatherName}, ${address}, ${houseNumber},
-  ${villageId}, ${tribeName}, ${religion}, ${annualIncome}, ${annualIncomeWords}, ${purposeOfNOC}, ${phone}, ${email}, 'pending'
-)
+     const result = await sql`
+        INSERT INTO noc_applications (
+          application_number, title, applicant_name, relation, father_name, address, house_number,
+          village_id, tribe_name, religion, annual_income, annual_income_words, purpose_of_noc, phone, email, status
+        ) VALUES (
+          ${applicationNumber}, ${title}, ${applicantName}, ${relation}, ${fatherName}, ${address}, ${houseNumber},
+          ${villageId}, ${tribeName}, ${religion}, ${annualIncome}, ${annualIncomeWords}, ${purposeOfNOC}, ${phone}, ${email}, 'pending'
+        )
         RETURNING id
       `;
       
