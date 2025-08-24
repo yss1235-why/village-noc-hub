@@ -208,12 +208,7 @@ const AdminDashboard = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-         villageId: villageInfo?.villageId,
-          villageName: villageForm.villageName,
-          district: villageForm.district,
-          state: villageForm.state,
-      body: JSON.stringify({
-         villageId: villageInfo?.villageId,
+          villageId: villageInfo?.villageId,
           villageName: villageForm.villageName,
           district: villageForm.district,
           state: villageForm.state,
@@ -251,6 +246,8 @@ const AdminDashboard = () => {
       setIsUpdatingVillage(false);
     }
   };
+
+      
 
  const handleShowVillageInfo = () => {
     setShowVillageInfo(true);
