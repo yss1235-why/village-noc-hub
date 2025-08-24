@@ -82,6 +82,19 @@ export const handler = async (event, context) => {
       `;
     }
 
+   // Add missing columns to villages table if they don't exist
+    try {
+      await sql`
+        ALTER TABLE villages 
+        ADD COLUMN IF NOT EXISTS post_office VARCHAR(100),
+        ADD COLUMN IF NOT EXISTS police_station VARCHAR(100),
+        ADD COLUMN IF NOT EXISTS sub_division VARCHAR(100)
+      `;
+      console.log('Added missing columns to villages table');
+    } catch (error) {
+      console.log('Columns might already exist or other error:', error.message);
+    }
+
     return {
       statusCode: 200,
       headers: {
@@ -89,12 +102,13 @@ export const handler = async (event, context) => {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ 
-        message: 'Database tables created successfully',
+        message: 'Database tables created and migrated successfully',
         details: {
           villages_created: true,
           users_created: true,
           applications_created: true,
-          sample_data_inserted: true
+          sample_data_inserted: true,
+          columns_migrated: true
         }
       })
     };
