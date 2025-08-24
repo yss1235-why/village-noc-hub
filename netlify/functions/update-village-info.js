@@ -17,7 +17,10 @@ export const handler = async (event, context) => {
       const { villageId } = event.queryStringParameters;
       
       const village = await sql`
-        SELECT id, name, district, state, pin_code, post_office, police_station, sub_division, admin_name, admin_email
+        SELECT id, name, district, state, pin_code, admin_name, admin_email,
+               COALESCE(post_office, '') as post_office,
+               COALESCE(police_station, '') as police_station,
+               COALESCE(sub_division, '') as sub_division
         FROM villages 
         WHERE id = ${villageId}
       `;
