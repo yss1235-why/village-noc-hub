@@ -220,6 +220,26 @@ page.drawText('TO WHOM IT MAY CONCERN', {
   font: timesBoldFont,
 });
 
+// Check if template exists
+if (!template.length || !template[0]) {
+  console.log('7. No template found for village');
+  return {
+    statusCode: 400,
+    headers,
+    body: JSON.stringify({ error: 'No certificate template found for this village. Please contact the village admin to set up the template.' })
+  };
+}
+
+// Check if template exists
+if (!template.length || !template[0]) {
+  console.log('7. No template found for village');
+  return {
+    statusCode: 400,
+    headers,
+    body: JSON.stringify({ error: 'No certificate template found for this village. Please contact the village admin to set up the template.' })
+  };
+}
+
 // Certificate text
 const certificateText = template[0].template
   .replace(/{{TITLE}}/g, app.title || 'Mr./Ms.')
