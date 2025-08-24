@@ -1634,30 +1634,30 @@ const loadDocuments = async () => {
                   <div className="bg-muted/50 p-4 rounded-lg">
                     <h5 className="font-medium mb-3">Available Placeholders:</h5>
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 text-xs font-mono">
-                      <span className="bg-white p-1 rounded">{{TITLE}}</span>
-                      <span className="bg-white p-1 rounded">{{APPLICANT_NAME}}</span>
-                      <span className="bg-white p-1 rounded">{{FATHER_NAME}}</span>
-                      <span className="bg-white p-1 rounded">{{RELATION}}</span>
-                      <span className="bg-white p-1 rounded">{{HOUSE_NUMBER}}</span>
-                      <span className="bg-white p-1 rounded">{{ADDRESS}}</span>
-                      <span className="bg-white p-1 rounded">{{VILLAGE_NAME}}</span>
-                      <span className="bg-white p-1 rounded">{{POST_OFFICE}}</span>
-                      <span className="bg-white p-1 rounded">{{POLICE_STATION}}</span>
-                      <span className="bg-white p-1 rounded">{{SUB_DIVISION}}</span>
-                      <span className="bg-white p-1 rounded">{{DISTRICT}}</span>
-                      <span className="bg-white p-1 rounded">{{STATE}}</span>
-                      <span className="bg-white p-1 rounded">{{PIN_CODE}}</span>
-                      <span className="bg-white p-1 rounded">{{TRIBE_NAME}}</span>
-                      <span className="bg-white p-1 rounded">{{RELIGION}}</span>
-                      <span className="bg-white p-1 rounded">{{ANNUAL_INCOME_NUMBER}}</span>
-                      <span className="bg-white p-1 rounded">{{ANNUAL_INCOME_WORDS}}</span>
-                      <span className="bg-white p-1 rounded">{{PURPOSE_OF_NOC}}</span>
-                      <span className="bg-white p-1 rounded">{{PHONE}}</span>
-                      <span className="bg-white p-1 rounded">{{EMAIL}}</span>
-                      <span className="bg-white p-1 rounded">{{ISSUE_DATE}}</span>
-                      <span className="bg-white p-1 rounded">{{ADMIN_NAME}}</span>
-                      <span className="bg-white p-1 rounded">{{APPLICATION_NUMBER}}</span>
-                    </div>
+  <span className="bg-white p-1 rounded">{"{{TITLE}}"}</span>
+  <span className="bg-white p-1 rounded">{"{{APPLICANT_NAME}}"}</span>
+  <span className="bg-white p-1 rounded">{"{{FATHER_NAME}}"}</span>
+  <span className="bg-white p-1 rounded">{"{{RELATION}}"}</span>
+  <span className="bg-white p-1 rounded">{"{{HOUSE_NUMBER}}"}</span>
+  <span className="bg-white p-1 rounded">{"{{ADDRESS}}"}</span>
+  <span className="bg-white p-1 rounded">{"{{VILLAGE_NAME}}"}</span>
+  <span className="bg-white p-1 rounded">{"{{POST_OFFICE}}"}</span>
+  <span className="bg-white p-1 rounded">{"{{POLICE_STATION}}"}</span>
+  <span className="bg-white p-1 rounded">{"{{SUB_DIVISION}}"}</span>
+  <span className="bg-white p-1 rounded">{"{{DISTRICT}}"}</span>
+  <span className="bg-white p-1 rounded">{"{{STATE}}"}</span>
+  <span className="bg-white p-1 rounded">{"{{PIN_CODE}}"}</span>
+  <span className="bg-white p-1 rounded">{"{{TRIBE_NAME}}"}</span>
+  <span className="bg-white p-1 rounded">{"{{RELIGION}}"}</span>
+  <span className="bg-white p-1 rounded">{"{{ANNUAL_INCOME_NUMBER}}"}</span>
+  <span className="bg-white p-1 rounded">{"{{ANNUAL_INCOME_WORDS}}"}</span>
+  <span className="bg-white p-1 rounded">{"{{PURPOSE_OF_NOC}}"}</span>
+  <span className="bg-white p-1 rounded">{"{{PHONE}}"}</span>
+  <span className="bg-white p-1 rounded">{"{{EMAIL}}"}</span>
+  <span className="bg-white p-1 rounded">{"{{ISSUE_DATE}}"}</span>
+  <span className="bg-white p-1 rounded">{"{{ADMIN_NAME}}"}</span>
+  <span className="bg-white p-1 rounded">{"{{APPLICATION_NUMBER}}"}</span>
+</div>
                   </div>
 
                   <div className="flex justify-end pt-4">
