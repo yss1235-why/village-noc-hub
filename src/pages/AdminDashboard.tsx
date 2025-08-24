@@ -179,9 +179,9 @@ const AdminDashboard = () => {
           district: result.village.district,
           state: result.village.state,
           pinCode: result.village.pin_code,
-          postOffice: result.village.post_office || "",
-          policeStation: result.village.police_station || "",
-          subDivision: result.village.sub_division || "",
+          postOffice: result.village.post_office || '',
+          policeStation: result.village.police_station || '',
+          subDivision: result.village.sub_division || '',
           adminName: result.village.admin_name,
           adminEmail: result.village.admin_email
         });
@@ -212,10 +212,15 @@ const AdminDashboard = () => {
           villageName: villageForm.villageName,
           district: villageForm.district,
           state: villageForm.state,
+      body: JSON.stringify({
+         villageId: villageInfo?.villageId,
+          villageName: villageForm.villageName,
+          district: villageForm.district,
+          state: villageForm.state,
           pinCode: villageForm.pinCode,
-          postOffice: villageForm.postOffice,
-          policeStation: villageForm.policeStation,
-          subDivision: villageForm.subDivision,
+          postOffice: villageForm.postOffice || '',
+          policeStation: villageForm.policeStation || '',
+          subDivision: villageForm.subDivision || '',
           adminName: villageForm.adminName,
           adminEmail: villageForm.adminEmail
         })
