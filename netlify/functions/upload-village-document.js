@@ -49,7 +49,7 @@ export const handler = async (event, context) => {
     await sql`
       CREATE TABLE IF NOT EXISTS village_documents (
         id SERIAL PRIMARY KEY,
-        village_id VARCHAR(255) NOT NULL,
+       village_id UUID NOT NULL,
         document_type VARCHAR(50) NOT NULL,
         document_data TEXT,
         file_name VARCHAR(255),
