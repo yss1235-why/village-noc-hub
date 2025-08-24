@@ -59,15 +59,15 @@ export const handler = async (event, context) => {
       WHERE village_id = ${villageId} AND role = 'village_admin'
     `;
 
-    const profile = {
-      adminName: village[0].adminname,
-      email: village[0].email,
-      phone: user.length > 0 ? user[0].phone : '',
-      villageName: village[0].villagename,
-      district: village[0].district,
-      state: village[0].state,
-      pinCode: village[0].pincode
-    };
+   const profile = {
+  adminName: village[0].adminname,     
+  email: village[0].email,
+  phone: user.length > 0 ? user[0].phone : '',
+  villageName: village[0].villagename,  
+  district: village[0].district,
+  state: village[0].state,
+  pinCode: village[0].pincode          
+};
 
     return {
       statusCode: 200,
