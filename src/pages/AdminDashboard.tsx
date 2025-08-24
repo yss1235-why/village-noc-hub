@@ -1610,6 +1610,8 @@ const loadDocuments = async () => {
                       onChange={(e) => setCertificateTemplate(e.target.value)}
                       className="w-full min-h-[400px] p-4 border rounded-md font-mono text-sm resize-vertical"
                       placeholder="Enter your certificate template here..."
+                      spellCheck={false}  // Add this line
+                      autoComplete="off"  // Add this line
                     />
                   </div>
 
