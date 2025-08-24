@@ -18,7 +18,7 @@ export const handler = async (event, context) => {
     // Get application data
     const application = await sql`
       SELECT a.*, v.name as village_name, v.district, v.state, v.pin_code, v.admin_name
-      FROM applications a
+      FROM noc_applications a
       JOIN villages v ON a.village_id = v.id::varchar
       WHERE a.id = ${applicationId} AND a.status = 'approved'
     `;
