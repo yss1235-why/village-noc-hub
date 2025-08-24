@@ -83,7 +83,7 @@ export const handler = async (event, context) => {
     });
 
     // Generate reference number
-    const refNo = `${app.village_name.substring(0,3).toUpperCase()}${new Date().getFullYear()}${String(app.id).padStart(6, '0')}`;
+  const refNo = app.application_number;
 
  // HTML template removed - now using PDF-lib direct generation
 
@@ -96,14 +96,14 @@ const timesFont = await pdfDoc.embedFont(StandardFonts.TimesRoman);
 const timesBoldFont = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
 
 // Generate QR Code
-const qrCodeDataUrl = await QRCode.toDataURL(`Application: ${app.application_number}\nRef: ${refNo}\nStatus: Approved`);
+const qrCodeDataUrl = await QRCode.toDataURL(`Application: ${app.application_number}\nName: ${app.applicant_name}\nRelation: ${app.relation || 'S/o'}\nPO: ${app.post_office || app.village_name}\nPS: ${app.police_station || app.district}\nVillage: ${app.village_name}`);
 const qrCodeImage = await pdfDoc.embedPng(qrCodeDataUrl);
 
 // Embed images if they exist
 let letterheadImage = null;
 let signatureImage = null;
 let sealImage = null;
-
+let roundSealImage = null;
 if (documentsMap.letterhead) {
   try {
     const letterheadBytes = Buffer.from(documentsMap.letterhead.split(',')[1], 'base64');
@@ -131,16 +131,29 @@ if (documentsMap.signature) {
   }
 }
 
-if (documentsMap.roundSeal) {
+if (documentsMap.seal) {
   try {
-    const sealBytes = Buffer.from(documentsMap.roundSeal.split(',')[1], 'base64');
-    if (documentsMap.roundSeal.startsWith('data:image/png')) {
+    const sealBytes = Buffer.from(documentsMap.seal.split(',')[1], 'base64');
+    if (documentsMap.seal.startsWith('data:image/png')) {
       sealImage = await pdfDoc.embedPng(sealBytes);
-    } else if (documentsMap.roundSeal.startsWith('data:image/jpeg') || documentsMap.roundSeal.startsWith('data:image/jpg')) {
+    } else if (documentsMap.seal.startsWith('data:image/jpeg') || documentsMap.seal.startsWith('data:image/jpg')) {
       sealImage = await pdfDoc.embedJpg(sealBytes);
     }
   } catch (e) {
     console.log('Seal embed error:', e);
+  }
+}
+
+if (documentsMap.roundSeal) {
+  try {
+    const roundSealBytes = Buffer.from(documentsMap.roundSeal.split(',')[1], 'base64');
+    if (documentsMap.roundSeal.startsWith('data:image/png')) {
+      roundSealImage = await pdfDoc.embedPng(roundSealBytes);
+    } else if (documentsMap.roundSeal.startsWith('data:image/jpeg') || documentsMap.roundSeal.startsWith('data:image/jpg')) {
+      roundSealImage = await pdfDoc.embedJpg(roundSealBytes);
+    }
+  } catch (e) {
+    console.log('Round seal embed error:', e);
   }
 }
 
@@ -155,15 +168,6 @@ page.drawRectangle({
   height: height - 60,
   borderColor: rgb(0, 0, 0),
   borderWidth: 3,
-});
-
-page.drawRectangle({
-  x: 40,
-  y: 40,
-  width: width - 80,
-  height: height - 80,
-  borderColor: rgb(0.2, 0.2, 0.2),
-  borderWidth: 2,
 });
 
 // Letterhead or Authority name
@@ -217,27 +221,23 @@ page.drawText('TO WHOM IT MAY CONCERN', {
 });
 
 // Certificate text
-const certificateText = template.length ? 
-  template[0].template
-    .replace(/{{TITLE}}/g, app.title || 'Mr./Ms.')
-    .replace(/{{APPLICANT_NAME}}/g, app.applicant_name)
-    .replace(/{{RELATION}}/g, app.relation || 'S/o')
-    .replace(/{{FATHER_NAME}}/g, app.father_name)
-    .replace(/{{HOUSE_NUMBER}}/g, app.house_number || '')
-    .replace(/{{VILLAGE_NAME}}/g, app.village_name)
-    .replace(/{{POST_OFFICE}}/g, app.post_office || app.village_name)
-    .replace(/{{POLICE_STATION}}/g, app.police_station || app.district)
-    .replace(/{{SUB_DIVISION}}/g, app.sub_division || app.district)
-    .replace(/{{DISTRICT}}/g, app.district)
-    .replace(/{{STATE}}/g, app.state)
-    .replace(/{{PIN_CODE}}/g, app.pin_code)
-    .replace(/{{TRIBE_NAME}}/g, app.tribe_name || '')
-    .replace(/{{RELIGION}}/g, app.religion || '')
-    .replace(/{{ANNUAL_INCOME_NUMBER}}/g, app.annual_income || 'Not specified')
-    .replace(/{{ANNUAL_INCOME_WORDS}}/g, app.annual_income_words || 'Not specified')
-  :
-  `This is to certify that ${app.applicant_name} ${app.relation || 'S/o'} ${app.father_name} is a resident of ${app.village_name} Village, ${app.district} District, ${app.state}.`;
-
+const certificateText = template[0].template
+  .replace(/{{TITLE}}/g, app.title || 'Mr./Ms.')
+  .replace(/{{APPLICANT_NAME}}/g, app.applicant_name)
+  .replace(/{{RELATION}}/g, app.relation || 'S/o')
+  .replace(/{{FATHER_NAME}}/g, app.father_name)
+  .replace(/{{HOUSE_NUMBER}}/g, app.house_number || '')
+  .replace(/{{VILLAGE_NAME}}/g, app.village_name)
+  .replace(/{{POST_OFFICE}}/g, app.post_office || app.village_name)
+  .replace(/{{POLICE_STATION}}/g, app.police_station || app.district)
+  .replace(/{{SUB_DIVISION}}/g, app.sub_division || app.district)
+  .replace(/{{DISTRICT}}/g, app.district)
+  .replace(/{{STATE}}/g, app.state)
+  .replace(/{{PIN_CODE}}/g, app.pin_code)
+  .replace(/{{TRIBE_NAME}}/g, app.tribe_name || '')
+  .replace(/{{RELIGION}}/g, app.religion || '')
+  .replace(/{{ANNUAL_INCOME_NUMBER}}/g, app.annual_income || 'Not specified')
+  .replace(/{{ANNUAL_INCOME_WORDS}}/g, app.annual_income_words || 'Not specified');
 // Split text into lines and draw
 const words = certificateText.split(' ');
 const lines = [];
@@ -308,9 +308,19 @@ page.drawText(`Secretary, ${app.village_name} Village`, {
   font: timesFont,
 });
 
-// Seal
+// Regular Seal (left side)
 if (sealImage) {
   page.drawImage(sealImage, {
+    x: 80,
+    y: 50,
+    width: 60,
+    height: 60,
+  });
+}
+
+// Round Seal (right side)
+if (roundSealImage) {
+  page.drawImage(roundSealImage, {
     x: width - 140,
     y: 50,
     width: 60,
