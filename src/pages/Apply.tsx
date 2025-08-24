@@ -13,13 +13,80 @@ import { useToast } from "@/hooks/use-toast";
 
 const Apply = () => {
   const { toast } = useToast();
+
+  // Function to convert numbers to words
+  const numberToWords = (num: number): string => {
+    if (num === 0) return "Zero";
+    
+    const ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"];
+    const teens = ["Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
+    const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+    const thousands = ["", "Thousand", "Lakh", "Crore"];
+
+    const convertGroup = (n: number): string => {
+      let result = "";
+      if (n >= 100) {
+        result += ones[Math.floor(n / 100)] + " Hundred ";
+        n %= 100;
+      }
+      if (n >= 20) {
+        result += tens[Math.floor(n / 10)] + " ";
+        n %= 10;
+      } else if (n >= 10) {
+        result += teens[n - 10] + " ";
+        return result.trim();
+      }
+      if (n > 0) {
+        result += ones[n] + " ";
+      }
+      return result.trim();
+    };
+
+    let result = "";
+    let groupIndex = 0;
+    
+    while (num > 0) {
+      let group = 0;
+      if (groupIndex === 0) group = num % 1000;
+      else if (groupIndex === 1) group = num % 100;
+      else group = num % 100;
+      
+      if (group !== 0) {
+        const groupWords = convertGroup(group);
+        result = groupWords + (thousands[groupIndex] ? " " + thousands[groupIndex] : "") + " " + result;
+      }
+      
+      if (groupIndex === 0) num = Math.floor(num / 1000);
+      else num = Math.floor(num / 100);
+      groupIndex++;
+    }
+    
+    return result.trim();
+  };
+
+  // Handle income change and auto-fill words
+  const handleIncomeChange = (value: string) => {
+    const numericValue = parseFloat(value.replace(/[^0-9.]/g, ''));
+    const words = isNaN(numericValue) ? "" : numberToWords(numericValue);
+    
+    setFormData({
+      ...formData,
+      annualIncome: value,
+      annualIncomeWords: words
+    });
+  };
 const [formData, setFormData] = useState({
   salutation: "",
   name: "",
   relation: "",
   fatherName: "",
   address: "",
+  houseNumber: "",
   villageId: "",
+  tribe: "",
+  religion: "",
+  annualIncome: "",
+  annualIncomeWords: "",
   purposeOfNOC: "",
   aadhaarFile: null as File | null,
   passportFile: null as File | null,
@@ -79,12 +146,19 @@ const handleSubmit = async (e: React.FormEvent) => {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
+     body: JSON.stringify({
         applicationNumber: appNo,
+        title: formData.salutation,
         applicantName: formData.name,
+        relation: formData.relation,
         fatherName: formData.fatherName,
         address: formData.address,
+        houseNumber: formData.houseNumber,
         villageId: formData.villageId,
+        tribeName: formData.tribe,
+        religion: formData.religion,
+        annualIncome: formData.annualIncome,
+        annualIncomeWords: formData.annualIncomeWords,
         purposeOfNOC: formData.purposeOfNOC,
         phone: formData.phone,
         email: formData.email
@@ -106,7 +180,12 @@ const handleSubmit = async (e: React.FormEvent) => {
         relation: "",
         fatherName: "",
         address: "",
+        houseNumber: "",
         villageId: "",
+        tribe: "",
+        religion: "",
+        annualIncome: "",
+        annualIncomeWords: "",
         purposeOfNOC: "",
         aadhaarFile: null,
         passportFile: null,
@@ -302,6 +381,46 @@ const handleSubmit = async (e: React.FormEvent) => {
       />
     </div>
 
+    <div>
+      <Label htmlFor="houseNumber">House Number</Label>
+      <Input
+        id="houseNumber"
+        value={formData.houseNumber}
+        onChange={(e) => setFormData({...formData, houseNumber: e.target.value})}
+        placeholder="Enter house number (optional)"
+      />
+    </div>
+   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <Label htmlFor="tribe">Tribe *</Label>
+        <Input
+          id="tribe"
+          value={formData.tribe}
+          onChange={(e) => setFormData({...formData, tribe: e.target.value})}
+          placeholder="Enter your tribe"
+          required
+        />
+      </div>
+      
+      <div>
+        <Label htmlFor="religion">Religion *</Label>
+        <Select value={formData.religion} onValueChange={(value) => setFormData({...formData, religion: value})}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select religion" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Hindu">Hindu</SelectItem>
+            <SelectItem value="Muslim">Muslim</SelectItem>
+            <SelectItem value="Christian">Christian</SelectItem>
+            <SelectItem value="Sikh">Sikh</SelectItem>
+            <SelectItem value="Buddhist">Buddhist</SelectItem>
+            <SelectItem value="Jain">Jain</SelectItem>
+            <SelectItem value="Other">Other</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>
         <Label htmlFor="phone">Phone Number *</Label>
@@ -322,6 +441,31 @@ const handleSubmit = async (e: React.FormEvent) => {
           value={formData.email}
           onChange={(e) => setFormData({...formData, email: e.target.value})}
           placeholder="Enter email address"
+        />
+      </div>
+    </div>
+    
+
+   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <Label htmlFor="annualIncome">Annual Income (₹) *</Label>
+        <Input
+          id="annualIncome"
+          value={formData.annualIncome}
+          onChange={(e) => handleIncomeChange(e.target.value)}
+          placeholder="Enter annual income"
+          required
+        />
+      </div>
+      
+      <div>
+        <Label htmlFor="annualIncomeWords">Annual Income in Words</Label>
+        <Input
+          id="annualIncomeWords"
+          value={formData.annualIncomeWords}
+          readOnly
+          placeholder="Auto-filled"
+          className="bg-muted"
         />
       </div>
     </div>
