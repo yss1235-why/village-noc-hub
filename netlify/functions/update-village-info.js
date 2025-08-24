@@ -16,6 +16,14 @@ export const handler = async (event, context) => {
       // Get village information
       const { villageId } = event.queryStringParameters;
       
+      if (!villageId) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: 'Village ID is required' })
+        };
+      }
+      
       const village = await sql`
         SELECT id, name, district, state, pin_code, admin_name, admin_email,
                COALESCE(post_office, '') as post_office,
@@ -34,7 +42,27 @@ export const handler = async (event, context) => {
 
     if (event.httpMethod === 'PUT') {
       // Update village information
-   const { villageId, villageName, district, state, pinCode, postOffice, policeStation, subDivision, adminName, adminEmail } = JSON.parse(event.body);
+      const { 
+        villageId, 
+        villageName, 
+        district, 
+        state, 
+        pinCode, 
+        postOffice, 
+        policeStation, 
+        subDivision, 
+        adminName, 
+        adminEmail 
+      } = JSON.parse(event.body);
+      
+      if (!villageId) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: 'Village ID is required' })
+        };
+      }
+      
       // Check if village name already exists (excluding current village)
       const existingVillage = await sql`
         SELECT id FROM villages 
@@ -56,9 +84,9 @@ export const handler = async (event, context) => {
             district = ${district}, 
             state = ${state}, 
             pin_code = ${pinCode},
-            post_office = ${postOffice},
-            police_station = ${policeStation},
-            sub_division = ${subDivision},
+            post_office = ${postOffice || ''},
+            police_station = ${policeStation || ''},
+            sub_division = ${subDivision || ''},
             admin_name = ${adminName},
             admin_email = ${adminEmail}
         WHERE id = ${villageId}
@@ -93,3 +121,4 @@ export const handler = async (event, context) => {
       })
     };
   }
+};
