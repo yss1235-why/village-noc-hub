@@ -47,11 +47,14 @@ const AdminDashboard = () => {
 
 // Village info state
   const [showVillageInfo, setShowVillageInfo] = useState(false);
-  const [villageForm, setVillageForm] = useState({
+ const [villageForm, setVillageForm] = useState({
     villageName: "",
     district: "",
     state: "",
     pinCode: "",
+    postOffice: "",
+    policeStation: "",
+    subDivision: "",
     adminName: "",
     adminEmail: ""
   });
@@ -171,11 +174,14 @@ const AdminDashboard = () => {
       const result = await response.json();
       
       if (response.ok && result.village) {
-        setVillageForm({
+       setVillageForm({
           villageName: result.village.name,
           district: result.village.district,
           state: result.village.state,
           pinCode: result.village.pin_code,
+          postOffice: result.village.post_office || "",
+          policeStation: result.village.police_station || "",
+          subDivision: result.village.sub_division || "",
           adminName: result.village.admin_name,
           adminEmail: result.village.admin_email
         });
@@ -207,6 +213,9 @@ const AdminDashboard = () => {
           district: villageForm.district,
           state: villageForm.state,
           pinCode: villageForm.pinCode,
+          postOffice: villageForm.postOffice,
+          policeStation: villageForm.policeStation,
+          subDivision: villageForm.subDivision,
           adminName: villageForm.adminName,
           adminEmail: villageForm.adminEmail
         })
@@ -1027,6 +1036,39 @@ const loadDocuments = async () => {
                       />
                     </div>
 
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="postOffice">Post Office (PO) *</Label>
+                        <Input
+                          id="postOffice"
+                          value={villageForm.postOffice}
+                          onChange={(e) => setVillageForm({...villageForm, postOffice: e.target.value})}
+                          placeholder="Enter post office"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="policeStation">Police Station (PS) *</Label>
+                        <Input
+                          id="policeStation"
+                          value={villageForm.policeStation}
+                          onChange={(e) => setVillageForm({...villageForm, policeStation: e.target.value})}
+                          placeholder="Enter police station"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="subDivision">Sub-district *</Label>
+                      <Input
+                        id="subDivision"
+                        value={villageForm.subDivision}
+                        onChange={(e) => setVillageForm({...villageForm, subDivision: e.target.value})}
+                        placeholder="Enter sub-district"
+                        required
+                      />
+                    </div>
                     <div>
                       <Label htmlFor="adminName">Admin Name *</Label>
                       <Input
