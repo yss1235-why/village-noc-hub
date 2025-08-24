@@ -8,18 +8,18 @@ export const handler = async (event, context) => {
     await sql`
       CREATE TABLE IF NOT EXISTS villages (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        name VARCHAR(255) NOT NULL,
-        district VARCHAR(255) NOT NULL,
-        state VARCHAR(255) NOT NULL,
-        pin_code VARCHAR(10) NOT NULL,
-        admin_name VARCHAR(255) NOT NULL,
-        admin_email VARCHAR(255) NOT NULL,
-        letterhead_url VARCHAR(500),
-        signature_url VARCHAR(500),
-        status VARCHAR(50) DEFAULT 'pending',
-        created_at TIMESTAMP DEFAULT NOW(),
-        approved_by UUID,
-        CONSTRAINT status_check CHECK (status IN ('pending', 'approved', 'rejected'))
+        name VARCHAR(100) NOT NULL,
+        district VARCHAR(50) NOT NULL,
+        state VARCHAR(50) NOT NULL,
+        pin_code VARCHAR(6) NOT NULL,
+        post_office VARCHAR(100),
+        police_station VARCHAR(100),
+        sub_division VARCHAR(100),
+        admin_name VARCHAR(100) NOT NULL,
+        admin_email VARCHAR(100) NOT NULL,
+        status VARCHAR(20) DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        approved_at TIMESTAMP
       )
     `;
 
