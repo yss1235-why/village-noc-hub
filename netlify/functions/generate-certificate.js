@@ -1,8 +1,8 @@
-import { sql } from './utils/db.js';
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
-import QRCode from 'qrcode';
+const { sql } = require('./utils/db.js');
+const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
+const QRCode = require('qrcode');
 
-export const handler = async (event, context) => {
+exports.handler = async (event, context) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
