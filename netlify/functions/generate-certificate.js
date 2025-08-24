@@ -173,10 +173,10 @@ page.drawRectangle({
 // Letterhead or Authority name
 if (letterheadImage) {
   page.drawImage(letterheadImage, {
-    x: width / 2 - 150,
-    y: height - 180,
-    width: 300,
-    height: 120,
+    x: width / 2 - 200,
+    y: height - 160,
+    width: 400,
+    height: 100,
   });
 } else {
   page.drawText(app.village_name.toUpperCase() + ' VILLAGE AUTHORITY', {
@@ -441,23 +441,23 @@ page.drawText(`${toProperCase(app.village_name)} Village`, {
   font: timesFont,
 });
 
-// Regular Seal (right side, below village name)
+// Regular Seal (right side, below village name with more space)
 if (sealImage) {
   page.drawImage(sealImage, {
-    x: width - 200,
-    y: 85,
-    width: 50,
-    height: 50,
+    x: width - 220,
+    y: 80,
+    width: 70,
+    height: 70,
   });
 }
 
-// Round Seal (right side, below regular seal)
+// Round Seal (right side, more spaced out)
 if (roundSealImage) {
   page.drawImage(roundSealImage, {
-    x: width - 140,
-    y: 85,
-    width: 50,
-    height: 50,
+    x: width - 130,
+    y: 80,
+    width: 70,
+    height: 70,
   });
 }
 
