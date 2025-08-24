@@ -79,12 +79,14 @@ const profile = {
       body: JSON.stringify({ profile })
     };
 
-  } catch (error) {
+} catch (error) {
     console.error('Get admin profile error:', error);
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: 'Failed to load profile information' })
+      body: JSON.stringify({ 
+        error: 'Failed to load profile information',
+        details: error.message
+      })
     };
   }
-};
