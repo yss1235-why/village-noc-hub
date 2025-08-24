@@ -266,8 +266,15 @@ certificateText = certificateText
   .replace(/No Objection Certificate\.\s*/g, '')
   .replace(/Date:\s*\d{1,2}-\d{1,2}-\d{4}/g, '')  // Remove date from content
   .replace(/Place:\s*\*\*[^*]+\*\*/g, '')         // Remove place from content
-  .replace(/\*\*[^*]+\*\*\s*Headman\/Chairman\s*\*\*[^*]+\*\*/g, '') // Remove admin signature from content
-  .replace(/Headman\/Chairman/g, '')               // Remove any remaining headman text
+  .replace(/Place:\s*[^.]+/g, '')                  // Remove place without ** format
+  // Remove admin signature patterns (multiple variations)
+  .replace(/\*\*[^*]+\*\*\s*Headman\/Chairman\s*\*\*[^*]+\*\*/g, '') 
+  .replace(/[A-Z][a-z]+\s+[A-Z][a-z]+\s*Headman\/Chairman\s*\*\*[^*]+\*\*/g, '') 
+  .replace(/\*\*[^*]+\*\*\s*\*\*[^*]+\*\*/g, '') // Remove **Name** **Village** pattern
+  .replace(/"[^"]*"/g, '')                        // Remove any quoted text
+  .replace(/Headman\/Chairman/g, '')              // Remove any remaining headman text
+  // Clean up admin names appearing after "He/She is not related to me."
+  .replace(/(He\/She is not related to me\.\s*)[^.]*$/g, '$1')
   .replace(/\s+/g, ' ')                           // Clean up multiple spaces
   .trim();
 
