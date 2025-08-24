@@ -17,10 +17,10 @@ export const handler = async (event, context) => {
     console.log('1. Application ID:', applicationId);
 
     // Get application data
-    const application = await sql`
+   const application = await sql`
       SELECT a.*, v.name as village_name, v.district, v.state, v.pin_code, v.admin_name
       FROM noc_applications a
-      JOIN villages v ON a.village_id = v.id::varchar
+      JOIN villages v ON a.village_id::uuid = v.id
       WHERE a.id = ${applicationId} AND a.status = 'approved'
     `;
     console.log('2. Application found:', application.length > 0);
