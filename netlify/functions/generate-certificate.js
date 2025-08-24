@@ -1,6 +1,5 @@
 import { sql } from './utils/db.js';
 import puppeteer from 'puppeteer';
-import chromium from '@sparticuz/chromium';
 
 export const handler = async (event, context) => {
   const headers = {
@@ -280,23 +279,22 @@ export const handler = async (event, context) => {
     `;
 
    // Generate PDF
-   const browser = await puppeteer.launch({
+  const browser = await puppeteer.launch({
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
         '--disable-gpu',
         '--disable-web-security',
+        '--disable-features=VizDisplayCompositor',
         '--no-first-run',
         '--no-zygote',
         '--single-process',
-        '--disable-extensions',
-        '--disable-background-timer-throttling',
-        '--disable-backgrounding-occluded-windows',
-        '--disable-renderer-backgrounding'
+        '--disable-extensions'
       ],
       headless: 'new',
       timeout: 60000,
+      protocolTimeout: 60000,
     });
   
     
