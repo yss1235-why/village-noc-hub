@@ -1,5 +1,5 @@
 import { sql } from './utils/db.js';
-import puppeteer from 'puppeteer-core';
+import puppeteer from 'puppeteer';
 import chromium from '@sparticuz/chromium';
 
 export const handler = async (event, context) => {
@@ -280,20 +280,25 @@ export const handler = async (event, context) => {
     `;
 
    // Generate PDF
-    const browser = await puppeteer.launch({
+   const browser = await puppeteer.launch({
       args: [
-        ...chromium.args,
         '--no-sandbox',
         '--disable-setuid-sandbox',
-        '--disable-web-security',
         '--disable-dev-shm-usage',
         '--disable-gpu',
-        '--no-first-run'
+        '--disable-web-security',
+        '--no-first-run',
+        '--no-zygote',
+        '--single-process',
+        '--disable-extensions',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding'
       ],
-      defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
-      headless: chromium.headless,
+      headless: 'new',
+      timeout: 60000,
     });
+  
     
     const page = await browser.newPage();
     await page.setContent(certificateHTML, { waitUntil: 'networkidle0' });
