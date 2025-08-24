@@ -39,25 +39,27 @@ export const handler = async (event, context) => {
 
     // Create NOC applications table
     await sql`
-      CREATE TABLE IF NOT EXISTS noc_applications (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        application_number VARCHAR(50) UNIQUE NOT NULL,
-        applicant_name VARCHAR(255) NOT NULL,
-        father_name VARCHAR(255) NOT NULL,
-        address TEXT NOT NULL,
-        village_id UUID,
-        purpose_of_noc TEXT NOT NULL,
-        phone VARCHAR(20) NOT NULL,
-        email VARCHAR(255),
-        aadhaar_url VARCHAR(500),
-        passport_url VARCHAR(500),
-        status VARCHAR(50) DEFAULT 'pending',
-        admin_notes TEXT,
-        created_at TIMESTAMP DEFAULT NOW(),
-        approved_at TIMESTAMP,
-        approved_by UUID,
-        CONSTRAINT status_check CHECK (status IN ('pending', 'approved', 'rejected', 'needs_edit'))
-      )
+     CREATE TABLE IF NOT EXISTS noc_applications (
+  id SERIAL PRIMARY KEY,
+  application_number VARCHAR(50) UNIQUE NOT NULL,
+  title VARCHAR(10),
+  applicant_name VARCHAR(100) NOT NULL,
+  relation VARCHAR(10),
+  father_name VARCHAR(100),
+  address TEXT,
+  house_number VARCHAR(50),
+  village_id UUID REFERENCES villages(id),
+  tribe_name VARCHAR(100),
+  religion VARCHAR(50),
+  annual_income VARCHAR(20),
+  annual_income_words TEXT,
+  purpose_of_noc TEXT,
+  phone VARCHAR(15),
+  email VARCHAR(100),
+  status VARCHAR(20) DEFAULT 'pending',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  approved_at TIMESTAMP
+)
     `;
 
     // Insert sample approved villages (use INSERT ... ON CONFLICT DO NOTHING to avoid duplicates)
