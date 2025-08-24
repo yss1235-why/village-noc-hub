@@ -160,14 +160,14 @@ if (documentsMap.roundSeal) {
 // Draw certificate content
 const { width, height } = page.getSize();
 
-// Border
+// Border (smaller size)
 page.drawRectangle({
   x: 30,
   y: 30,
   width: width - 60,
   height: height - 60,
   borderColor: rgb(0, 0, 0),
-  borderWidth: 3,
+  borderWidth: 1,
 });
 
 // Letterhead or Authority name
@@ -441,23 +441,23 @@ page.drawText(`${toProperCase(app.village_name)} Village`, {
   font: timesFont,
 });
 
-// Regular Seal (left side)
+// Regular Seal (right side, below village name)
 if (sealImage) {
   page.drawImage(sealImage, {
-    x: 80,
-    y: 50,
-    width: 60,
-    height: 60,
+    x: width - 200,
+    y: 85,
+    width: 50,
+    height: 50,
   });
 }
 
-// Round Seal (right side)
+// Round Seal (right side, below regular seal)
 if (roundSealImage) {
   page.drawImage(roundSealImage, {
     x: width - 140,
-    y: 50,
-    width: 60,
-    height: 60,
+    y: 85,
+    width: 50,
+    height: 50,
   });
 }
 
