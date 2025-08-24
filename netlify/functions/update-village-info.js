@@ -17,7 +17,7 @@ export const handler = async (event, context) => {
       const { villageId } = event.queryStringParameters;
       
       const village = await sql`
-        SELECT id, name, district, state, pin_code, admin_name, admin_email
+        SELECT id, name, district, state, pin_code, post_office, police_station, sub_division, admin_name, admin_email
         FROM villages 
         WHERE id = ${villageId}
       `;
@@ -31,7 +31,7 @@ export const handler = async (event, context) => {
 
     if (event.httpMethod === 'PUT') {
       // Update village information
-      const { villageId, villageName, district, state, pinCode, adminName, adminEmail } = JSON.parse(event.body);
+     const { villageId, villageName, district, state, pinCode, postOffice, policeStation, subDivision, adminName, adminEmail } = JSON.parse(event.body);
       
       // Check if village name already exists (excluding current village)
       const existingVillage = await sql`
@@ -50,10 +50,15 @@ export const handler = async (event, context) => {
       // Update village information
       await sql`
         UPDATE villages 
+        await sql`
+        UPDATE villages 
         SET name = ${villageName}, 
             district = ${district}, 
             state = ${state}, 
             pin_code = ${pinCode},
+            post_office = ${postOffice},
+            police_station = ${policeStation},
+            sub_division = ${subDivision},
             admin_name = ${adminName},
             admin_email = ${adminEmail}
         WHERE id = ${villageId}
