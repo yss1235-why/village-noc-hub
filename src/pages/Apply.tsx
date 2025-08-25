@@ -80,6 +80,9 @@ const [formData, setFormData] = useState({
   name: "",
   relation: "",
   fatherName: "",
+  husbandName: "",
+  motherName: "",
+  guardianName: "",
   address: "",
   houseNumber: "",
   villageId: "",
@@ -351,23 +354,69 @@ const handleSubmit = async (e: React.FormEvent) => {
             <SelectValue placeholder="Select" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="S/o">S/o (Son of)</SelectItem>
-            <SelectItem value="D/o">D/o (Daughter of)</SelectItem>
-            <SelectItem value="W/o">W/o (Wife of)</SelectItem>
+            <SelectItem value="Son">Son</SelectItem>
+            <SelectItem value="Daughter">Daughter</SelectItem>
+            <SelectItem value="Wife">Wife</SelectItem>
+            <SelectItem value="Husband">Husband</SelectItem>
+            <SelectItem value="Ward">Ward</SelectItem>
+            <SelectItem value="Dependent">Dependent</SelectItem>
           </SelectContent>
         </Select>
       </div>
       
-      <div className="md:col-span-2">
-        <Label htmlFor="fatherName">Father's/Husband's Name *</Label>
-        <Input
-          id="fatherName"
-          value={formData.fatherName}
-          onChange={(e) => setFormData({...formData, fatherName: e.target.value})}
-          placeholder="Enter name"
-          required
-        />
-      </div>
+     <div className="md:col-span-2">
+  {(formData.relation === 'Son' || formData.relation === 'Daughter') && (
+    <>
+      <Label htmlFor="fatherName">Father's Name *</Label>
+      <Input
+        id="fatherName"
+        value={formData.fatherName}
+        onChange={(e) => setFormData({...formData, fatherName: e.target.value})}
+        placeholder="Enter father's name"
+        required
+      />
+    </>
+  )}
+  
+  {formData.relation === 'Wife' && (
+    <>
+      <Label htmlFor="husbandName">Husband's Name *</Label>
+      <Input
+        id="husbandName"
+        value={formData.husbandName}
+        onChange={(e) => setFormData({...formData, husbandName: e.target.value})}
+        placeholder="Enter husband's name"
+        required
+      />
+    </>
+  )}
+  
+  {formData.relation === 'Husband' && (
+    <>
+      <Label htmlFor="motherName">Mother's Name *</Label>
+      <Input
+        id="motherName"
+        value={formData.motherName}
+        onChange={(e) => setFormData({...formData, motherName: e.target.value})}
+        placeholder="Enter mother's name"
+        required
+      />
+    </>
+  )}
+  
+  {(formData.relation === 'Ward' || formData.relation === 'Dependent') && (
+    <>
+      <Label htmlFor="guardianName">Guardian's Name *</Label>
+      <Input
+        id="guardianName"
+        value={formData.guardianName}
+        onChange={(e) => setFormData({...formData, guardianName: e.target.value})}
+        placeholder="Enter guardian's name"
+        required
+      />
+    </>
+  )}
+</div>
     </div>
 
     <div>
