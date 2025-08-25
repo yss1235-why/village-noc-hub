@@ -311,6 +311,7 @@ let certificateText = template[0].template
 // Add paragraph breaks for proper formatting
 certificateText = certificateText
   .replace(/(795142\.|Pin Code\s*\d+)/g, '$1\n\n')  // New paragraph after PIN code
+  .replace(/(She belongs to|He belongs to)/g, '\n\n$1')  // New paragraph before tribe info
   .replace(/(Tangkhul Tribe,)/g, '$1\n')  // Line break after tribe name
   .replace(/(by faith\.)/g, '$1\n')  // Line break after religion
   .replace(/(by Birth\.)/g, '$1\n')  // Line break after birth
