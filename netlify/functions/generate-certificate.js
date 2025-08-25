@@ -314,6 +314,7 @@ certificateText = certificateText
   .replace(/(Tangkhul Tribe,)/g, '$1\n')  // Line break after tribe name
   .replace(/(by faith\.)/g, '$1\n')  // Line break after religion
   .replace(/(by Birth\.)/g, '$1\n')  // Line break after birth
+  .replace(/(village authority,)/g, '$1\n')
   .replace(/(only\.)/g, '$1\n')  // Line break after income
   .replace(/(To the best of my knowledge)/g, '\n\n$1')  // New paragraph
   .replace(/(He is not related to me\.|She is not related to me\.)/g, '\n\n$1'); // Final statement
