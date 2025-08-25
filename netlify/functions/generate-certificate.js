@@ -245,25 +245,67 @@ if (!template.length || !template[0]) {
 const currentDate = new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
 
 // Certificate text with proper formatting
+// Helper function to determine pronouns based on title
+const getPronoun = (title) => {
+  const lowerTitle = title?.toLowerCase();
+  if (lowerTitle === 'mr') {
+    return { subject: 'He', object: 'him', possessive: 'his' };
+  } else if (lowerTitle === 'mrs' || lowerTitle === 'miss' || lowerTitle === 'ms') {
+    return { subject: 'She', object: 'her', possessive: 'her' };
+  } else {
+    return { subject: 'He/She', object: 'him/her', possessive: 'his/her' };
+  }
+};
+
+// Helper function to format relationship
+const formatRelation = (relation) => {
+  if (!relation) return '';
+  const relationLower = relation.toLowerCase();
+  if (relationLower.includes('father')) return 'F/O';
+  if (relationLower.includes('mother')) return 'M/O';
+  if (relationLower.includes('husband')) return 'H/O';
+  if (relationLower.includes('guardian')) return 'G/O';
+  return relation;
+};
+
+// Helper function to format currency
+const formatCurrency = (amount, words) => {
+  if (!amount) return '';
+  const formattedAmount = parseInt(amount).toLocaleString('en-IN');
+  return `Rs. ${formattedAmount} (Rupees ${toProperCase(words)} only)`;
+};
+
+const pronouns = getPronoun(app.title);
+const relationPrefix = formatRelation(app.relation);
+const fullName = relationPrefix ? `${toProperCase(app.applicant_name)} ${relationPrefix} ${toProperCase(app.father_name || app.mother_name || app.husband_name || app.guardian_name)}` : toProperCase(app.applicant_name);
+
+// Certificate text with proper formatting
 let certificateText = template[0].template
-  .replace(/{{TITLE}}/g, `**${toProperCase(app.title)}**`)
-  .replace(/{{APPLICANT_NAME}}/g, `**${toProperCase(app.applicant_name)}**`)
-  .replace(/{{RELATION}}/g, `**${toProperCase(app.relation)}**`)
-  .replace(/{{FATHER_NAME}}/g, `**${toProperCase(app.father_name)}**`)
-  .replace(/{{HOUSE_NUMBER}}/g, `**${app.house_number}**`)
-  .replace(/{{VILLAGE_NAME}}/g, `**${toProperCase(app.village_name)}**`)
-  .replace(/{{POST_OFFICE}}/g, `**${toProperCase(app.post_office)}**`)
-  .replace(/{{POLICE_STATION}}/g, `**${toProperCase(app.police_station)}**`)
-  .replace(/{{SUB_DIVISION}}/g, `**${toProperCase(app.sub_division)}**`)
-  .replace(/{{DISTRICT}}/g, `**${toProperCase(app.district)}**`)
-  .replace(/{{STATE}}/g, `**${toProperCase(app.state)}**`)
-  .replace(/{{PIN_CODE}}/g, `**${app.pin_code}**`)
-  .replace(/{{TRIBE_NAME}}/g, `**${toProperCase(app.tribe_name)}**`)
-  .replace(/{{RELIGION}}/g, `**${toProperCase(app.religion)}**`)
-  .replace(/{{ANNUAL_INCOME_NUMBER}}/g, `**${app.annual_income}**`)
-  .replace(/{{ANNUAL_INCOME_WORDS}}/g, `**${toProperCase(app.annual_income_words)}**`)
-  .replace(/{{ISSUE_DATE}}/g, currentDate)
-  .replace(/{{ADMIN_NAME}}/g, toProperCase(app.admin_name));
+  .replace(/{{TITLE}}/g, toProperCase(app.title))
+  .replace(/{{APPLICANT_NAME}}/g, fullName)
+  .replace(/{{RELATION}}/g, relationPrefix)
+  .replace(/{{FATHER_NAME}}/g, toProperCase(app.father_name))
+  .replace(/{{HOUSE_NUMBER}}/g, app.house_number)
+  .replace(/{{VILLAGE_NAME}}/g, toProperCase(app.village_name))
+  .replace(/{{POST_OFFICE}}/g, toProperCase(app.post_office))
+  .replace(/{{POLICE_STATION}}/g, toProperCase(app.police_station))
+  .replace(/{{SUB_DIVISION}}/g, toProperCase(app.sub_division))
+  .replace(/{{DISTRICT}}/g, toProperCase(app.district))
+  .replace(/{{STATE}}/g, toProperCase(app.state))
+  .replace(/{{PIN_CODE}}/g, app.pin_code)
+  .replace(/{{TRIBE_NAME}}/g, toProperCase(app.tribe_name))
+  .replace(/{{RELIGION}}/g, toProperCase(app.religion))
+  .replace(/{{ANNUAL_INCOME}}/g, formatCurrency(app.annual_income, app.annual_income_words))
+  .replace(/{{ANNUAL_INCOME_NUMBER}}/g, app.annual_income)
+  .replace(/{{ANNUAL_INCOME_WORDS}}/g, toProperCase(app.annual_income_words))
+ .replace(/{{ISSUE_DATE}}/g, currentDate)
+  .replace(/{{ADMIN_NAME}}/g, toProperCase(app.admin_name))
+  .replace(/He\/She/g, pronouns.subject)
+  .replace(/he\/she/g, pronouns.subject.toLowerCase())
+  .replace(/Him\/Her/g, pronouns.object)
+  .replace(/him\/her/g, pronouns.object.toLowerCase())
+  .replace(/His\/Her/g, pronouns.possessive)
+  .replace(/his\/her/g, pronouns.possessive.toLowerCase());
 
 // Remove unwanted text and clean up line breaks
 certificateText = certificateText
