@@ -526,8 +526,8 @@ if (sealImage) {
   page.drawImage(sealImage, {
     x: width - 250, // Adjusted position for larger seal
     y: 70, // Slightly adjusted position
-    width: 128, // Increased proportionally from 70
-    height: 85, // Increased proportionally from 70
+    width: 75, // Increased proportionally from 70
+    height: 50, // Increased proportionally from 70
   });
 }
 
