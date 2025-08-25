@@ -40,8 +40,6 @@ exports.handler = async (event, context) => {
     `;
 
     // Get application data
-
-    // Get application data
   const application = await sql`
       SELECT a.*, v.name as village_name, v.district, v.state, v.pin_code, 
              v.admin_name, v.post_office, v.police_station, v.sub_division
@@ -61,10 +59,16 @@ exports.handler = async (event, context) => {
     }
 
     const app = application[0];
-    console.log('4. Application data:', app.applicant_name);
+console.log('4. Application data:', app.applicant_name);
 
-    // Get village documents and template
-    const docs = await sql`
+// Ensure all relation fields are available
+app.father_name = app.father_name;
+app.mother_name = app.mother_name;
+app.husband_name = app.husband_name;
+app.guardian_name = app.guardian_name;
+
+// Get village documents and template
+const docs = await sql`
       SELECT document_type, document_data, file_name
       FROM village_documents 
       WHERE village_id = ${app.village_id}
