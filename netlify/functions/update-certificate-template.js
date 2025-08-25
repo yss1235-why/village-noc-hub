@@ -22,13 +22,13 @@ export const handler = async (event, context) => {
   try {
     const { villageId, template } = JSON.parse(event.body);
 
-    if (!villageId || !template) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ error: 'Village ID and template are required' })
-      };
-    }
+   if (!villageId || !template || template.trim() === '') {
+  return {
+    statusCode: 400,
+    headers,
+    body: JSON.stringify({ error: 'Village ID and valid template content are required' })
+  };
+}
 
    // Create certificate_templates table if it doesn't exist  
     await sql`
