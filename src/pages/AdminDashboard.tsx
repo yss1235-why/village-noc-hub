@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import LetterheadCropInterface from '@/components/LetterheadCropInterface';
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -75,6 +76,8 @@ const AdminDashboard = () => {
     seal: null as File | null,
     roundSeal: null as File | null
   });
+  const [showLetterheadCrop, setShowLetterheadCrop] = useState(false);
+  const [letterheadFile, setLetterheadFile] = useState(null);
   const [isLoadingDocuments, setIsLoadingDocuments] = useState(false);
   const [isUploadingDocument, setIsUploadingDocument] = useState(false);
 
@@ -1417,54 +1420,70 @@ const handleUpdateTemplate = async () => {
                   </div>
                 ) : (
                   <div className="space-y-6">
-                    {/* Letterhead Section */}
-                    <div className="border rounded-lg p-4">
-                      <h4 className="font-medium mb-4 flex items-center gap-2">
-                        <FileText className="h-4 w-4" />
-                        Village Letterhead
-                      </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="letterhead">Upload New Letterhead (PNG only)</Label>
-                          <Input
-                            id="letterhead"
-                            type="file"
-                            accept=".png"
-                            onChange={(e) => handleDocumentFileChange('letterhead', e.target.files?.[0] || null)}
-                            className="mb-2"
-                          />
-                          <p className="text-xs text-muted-foreground mb-2">
-                            PNG format with transparent background, max 5MB
-                          </p>
-                          {documentFiles.letterhead && (
-                            <Button
-                              onClick={() => handleDocumentUpload('letterhead')}
-                              disabled={isUploadingDocument}
-                              size="sm"
-                            >
-                              {isUploadingDocument ? "Uploading..." : "Upload Letterhead"}
-                            </Button>
-                          )}
-                        </div>
-                        <div>
-                          <Label>Current Letterhead</Label>
-                          <div className="border rounded-lg p-4 min-h-[150px] flex items-center justify-center bg-muted/10">
-                            {documents.letterhead ? (
-                              <img
-                                src={documents.letterhead}
-                                alt="Village Letterhead"
-                                className="max-w-full max-h-[150px] object-contain"
-                              />
-                            ) : (
-                              <div className="text-center text-muted-foreground">
-                                <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                                <p className="text-sm">No letterhead uploaded</p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+{/* Letterhead Section */}
+<div className="border rounded-lg p-4">
+  <h4 className="font-medium mb-4 flex items-center gap-2">
+    <FileText className="h-4 w-4" />
+    Village Letterhead
+  </h4>
+  
+  {!showLetterheadCrop ? (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <Label htmlFor="letterhead">Upload New Letterhead</Label>
+        <Input
+          id="letterhead"
+          type="file"
+          accept="image/*"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) {
+              setLetterheadFile(file);
+              setShowLetterheadCrop(true);
+            }
+          }}
+          className="mb-2"
+        />
+        <p className="text-xs text-muted-foreground mb-2">
+          Will be cropped to 800x200 pixels at 300 DPI for optimal quality
+        </p>
+      </div>
+      <div>
+        <Label>Current Letterhead</Label>
+        <div className="border rounded-lg p-4 min-h-[150px] flex items-center justify-center bg-muted/10">
+          {documents.letterhead ? (
+            <img
+              src={documents.letterhead}
+              alt="Village Letterhead"
+              className="max-w-full max-h-[150px] object-contain"
+            />
+          ) : (
+            <div className="text-center text-muted-foreground">
+              <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p className="text-sm">No letterhead uploaded</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  ) : (
+    <LetterheadCropInterface 
+      imageFile={letterheadFile}
+      onCropComplete={(croppedBlob) => {
+        const croppedFile = new File([croppedBlob], letterheadFile.name, {
+          type: 'image/png'
+        });
+        setDocumentFiles(prev => ({ ...prev, letterhead: croppedFile }));
+        setShowLetterheadCrop(false);
+        setLetterheadFile(null);
+      }}
+      onCancel={() => {
+        setShowLetterheadCrop(false);
+        setLetterheadFile(null);
+      }}
+    />
+  )}
+</div>
 
                     {/* Signature Section */}
                     <div className="border rounded-lg p-4">
