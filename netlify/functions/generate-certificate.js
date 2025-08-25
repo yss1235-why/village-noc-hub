@@ -317,7 +317,7 @@ let certificateText = template[0].template
 // Clean up line breaks only
 certificateText = certificateText
   .replace(/\n\s*\n/g, '\n\n')  // Fix multiple line breaks
-  .trim();
+  .trim()
   // Remove admin signature patterns (multiple variations)
   .replace(/\*\*[^*]+\*\*\s*Headman\/Chairman\s*\*\*[^*]+\*\*/g, '') 
   .replace(/[A-Z][a-z]+\s+[A-Z][a-z]+\s*Headman\/Chairman\s*\*\*[^*]+\*\*/g, '') 
