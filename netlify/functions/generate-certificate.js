@@ -524,9 +524,9 @@ page.drawText(`${toProperCase(app.village_name)} Village`, {
 // Regular Seal (right side, below village name with more space) - Updated size
 if (sealImage) {
   page.drawImage(sealImage, {
-    x: width - 240, // Adjusted position for larger seal
+    x: width - 250, // Adjusted position for larger seal
     y: 70, // Slightly adjusted position
-    width: 85, // Increased proportionally from 70
+    width: 128, // Increased proportionally from 70
     height: 85, // Increased proportionally from 70
   });
 }
