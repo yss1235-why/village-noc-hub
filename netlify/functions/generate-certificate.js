@@ -235,13 +235,16 @@ const toProperCase = (text) => {
   ).join(' ');
 };
 
-// Check if template exists
-if (!template.length || !template[0]) {
-  console.log('7. No template found for village');
+// Check if template exists and has content
+if (!template.length || !template[0] || !template[0].template || template[0].template.trim() === '') {
+  console.log('7. No template found for village or template is empty');
   return {
     statusCode: 400,
     headers,
-    body: JSON.stringify({ error: 'No certificate template found for this village. Please contact the village admin to set up the template.' })
+    body: JSON.stringify({ 
+      error: 'No certificate template configured for this village. Please contact the village administrator to set up the certificate template before generating certificates.',
+      requiresTemplate: true 
+    })
   };
 }
 
