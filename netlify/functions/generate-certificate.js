@@ -313,6 +313,7 @@ certificateText = certificateText
   .replace(/(795142\.|Pin Code\s*\d+)/g, '$1\n\n')  // New paragraph after PIN code
   .replace(/(She belongs to|He belongs to)/g, '\n\n$1')  // New paragraph before tribe info
   .replace(/(Tangkhul Tribe,)/g, '$1\n')  // Line break after tribe name
+  .replace(/(She follows|He follows)/g, '\n$1')  // New line before religion info
   .replace(/(by faith\.)/g, '$1\n')  // Line break after religion
   .replace(/(by Birth\.)/g, '$1\n')  // Line break after birth
   .replace(/(village authority,)/g, '$1\n')
