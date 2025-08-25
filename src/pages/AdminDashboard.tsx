@@ -83,6 +83,9 @@ const AdminDashboard = () => {
   const [sealFile, setSealFile] = useState(null);
   const [isLoadingDocuments, setIsLoadingDocuments] = useState(false);
   const [isUploadingDocument, setIsUploadingDocument] = useState(false);
+  const [selectedApplication, setSelectedApplication] = useState<any>(null);
+  const [rejectionRemark, setRejectionRemark] = useState("");
+  const [isProcessingAction, setIsProcessingAction] = useState(false);
 
   // Certificate template state
   const [showTemplateManager, setShowTemplateManager] = useState(false);
@@ -717,7 +720,118 @@ const handleUpdateTemplate = async () => {
   const pendingApplications = applications.filter(app => app.status === "pending");
   const approvedApplications = applications.filter(app => app.status === "approved");
   const rejectedApplications = applications.filter(app => app.status === "rejected");
+const handleApproveFromModal = async () => {
+    if (!selectedApplication) return;
+    
+    setIsProcessingAction(true);
+    try {
+      const response = await fetch('/.netlify/functions/update-application-status', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          applicationId: selectedApplication.id,
+          status: 'approved',
+          approvedBy: villageInfo?.adminName
+        })
+      });
 
+      const result = await response.json();
+
+      if (response.ok) {
+        setApplications(apps => 
+          apps.map(app => 
+            app.id === selectedApplication.id 
+              ? { ...app, status: "approved", approvedDate: new Date().toISOString() }
+              : app
+          )
+        );
+        toast({
+          title: "Application Approved",
+          description: `Application ${selectedApplication.application_number} has been approved.`,
+        });
+        setSelectedApplication(null);
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to approve application.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to approve application. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessingAction(false);
+    }
+  };
+
+  const handleRejectFromModal = async () => {
+    if (!selectedApplication || !rejectionRemark.trim()) {
+      toast({
+        title: "Error",
+        description: "Please provide a reason for rejection.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsProcessingAction(true);
+    try {
+      const response = await fetch('/.netlify/functions/update-application-status', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          applicationId: selectedApplication.id,
+          status: 'rejected',
+          adminNotes: rejectionRemark,
+          approvedBy: villageInfo?.adminName
+        })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        setApplications(apps => 
+          apps.map(app => 
+            app.id === selectedApplication.id 
+              ? { ...app, status: "rejected", admin_notes: rejectionRemark }
+              : app
+          )
+        );
+        toast({
+          title: "Application Rejected",
+          description: `Application ${selectedApplication.application_number} has been rejected.`,
+          variant: "destructive",
+        });
+        setSelectedApplication(null);
+        setRejectionRemark("");
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to reject application.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to reject application. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessingAction(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-background to-secondary/30">
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/30">
       {/* Header */}
@@ -875,19 +989,11 @@ const handleUpdateTemplate = async () => {
                             <div className="flex gap-2">
                               <Button
                                 size="sm"
-                                onClick={() => handleApprove(app.id)}
-                                className="bg-success text-success-foreground hover:bg-success/90"
+                                onClick={() => setSelectedApplication(app)}
+                                className="bg-blue-600 text-white hover:bg-blue-700"
                               >
-                                <CheckCircle className="h-4 w-4 mr-1" />
-                                Approve
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => handleReject(app.id)}
-                              >
-                                <XCircle className="h-4 w-4 mr-1" />
-                                Reject
+                                <Eye className="h-4 w-4 mr-1" />
+                                Review
                               </Button>
                             </div>
                           </TableCell>
@@ -1761,6 +1867,175 @@ const handleUpdateTemplate = async () => {
             </Card>
           </div>
         )}
+        {/* Application Review Modal */}
+        {selectedApplication && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <Card className="w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
+              <CardHeader>
+                <CardTitle>Review Application - {selectedApplication.application_number}</CardTitle>
+                <CardDescription>
+                  Review the application details and uploaded documents before making a decision.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {/* Application Details */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-semibold">Applicant Name</Label>
+                      <p className="text-sm">{selectedApplication.applicant_name}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-semibold">Father's Name</Label>
+                      <p className="text-sm">{selectedApplication.father_name}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-semibold">Address</Label>
+                      <p className="text-sm">{selectedApplication.address}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-semibold">Purpose of NOC</Label>
+                      <p className="text-sm">{selectedApplication.purpose_of_noc}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-semibold">Annual Income</Label>
+                      <p className="text-sm">₹{selectedApplication.annual_income}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-semibold">Phone</Label>
+                      <p className="text-sm">{selectedApplication.phone}</p>
+                    </div>
+                  </div>
+
+                  {/* Documents Section */}
+                  <div className="border rounded-lg p-4">
+                    <h4 className="font-medium mb-4 flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      Uploaded Documents
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="border rounded p-3">
+                        <Label className="text-sm font-semibold">Aadhaar Card</Label>
+                        {selectedApplication.aadhaar_document ? (
+                          <div className="mt-2">
+                            <img 
+                              src={selectedApplication.aadhaar_document} 
+                              alt="Aadhaar Card" 
+                              className="max-w-full h-40 object-contain border rounded"
+                            />
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="mt-2"
+                              onClick={() => window.open(selectedApplication.aadhaar_document, '_blank')}
+                            >
+                              <Download className="h-4 w-4 mr-1" />
+                              View Full Size
+                            </Button>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground mt-2">No Aadhaar document uploaded</p>
+                        )}
+                      </div>
+                      <div className="border rounded p-3">
+                        <Label className="text-sm font-semibold">Passport Photo</Label>
+                        {selectedApplication.passport_photo ? (
+                          <div className="mt-2">
+                            <img 
+                              src={selectedApplication.passport_photo} 
+                              alt="Passport Photo" 
+                              className="max-w-full h-40 object-contain border rounded"
+                            />
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="mt-2"
+                              onClick={() => window.open(selectedApplication.passport_photo, '_blank')}
+                            >
+                              <Download className="h-4 w-4 mr-1" />
+                              View Full Size
+                            </Button>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground mt-2">No passport photo uploaded</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Rejection Remarks */}
+                  <div className="border rounded-lg p-4 bg-red-50 dark:bg-red-950/20">
+                    <Label htmlFor="rejection-remarks" className="text-sm font-semibold">
+                      Rejection Remarks (Required if rejecting)
+                    </Label>
+                    <textarea
+                      id="rejection-remarks"
+                      value={rejectionRemark}
+                      onChange={(e) => setRejectionRemark(e.target.value)}
+                      placeholder="Enter reason for rejection (e.g., Documents not clear, Information mismatch, etc.)"
+                      className="w-full mt-2 p-3 border rounded-md h-24 resize-none"
+                    />
+                    <div className="mt-2">
+                      <Label className="text-xs text-muted-foreground">Common reasons:</Label>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {[
+                          "Documents not clear/readable",
+                          "Information mismatch", 
+                          "Required documents missing",
+                          "Invalid document format"
+                        ].map((reason) => (
+                          <Button
+                            key={reason}
+                            size="sm"
+                            variant="outline"
+                            className="text-xs h-6"
+                            onClick={() => setRejectionRemark(reason)}
+                          >
+                            {reason}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex justify-end gap-3 pt-4 border-t">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setSelectedApplication(null);
+                        setRejectionRemark("");
+                      }}
+                      disabled={isProcessingAction}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={handleRejectFromModal}
+                      disabled={isProcessingAction || !rejectionRemark.trim()}
+                    >
+                      <XCircle className="h-4 w-4 mr-1" />
+                      {isProcessingAction ? "Processing..." : "Reject Application"}
+                    </Button>
+                    <Button
+                      onClick={handleApproveFromModal}
+                      disabled={isProcessingAction}
+                      className="bg-success text-success-foreground hover:bg-success/90"
+                    >
+                      <CheckCircle className="h-4 w-4 mr-1" />
+                      {isProcessingAction ? "Processing..." : "Approve Application"}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+      </main>
+    </div>
+  );
       </main>
     </div>
   );
