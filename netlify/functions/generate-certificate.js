@@ -251,8 +251,7 @@ if (!template.length || !template[0] || !template[0].template || template[0].tem
 // Get current date
 const currentDate = new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
 
-// Certificate text with proper formatting
-// Helper function to determine pronouns based on title
+// Helper functions
 const getPronoun = (title) => {
   const lowerTitle = title?.toLowerCase();
   if (lowerTitle === 'mr') {
@@ -263,84 +262,62 @@ const getPronoun = (title) => {
     return { subject: 'He/She', object: 'him/her', possessive: 'his/her' };
   }
 };
-// Helper function to format relationship
+
 const formatRelation = (relation) => {
   if (!relation) return '';
   const relationLower = relation.toLowerCase();
   if (relationLower.includes('son') || relationLower.includes('daughter') || relationLower.includes('child')) return 'F/O';
   if (relationLower.includes('wife') || relationLower.includes('spouse')) return 'H/O';
   if (relationLower.includes('ward') || relationLower.includes('dependent')) return 'G/O';
-  return 'F/O'; // Default to Father Of for most cases
+  return 'F/O';
 };
 
-// Helper function to format currency
 const formatCurrency = (amount, words) => {
   if (!amount) return '';
   const formattedAmount = parseInt(amount).toLocaleString('en-IN');
   return `Rs. ${formattedAmount} (Rupees ${toProperCase(words)} only)`;
 };
 
+// Build clean values
 const pronouns = getPronoun(app.title);
 const relationPrefix = formatRelation(app.relation);
 const relationName = app.father_name || app.mother_name || app.husband_name || app.guardian_name;
 const fullName = relationPrefix && relationName ? 
-  `${toProperCase(app.applicant_name)} ${relationPrefix} ${toProperCase(relationName)}` : 
-  toProperCase(app.applicant_name);
+  `${toProperCase(app.title)} ${toProperCase(app.applicant_name)} ${relationPrefix} ${toProperCase(relationName)}` : 
+  `${toProperCase(app.title)} ${toProperCase(app.applicant_name)}`;
 
-// Certificate text with proper formatting
+// Clean template processing
 let certificateText = template[0].template
-  .replace(/{{TITLE}}/g, `**${toProperCase(app.title)}**`)
-  .replace(/{{APPLICANT_NAME}}/g, `**${fullName}**`)
-  .replace(/{{HOUSE_NUMBER}}/g, `**${app.house_number}**`)
-  .replace(/{{VILLAGE_NAME}}/g, `**${toProperCase(app.village_name)}**`)
-  .replace(/{{POST_OFFICE}}/g, `**${toProperCase(app.post_office)}**`)
-  .replace(/{{POLICE_STATION}}/g, `**${toProperCase(app.police_station)}**`)
-  .replace(/{{SUB_DIVISION}}/g, `**${toProperCase(app.sub_division)}**`)
-  .replace(/{{DISTRICT}}/g, `**${toProperCase(app.district)}**`)
-  .replace(/{{STATE}}/g, `**${toProperCase(app.state)}**`)
-  .replace(/{{PIN_CODE}}/g, `**${app.pin_code}**`)
-  .replace(/{{TRIBE_NAME}}/g, `**${toProperCase(app.tribe_name)}**`)
-  .replace(/{{RELIGION}}/g, `**${toProperCase(app.religion)}**`)
-  .replace(/{{ANNUAL_INCOME}}/g, `**${formatCurrency(app.annual_income, app.annual_income_words)}**`)
-  .replace(/{{ANNUAL_INCOME_NUMBER}}/g, app.annual_income)
-  .replace(/{{ANNUAL_INCOME_WORDS}}/g, toProperCase(app.annual_income_words))
-  .replace(/{{ISSUE_DATE}}/g, currentDate)
+  .replace(/{{TITLE}}/g, toProperCase(app.title))
+  .replace(/{{APPLICANT_NAME}}/g, fullName)
+  .replace(/{{RELATION}}/g, '')
+  .replace(/{{FATHER_NAME}}/g, '')
+  .replace(/{{HOUSE_NUMBER}}/g, app.house_number || '')
+  .replace(/{{VILLAGE_NAME}}/g, toProperCase(app.village_name))
+  .replace(/{{POST_OFFICE}}/g, toProperCase(app.post_office))
+  .replace(/{{POLICE_STATION}}/g, toProperCase(app.police_station))
+  .replace(/{{SUB_DIVISION}}/g, toProperCase(app.sub_division))
+  .replace(/{{DISTRICT}}/g, toProperCase(app.district))
+  .replace(/{{STATE}}/g, toProperCase(app.state))
+  .replace(/{{PIN_CODE}}/g, app.pin_code || '')
+  .replace(/{{TRIBE_NAME}}/g, toProperCase(app.tribe_name))
+  .replace(/{{RELIGION}}/g, toProperCase(app.religion))
+  .replace(/{{ANNUAL_INCOME}}/g, formatCurrency(app.annual_income, app.annual_income_words))
   .replace(/{{ADMIN_NAME}}/g, toProperCase(app.admin_name))
   .replace(/He\/She/g, pronouns.subject)
   .replace(/he\/she/g, pronouns.subject.toLowerCase())
-  .replace(/Him\/Her/g, pronouns.object)
-  .replace(/him\/her/g, pronouns.object.toLowerCase())
-  .replace(/His\/Her/g, pronouns.possessive)
-  .replace(/his\/her/g, pronouns.possessive.toLowerCase());
-
-// Remove unwanted text and clean up line breaks
-// Clean up line breaks only
-certificateText = certificateText
-  .replace(/\n\s*\n/g, '\n\n')  // Fix multiple line breaks
-  .trim()
-  // Remove admin signature patterns (multiple variations)
-  .replace(/\*\*[^*]+\*\*\s*Headman\/Chairman\s*\*\*[^*]+\*\*/g, '') 
-  .replace(/[A-Z][a-z]+\s+[A-Z][a-z]+\s*Headman\/Chairman\s*\*\*[^*]+\*\*/g, '') 
-  .replace(/\*\*[^*]+\*\*\s*\*\*[^*]+\*\*/g, '') // Remove **Name** **Village** pattern
-  .replace(/"[^"]*"/g, '')                        // Remove any quoted text
-  .replace(/Headman\/Chairman/g, '')              // Remove any remaining headman text
-  // Clean up admin names appearing after "He/She is not related to me."
-  .replace(/(He\/She is not related to me\.\s*)[^.]*$/g, '$1')
-  .replace(/\s+/g, ' ')                           // Clean up multiple spaces
+  .replace(/his\/her/g, pronouns.possessive.toLowerCase())
+  .replace(/No Objection Certificate\./g, '')
+  .replace(/Date:\s*[0-9\-]+/g, '')
+  .replace(/Place:\s*\*\*[^*]+\*\*/g, '')
+  .replace(/\s+/g, ' ')
   .trim();
 
-
-// Clean up all problematic characters and add specific paragraph breaks
+// Add paragraph breaks for proper formatting
 certificateText = certificateText
-  .replace(/\r\n/g, '\n')  // Convert Windows line endings
-  .replace(/\r/g, '\n')    // Convert Mac line endings
-  .replace(/\n{3,}/g, '\n\n') // Convert multiple line breaks to double
-  // Add paragraph breaks at your specified locations
-  .replace(/(\*\*\d+\*\*\.\s*)/g, '$1\n\n')  // After PIN code like **795142**.
-  .replace(/(undefined only\.\s*)/g, '$1\n\n')  // After "undefined only."
-  .replace(/(Village record\.\s*)/g, '$1\n\n')  // After "Village record."
-  .replace(/(He\/She is not related to me\.)/g, '\n\n$1')  // Make "He/She is not related" its own paragraph
-  .trim();
+  .replace(/(795142\.|Pin Code\s*\d+)/g, '$1\n\n')  // After PIN code
+  .replace(/(Village record\.)/g, '$1\n\n')  // After "Village record"
+  .replace(/(He is not related to me\.)/g, '\n\n$1'); // Before final statement
 
 // Split text into paragraphs and draw with justification
 const paragraphs = certificateText.split('\n\n');
