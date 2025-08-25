@@ -81,7 +81,7 @@ export const handler = async (event, context) => {
       signature: documentsMap.signature || null,
       seal: documentsMap.seal || null,
       roundSeal: documentsMap.roundSeal || null,
-     certificateTemplate: template[0]?.template || `This is to certify that {{TITLE}} {{APPLICANT_NAME}} is an inhabitant of House no. {{HOUSE_NUMBER}}, {{VILLAGE_NAME}} Village, Under Post Office {{POST_OFFICE}}, Police Station {{POLICE_STATION}} Sub-division {{SUB_DIVISION}}, {{DISTRICT}} Dist {{STATE}} - {{PIN_CODE}}.
+    certificateTemplate: template[0]?.template || null
 
 He/She belongs to {{TRIBE_NAME}} Tribe, {{RELIGION}} Religion by faith. He/She is a citizen of the {{VILLAGE_NAME}} Village by Birth. As per the family data collected by the Village his/her annual income is {{ANNUAL_INCOME_NUMBER}} in word {{ANNUAL_INCOME_WORDS}} only.
 
