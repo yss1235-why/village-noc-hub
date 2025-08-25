@@ -310,13 +310,12 @@ let certificateText = template[0].template
 
 // Add paragraph breaks for proper formatting
 certificateText = certificateText
-  .replace(/(795142\.|Pin Code\s*\d+)/g, '$1\n\n')  // After PIN code
+  .replace(/(by faith\.)/g, '$1\n')
   .replace(/(Village record\.)/g, '$1\n\n')  // After "Village record"
   .replace(/(He is not related to me\.)/g, '\n\n$1'); // Before final statement
-
 // Split text into paragraphs and draw with justification
 const paragraphs = certificateText.split('\n\n');
-let yPosition = height - 320;
+let yPosition = height - 380;
 const maxWidth = width - 120;
 const leftMargin = 60;
 const rightMargin = width - 60;
