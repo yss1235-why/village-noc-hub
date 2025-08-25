@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import LetterheadCropInterface from '@/components/LetterheadCropInterface';
+import SealCropInterface from '@/components/SealCropInterface';
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -78,6 +79,8 @@ const AdminDashboard = () => {
   });
   const [showLetterheadCrop, setShowLetterheadCrop] = useState(false);
   const [letterheadFile, setLetterheadFile] = useState(null);
+  const [showSealCrop, setShowSealCrop] = useState(false);
+  const [sealFile, setSealFile] = useState(null);
   const [isLoadingDocuments, setIsLoadingDocuments] = useState(false);
   const [isUploadingDocument, setIsUploadingDocument] = useState(false);
 
@@ -1535,54 +1538,71 @@ const handleUpdateTemplate = async () => {
                       </div>
                     </div>
 
-                    {/* Official Seal Section */}
-                    <div className="border rounded-lg p-4">
-                      <h4 className="font-medium mb-4 flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4" />
-                        Official Seal
-                      </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="seal">Upload New Seal (PNG only)</Label>
-                          <Input
-                            id="seal"
-                            type="file"
-                            accept=".png"
-                            onChange={(e) => handleDocumentFileChange('seal', e.target.files?.[0] || null)}
-                            className="mb-2"
-                          />
-                          <p className="text-xs text-muted-foreground mb-2">
-                            PNG format with transparent background, max 5MB
-                          </p>
-                          {documentFiles.seal && (
-                            <Button
-                              onClick={() => handleDocumentUpload('seal')}
-                              disabled={isUploadingDocument}
-                              size="sm"
-                            >
-                              {isUploadingDocument ? "Uploading..." : "Upload Seal"}
-                            </Button>
-                          )}
-                        </div>
-                        <div>
-                          <Label>Current Seal</Label>
-                          <div className="border rounded-lg p-4 min-h-[150px] flex items-center justify-center bg-muted/10">
-                            {documents.seal ? (
-                              <img
-                                src={documents.seal}
-                                alt="Official Seal"
-                                className="max-w-full max-h-[150px] object-contain"
-                              />
-                            ) : (
-                              <div className="text-center text-muted-foreground">
-                                <CheckCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                                <p className="text-sm">No seal uploaded</p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                   {/* Official Seal Section */}
+<div className="border rounded-lg p-4">
+  <h4 className="font-medium mb-4 flex items-center gap-2">
+    <CheckCircle className="h-4 w-4" />
+    Official Seal
+  </h4>
+  
+  {!showSealCrop ? (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <Label htmlFor="seal">Upload New Seal</Label>
+        <Input
+          id="seal"
+          type="file"
+          accept="image/*"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) {
+              setSealFile(file);
+              setShowSealCrop(true);
+            }
+          }}
+          className="mb-2"
+        />
+        <p className="text-xs text-muted-foreground mb-2">
+          Will be cropped to 300x200 pixels at 300 DPI for optimal quality
+        </p>
+      </div>
+      <div>
+        <Label>Current Seal</Label>
+        <div className="border rounded-lg p-4 min-h-[150px] flex items-center justify-center bg-muted/10">
+          {documents.seal ? (
+            <img
+              src={documents.seal}
+              alt="Official Seal"
+              className="max-w-full max-h-[150px] object-contain"
+            />
+          ) : (
+            <div className="text-center text-muted-foreground">
+              <CheckCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p className="text-sm">No seal uploaded</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  ) : (
+    <SealCropInterface 
+      imageFile={sealFile}
+      onCropComplete={(croppedBlob) => {
+        const croppedFile = new File([croppedBlob], sealFile.name, {
+          type: 'image/png'
+        });
+        setDocumentFiles(prev => ({ ...prev, seal: croppedFile }));
+        setShowSealCrop(false);
+        setSealFile(null);
+        handleDocumentUpload('seal');
+      }}
+      onCancel={() => {
+        setShowSealCrop(false);
+        setSealFile(null);
+      }}
+    />
+  )}
+</div>
 
                     {/* Round Seal Section */}
                     <div className="border rounded-lg p-4">
