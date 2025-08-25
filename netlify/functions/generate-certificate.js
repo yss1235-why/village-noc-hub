@@ -310,11 +310,13 @@ let certificateText = template[0].template
 
 // Add paragraph breaks for proper formatting
 certificateText = certificateText
-  .replace(/(by faith\.)/g, '$1\n')
-  .replace(/(by Birth\.)/g, '$1\n\n')
-  .replace(/(only\.)/g, '$1\n')
-  .replace(/(Village record\.)/g, '$1\n\n')  // After "Village record"
-  .replace(/(He is not related to me\.)/g, '\n\n$1'); // Before final statement
+  .replace(/(795142\.|Pin Code\s*\d+)/g, '$1\n\n')  // New paragraph after PIN code
+  .replace(/(Tangkhul Tribe,)/g, '$1\n')  // Line break after tribe name
+  .replace(/(by faith\.)/g, '$1\n')  // Line break after religion
+  .replace(/(by Birth\.)/g, '$1\n')  // Line break after birth
+  .replace(/(only\.)/g, '$1\n')  // Line break after income
+  .replace(/(To the best of my knowledge)/g, '\n\n$1')  // New paragraph
+  .replace(/(He is not related to me\.|She is not related to me\.)/g, '\n\n$1'); // Final statement
 // Split text into paragraphs and draw with justification
 const paragraphs = certificateText.split('\n\n');
 let yPosition = height - 380;
