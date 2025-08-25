@@ -263,16 +263,14 @@ const getPronoun = (title) => {
     return { subject: 'He/She', object: 'him/her', possessive: 'his/her' };
   }
 };
-
 // Helper function to format relationship
 const formatRelation = (relation) => {
   if (!relation) return '';
   const relationLower = relation.toLowerCase();
-  if (relationLower.includes('father')) return 'F/O';
-  if (relationLower.includes('mother')) return 'M/O';
-  if (relationLower.includes('husband')) return 'H/O';
-  if (relationLower.includes('guardian')) return 'G/O';
-  return relation;
+  if (relationLower.includes('son') || relationLower.includes('daughter') || relationLower.includes('child')) return 'F/O';
+  if (relationLower.includes('wife') || relationLower.includes('spouse')) return 'H/O';
+  if (relationLower.includes('ward') || relationLower.includes('dependent')) return 'G/O';
+  return 'F/O'; // Default to Father Of for most cases
 };
 
 // Helper function to format currency
@@ -284,7 +282,10 @@ const formatCurrency = (amount, words) => {
 
 const pronouns = getPronoun(app.title);
 const relationPrefix = formatRelation(app.relation);
-const fullName = relationPrefix ? `${toProperCase(app.applicant_name)} ${relationPrefix} ${toProperCase(app.father_name || app.mother_name || app.husband_name || app.guardian_name)}` : toProperCase(app.applicant_name);
+const relationName = app.father_name || app.mother_name || app.husband_name || app.guardian_name;
+const fullName = relationPrefix && relationName ? 
+  `${toProperCase(app.applicant_name)} ${toProperCase(app.relation)} ${relationPrefix} ${toProperCase(relationName)}` : 
+  toProperCase(app.applicant_name);
 
 // Certificate text with proper formatting
 let certificateText = template[0].template
@@ -305,7 +306,7 @@ let certificateText = template[0].template
   .replace(/{{ANNUAL_INCOME}}/g, formatCurrency(app.annual_income, app.annual_income_words))
   .replace(/{{ANNUAL_INCOME_NUMBER}}/g, app.annual_income)
   .replace(/{{ANNUAL_INCOME_WORDS}}/g, toProperCase(app.annual_income_words))
- .replace(/{{ISSUE_DATE}}/g, currentDate)
+  .replace(/{{ISSUE_DATE}}/g, currentDate)
   .replace(/{{ADMIN_NAME}}/g, toProperCase(app.admin_name))
   .replace(/He\/She/g, pronouns.subject)
   .replace(/he\/she/g, pronouns.subject.toLowerCase())
