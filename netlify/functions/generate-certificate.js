@@ -209,17 +209,12 @@ if (letterheadImage) {
 page.drawText(`Rf. No. ${refNo}`, {
   x: 60,
   y: height - 220, // Adjusted for larger letterhead
-  size: 14,
-  font: timesBoldFont,
+  size: 10,
+  font: timesFont,
   color: rgb(0.17, 0.35, 0.63),
 });
 
-page.drawText(`Dated: ${new Date().toLocaleDateString('en-GB').replace(/\//g, '-')}`, {
-  x: width - 200,
-  y: height - 220, // Adjusted for larger letterhead
-  size: 12,
-  font: timesFont,
-});
+
 // Main title (adjusted position)
 page.drawText('TO WHOM IT MAY CONCERN', {
   x: width / 2 - 120,
