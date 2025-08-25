@@ -416,11 +416,20 @@ const loadDocuments = async () => {
       setIsUploadingDocument(false);
     }
   };
-  const handleUpdateTemplate = async () => {
-    setIsUpdatingTemplate(true);
-    
-    try {
-      const response = await fetch('/.netlify/functions/update-certificate-template', {
+const handleUpdateTemplate = async () => {
+  if (!certificateTemplate || certificateTemplate.trim() === '') {
+    toast({
+      title: "Error",
+      description: "Certificate template cannot be empty. Please enter a valid template.",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  setIsUpdatingTemplate(true);
+  
+  try {
+    const response = await fetch('/.netlify/functions/update-certificate-template', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
