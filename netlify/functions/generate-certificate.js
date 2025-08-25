@@ -333,37 +333,17 @@ paragraphs.forEach(paragraph => {
       if (line.trim()) {
         const cleanLine = line.trim().replace(/\s+/g, ' ');
         
-       // Create word objects with bold formatting info - FIXED VERSION
+        // Create word objects with bold formatting info
         const wordObjects = [];
+        const words = cleanLine.split(' ');
         
-        // Process bold segments first, then split into words
-        const segments = cleanLine.split(/(\*\*[^*]*?\*\*)/);
-        
-        segments.forEach(segment => {
-          if (segment.startsWith('**') && segment.endsWith('**') && segment.length > 4) {
-            // This is a bold segment - remove asterisks and split into words
-            const boldText = segment.slice(2, -2);
-            const boldWords = boldText.split(' ').filter(word => word.trim());
-            
-            boldWords.forEach(word => {
-              if (word.trim()) {
-                wordObjects.push({
-                  text: word.trim(),
-                  isBold: true
-                });
-              }
-            });
-          } else if (segment.trim()) {
-            // This is regular text - split into words
-            const regularWords = segment.split(' ').filter(word => word.trim());
-            
-            regularWords.forEach(word => {
-              if (word.trim()) {
-                wordObjects.push({
-                  text: word.trim(),
-                  isBold: false
-                });
-              }
+        words.forEach(word => {
+          const isBold = word.startsWith('**') && word.endsWith('**');
+          const cleanWord = isBold ? word.replace(/\*\*/g, '') : word;
+          if (cleanWord.trim()) {  // Only add non-empty words
+            wordObjects.push({
+              text: cleanWord,
+              isBold: isBold
             });
           }
         });
