@@ -311,6 +311,8 @@ let certificateText = template[0].template
 // Add paragraph breaks for proper formatting
 certificateText = certificateText
   .replace(/(by faith\.)/g, '$1\n')
+  .replace(/(by Birth\.)/g, '$1\n\n')
+  .replace(/(only\.)/g, '$1\n')
   .replace(/(Village record\.)/g, '$1\n\n')  // After "Village record"
   .replace(/(He is not related to me\.)/g, '\n\n$1'); // Before final statement
 // Split text into paragraphs and draw with justification
@@ -322,26 +324,30 @@ const rightMargin = width - 60;
 
 paragraphs.forEach(paragraph => {
   if (paragraph.trim()) {
-    // Replace any remaining single line breaks with spaces within paragraphs
-    const cleanParagraph = paragraph.trim().replace(/\n/g, ' ').replace(/\s+/g, ' ');
+    const lines = paragraph.trim().split('\n');
     
-    // Create word objects with bold formatting info
-    const wordObjects = [];
-    const words = cleanParagraph.split(' ');
-    
-    words.forEach(word => {
-      const isBold = word.startsWith('**') && word.endsWith('**');
-      const cleanWord = isBold ? word.replace(/\*\*/g, '') : word;
-      if (cleanWord.trim()) {  // Only add non-empty words
-        wordObjects.push({
-          text: cleanWord,
-          isBold: isBold
+    lines.forEach((line, lineIndex) => {
+      if (line.trim()) {
+        const cleanLine = line.trim().replace(/\s+/g, ' ');
+        
+        // Create word objects with bold formatting info
+        const wordObjects = [];
+        const words = cleanLine.split(' ');
+        
+        words.forEach(word => {
+          const isBold = word.startsWith('**') && word.endsWith('**');
+          const cleanWord = isBold ? word.replace(/\*\*/g, '') : word;
+          if (cleanWord.trim()) {  // Only add non-empty words
+            wordObjects.push({
+              text: cleanWord,
+              isBold: isBold
+            });
+          }
         });
-      }
-    });
     
     // Build lines with word objects
-    const lines = [];
+    // Build lines with word objects
+    const justifiedLines = [];
     let currentLine = [];
     let currentLineText = '';
     
@@ -351,7 +357,7 @@ paragraphs.forEach(paragraph => {
       const textWidth = testFont.widthOfTextAtSize(testLine, 14);
       
       if (textWidth > maxWidth && currentLine.length > 0) {
-        lines.push(currentLine);
+        justifiedLines.push(currentLine);
         currentLine = [wordObj];
         currentLineText = wordObj.text;
       } else {
@@ -359,11 +365,11 @@ paragraphs.forEach(paragraph => {
         currentLineText = testLine;
       }
     }
-    if (currentLine.length > 0) lines.push(currentLine);
+    if (currentLine.length > 0) justifiedLines.push(currentLine);
 
-    // Draw lines with justification
-    lines.forEach((line, index) => {
-      const isLastLine = index === lines.length - 1;
+   // Draw lines with justification
+    justifiedLines.forEach((line, index) => {
+     const isLastLine = index === justifiedLines.length - 1;
       
       if (line.length === 1 || isLastLine) {
         // Don't justify single words or last line
@@ -401,10 +407,12 @@ paragraphs.forEach(paragraph => {
         });
       }
       yPosition -= 20;
+      });
+      }
     });
     
     // Add paragraph spacing
-    yPosition -= 10;
+    yPosition -= 15;
   }
 });
 
