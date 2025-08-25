@@ -283,9 +283,8 @@ const pronouns = getPronoun(app.title);
 const relationPrefix = formatRelation(app.relation);
 const relationName = app.father_name || app.mother_name || app.husband_name || app.guardian_name;
 const fullName = relationPrefix && relationName ? 
-  `${toProperCase(app.title)} ${toProperCase(app.applicant_name)} ${relationPrefix} ${toProperCase(relationName)}` : 
-  `${toProperCase(app.title)} ${toProperCase(app.applicant_name)}`;
-
+  `${toProperCase(app.applicant_name)} ${relationPrefix} ${toProperCase(relationName)}` : 
+  `${toProperCase(app.applicant_name)}`;
 // Clean template processing
 let certificateText = template[0].template
   .replace(/{{TITLE}}/g, toProperCase(app.title))
