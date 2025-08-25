@@ -1476,6 +1476,7 @@ const handleUpdateTemplate = async () => {
         setDocumentFiles(prev => ({ ...prev, letterhead: croppedFile }));
         setShowLetterheadCrop(false);
         setLetterheadFile(null);
+        handleDocumentUpload('letterhead');
       }}
       onCancel={() => {
         setShowLetterheadCrop(false);
