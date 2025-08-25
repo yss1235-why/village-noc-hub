@@ -335,20 +335,65 @@ paragraphs.forEach(paragraph => {
         
         // Create word objects with bold formatting info
         const wordObjects = [];
-        const words = cleanLine.split(' ');
         
-        words.forEach(word => {
-          const isBold = word.startsWith('**') && word.endsWith('**');
-          const cleanWord = isBold ? word.replace(/\*\*/g, '') : word;
-          if (cleanWord.trim()) {  // Only add non-empty words
-            wordObjects.push({
-              text: cleanWord,
-              isBold: isBold
+        // Handle multi-word bold text by processing ** segments first
+        let remainingText = cleanLine;
+        
+        while (remainingText.includes('**')) {
+          const startIndex = remainingText.indexOf('**');
+          const endIndex = remainingText.indexOf('**', startIndex + 2);
+          
+          if (endIndex === -1) {
+            // No matching closing **, treat as regular text
+            break;
+          }
+          
+          // Add text before the bold segment
+          const beforeBold = remainingText.substring(0, startIndex);
+          if (beforeBold.trim()) {
+            const beforeWords = beforeBold.trim().split(' ');
+            beforeWords.forEach(word => {
+              if (word.trim()) {
+                wordObjects.push({
+                  text: word.trim(),
+                  isBold: false
+                });
+              }
             });
           }
-        });
+          
+          // Add the bold segment
+          const boldText = remainingText.substring(startIndex + 2, endIndex);
+          if (boldText.trim()) {
+            const boldWords = boldText.trim().split(' ');
+            boldWords.forEach(word => {
+              if (word.trim()) {
+                wordObjects.push({
+                  text: word.trim(),
+                  isBold: true
+                });
+              }
+            });
+          }
+          
+          // Continue with the rest
+          remainingText = remainingText.substring(endIndex + 2);
+        }
+        
+        // Add any remaining text after the last bold segment
+        if (remainingText.trim()) {
+          const remainingWords = remainingText.trim().split(' ');
+          remainingWords.forEach(word => {
+            if (word.trim()) {
+              wordObjects.push({
+                text: word.trim(),
+                isBold: false
+              });
+            }
+          });
+        }
     
-    // Build lines with word objects
+   
     // Build lines with word objects
     const justifiedLines = [];
     let currentLine = [];
