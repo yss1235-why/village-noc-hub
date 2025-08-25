@@ -62,10 +62,10 @@ exports.handler = async (event, context) => {
 console.log('4. Application data:', app.applicant_name);
 
 // Ensure all relation fields are available
-app.father_name = app.father_name;
-app.mother_name = app.mother_name;
-app.husband_name = app.husband_name;
-app.guardian_name = app.guardian_name;
+app.father_name = app.father_name || '';
+app.mother_name = app.mother_name || '';
+app.husband_name = app.husband_name || '';
+app.guardian_name = app.guardian_name || '';
 
 // Get village documents and template
 const docs = await sql`
@@ -284,26 +284,24 @@ const pronouns = getPronoun(app.title);
 const relationPrefix = formatRelation(app.relation);
 const relationName = app.father_name || app.mother_name || app.husband_name || app.guardian_name;
 const fullName = relationPrefix && relationName ? 
-  `${toProperCase(app.applicant_name)} ${toProperCase(app.relation)} ${relationPrefix} ${toProperCase(relationName)}` : 
+  `${toProperCase(app.applicant_name)} ${relationPrefix} ${toProperCase(relationName)}` : 
   toProperCase(app.applicant_name);
 
 // Certificate text with proper formatting
 let certificateText = template[0].template
-  .replace(/{{TITLE}}/g, toProperCase(app.title))
-  .replace(/{{APPLICANT_NAME}}/g, fullName)
-  .replace(/{{RELATION}}/g, relationPrefix)
-  .replace(/{{FATHER_NAME}}/g, toProperCase(app.father_name))
-  .replace(/{{HOUSE_NUMBER}}/g, app.house_number)
-  .replace(/{{VILLAGE_NAME}}/g, toProperCase(app.village_name))
-  .replace(/{{POST_OFFICE}}/g, toProperCase(app.post_office))
-  .replace(/{{POLICE_STATION}}/g, toProperCase(app.police_station))
-  .replace(/{{SUB_DIVISION}}/g, toProperCase(app.sub_division))
-  .replace(/{{DISTRICT}}/g, toProperCase(app.district))
-  .replace(/{{STATE}}/g, toProperCase(app.state))
-  .replace(/{{PIN_CODE}}/g, app.pin_code)
-  .replace(/{{TRIBE_NAME}}/g, toProperCase(app.tribe_name))
-  .replace(/{{RELIGION}}/g, toProperCase(app.religion))
-  .replace(/{{ANNUAL_INCOME}}/g, formatCurrency(app.annual_income, app.annual_income_words))
+  .replace(/{{TITLE}}/g, `**${toProperCase(app.title)}**`)
+  .replace(/{{APPLICANT_NAME}}/g, `**${fullName}**`)
+  .replace(/{{HOUSE_NUMBER}}/g, `**${app.house_number}**`)
+  .replace(/{{VILLAGE_NAME}}/g, `**${toProperCase(app.village_name)}**`)
+  .replace(/{{POST_OFFICE}}/g, `**${toProperCase(app.post_office)}**`)
+  .replace(/{{POLICE_STATION}}/g, `**${toProperCase(app.police_station)}**`)
+  .replace(/{{SUB_DIVISION}}/g, `**${toProperCase(app.sub_division)}**`)
+  .replace(/{{DISTRICT}}/g, `**${toProperCase(app.district)}**`)
+  .replace(/{{STATE}}/g, `**${toProperCase(app.state)}**`)
+  .replace(/{{PIN_CODE}}/g, `**${app.pin_code}**`)
+  .replace(/{{TRIBE_NAME}}/g, `**${toProperCase(app.tribe_name)}**`)
+  .replace(/{{RELIGION}}/g, `**${toProperCase(app.religion)}**`)
+  .replace(/{{ANNUAL_INCOME}}/g, `**${formatCurrency(app.annual_income, app.annual_income_words)}**`)
   .replace(/{{ANNUAL_INCOME_NUMBER}}/g, app.annual_income)
   .replace(/{{ANNUAL_INCOME_WORDS}}/g, toProperCase(app.annual_income_words))
   .replace(/{{ISSUE_DATE}}/g, currentDate)
@@ -316,11 +314,10 @@ let certificateText = template[0].template
   .replace(/his\/her/g, pronouns.possessive.toLowerCase());
 
 // Remove unwanted text and clean up line breaks
+// Clean up line breaks only
 certificateText = certificateText
-  .replace(/No Objection Certificate\.\s*/g, '')
-  .replace(/Date:\s*\d{1,2}-\d{1,2}-\d{4}/g, '')  // Remove date from content
-  .replace(/Place:\s*\*\*[^*]+\*\*/g, '')         // Remove place from content
-  .replace(/Place:\s*[^.]+/g, '')                  // Remove place without ** format
+  .replace(/\n\s*\n/g, '\n\n')  // Fix multiple line breaks
+  .trim();
   // Remove admin signature patterns (multiple variations)
   .replace(/\*\*[^*]+\*\*\s*Headman\/Chairman\s*\*\*[^*]+\*\*/g, '') 
   .replace(/[A-Z][a-z]+\s+[A-Z][a-z]+\s*Headman\/Chairman\s*\*\*[^*]+\*\*/g, '') 
