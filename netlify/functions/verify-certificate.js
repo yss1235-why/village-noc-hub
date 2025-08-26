@@ -45,7 +45,6 @@ const application = await sql`
     a.religion,
     a.annual_income,
     a.status,
-    a.approved_date,
     a.created_at,
     v.name as village_name,
     v.district,
@@ -90,8 +89,7 @@ let relationString = app.relation || '';
           district: app.district,
           state: app.state,
           adminName: app.admin_name,
-          approvedDate: app.approved_date,
-          issueDate: app.created_at
+         issueDate: app.created_at
         }
       })
     };
