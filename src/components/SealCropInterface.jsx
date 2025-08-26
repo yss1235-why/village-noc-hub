@@ -13,7 +13,7 @@ const SealCropInterface = ({ imageFile, onCropComplete, onCancel }) => {
 
   // Crop dimensions: 300x200 at 300 DPI
   const CROP_WIDTH = 300;
-  const CROP_HEIGHT = 200;
+  const CROP_HEIGHT = 105;
   const CANVAS_WIDTH = 600;
   const CANVAS_HEIGHT = 400;
 
@@ -201,7 +201,7 @@ const SealCropInterface = ({ imageFile, onCropComplete, onCancel }) => {
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle className="text-lg">Crop Seal - 300x200px</CardTitle>
+       <CardTitle className="text-lg">Crop Seal - 300x105px</CardTitle>
         <p className="text-sm text-muted-foreground">
           Position and scale your seal within the blue rectangle. Use mouse to drag and buttons to zoom.
         </p>
