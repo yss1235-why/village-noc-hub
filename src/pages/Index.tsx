@@ -102,18 +102,76 @@ const Index = () => {
       {/* Footer */}
      <footer className="bg-primary text-primary-foreground py-6 mt-12">
   <div className="container mx-auto px-4">
-    <div className="flex flex-col md:flex-row justify-between items-center">
-      <p className="text-sm">Developed and designed by Innovative Archive</p>
-      <div className="flex items-center gap-4 mt-2 md:mt-0">
-        <Link to="/village/register">
-          <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary-foreground/10">
-            Register Your Village
-          </Button>
-        </Link>
-        <Link to="/super-admin" className="text-xs text-primary-foreground/70 hover:text-primary-foreground/90 underline">
-          System Admin
-        </Link>
+    <div className="flex flex-col space-y-4">
+      
+      {/* Main Footer Content */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
+        <div className="mb-4 md:mb-0">
+          <p className="text-sm">Developed and designed by Innovative Archive</p>
+          <p className="text-xs text-primary-foreground/70 mt-1">
+            Secure Digital NOC Certificate Platform
+          </p>
+        </div>
+        
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <Link to="/village/register">
+            <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary-foreground/10">
+              Register Your Village
+            </Button>
+          </Link>
+          <Link to="/super-admin" className="text-xs text-primary-foreground/70 hover:text-primary-foreground/90 underline">
+            System Admin
+          </Link>
+        </div>
       </div>
+
+      {/* Legal Links Section */}
+      <div className="border-t border-primary-foreground/20 pt-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          
+          {/* Legal Links */}
+          <div className="flex flex-wrap gap-4 text-xs">
+            <Link 
+              to="/terms" 
+              className="text-primary-foreground/80 hover:text-primary-foreground underline transition-colors"
+            >
+              Terms & Conditions
+            </Link>
+            <Link 
+              to="/terms#data-protection" 
+              className="text-primary-foreground/80 hover:text-primary-foreground underline transition-colors"
+            >
+              Privacy Policy
+            </Link>
+            <Link 
+              to="/terms#certificate-verification" 
+              className="text-primary-foreground/80 hover:text-primary-foreground underline transition-colors"
+            >
+              Certificate Verification
+            </Link>
+            <button 
+              onClick={() => window.open('/terms', '_blank')}
+              className="text-primary-foreground/80 hover:text-primary-foreground underline transition-colors"
+            >
+              Legal Notice
+            </button>
+          </div>
+
+          {/* Copyright */}
+          <div className="text-xs text-primary-foreground/60">
+            © {new Date().getFullYear()} Online NOC Platform. All rights reserved.
+          </div>
+        </div>
+      </div>
+
+      {/* Disclaimer */}
+      <div className="border-t border-primary-foreground/20 pt-3">
+        <p className="text-xs text-primary-foreground/60 text-center">
+          This platform facilitates digital NOC certificate issuance by authorized village authorities. 
+          Certificate authenticity can be verified through QR codes and verification URLs.
+        </p>
+      </div>
+
     </div>
   </div>
 </footer>
