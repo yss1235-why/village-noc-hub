@@ -32,9 +32,10 @@ export const handler = async (event, context) => {
         })
       };
     }
+console.log('Searching for application:', applicationNumber);
 
-    // Get application data with village info
-    const application = await sql`
+// Get application data with village info
+const application = await sql`
       SELECT 
         a.application_number,
         a.applicant_name,
@@ -110,12 +111,15 @@ export const handler = async (event, context) => {
 
   } catch (error) {
     console.error('Certificate verification error:', error);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
     return {
       statusCode: 500,
       headers,
       body: JSON.stringify({ 
         valid: false,
-        error: 'Failed to verify certificate' 
+        error: 'Failed to verify certificate',
+        details: error.message  // Add this line to see actual error
       })
     };
   }
