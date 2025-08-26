@@ -6,7 +6,7 @@ import SealCropInterface from '@/components/SealCropInterface';
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LogOut, CheckCircle, XCircle, Clock, Eye, FileText, Users, AlertCircle, Settings, EyeOff, ChevronDown, Key, Building2 } from "lucide-react";
+import { LogOut, CheckCircle, XCircle, Clock, Eye, FileText, Users, AlertCircle, Settings, EyeOff, ChevronDown, Key, Building2, Download } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
@@ -615,95 +615,8 @@ const handleUpdateTemplate = async () => {
     }
   };
 
-  const handleApprove = async (applicationId: string) => {
-    try {
-      const response = await fetch('/.netlify/functions/update-application-status', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          applicationId,
-          status: 'approved',
-          approvedBy: villageInfo?.id
-        })
-      });
-
-      const result = await response.json();
-
-      if (response.ok) {
-        // Update local state
-        setApplications(apps => 
-          apps.map(app => 
-            app.id === applicationId 
-              ? { ...app, status: "approved", approvedDate: new Date().toISOString() }
-              : app
-          )
-        );
-        toast({
-          title: "Application Approved",
-          description: `Application ${applicationId} has been approved.`,
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: result.error || "Failed to approve application.",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to approve application. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleReject = async (applicationId: string) => {
-    try {
-      const response = await fetch('/.netlify/functions/update-application-status', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          applicationId,
-          status: 'rejected'
-        })
-      });
-
-      const result = await response.json();
-
-      if (response.ok) {
-        // Update local state
-        setApplications(apps => 
-          apps.map(app => 
-            app.id === applicationId 
-              ? { ...app, status: "rejected" }
-              : app
-          )
-        );
-        toast({
-          title: "Application Rejected",
-          description: `Application ${applicationId} has been rejected.`,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: result.error || "Failed to reject application.",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to reject application. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
+  
+ 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "approved":
@@ -830,9 +743,7 @@ const handleApproveFromModal = async () => {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-secondary/30">
-  return (
+ return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/30">
       {/* Header */}
       <header className="bg-primary text-primary-foreground py-4 shadow-lg">
@@ -2033,12 +1944,7 @@ const handleApproveFromModal = async () => {
           </div>
         )}
 
-      </main>
+    </main>
     </div>
   );
-      </main>
-    </div>
-  );
-};
-
 export default AdminDashboard;
