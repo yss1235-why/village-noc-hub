@@ -1465,7 +1465,7 @@ const handleApproveFromModal = async () => {
           className="mb-2"
         />
         <p className="text-xs text-muted-foreground mb-2">
-          Will be cropped to 800x200 pixels at 300 DPI for optimal quality
+         Will be cropped to 300x105 pixels at 300 DPI for optimal quality (4cm × 1.4cm ratio)
         </p>
       </div>
       <div>
