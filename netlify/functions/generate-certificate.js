@@ -479,8 +479,8 @@ if (signatureImage) {
   page.drawImage(signatureImage, {
     x: width - 220,
     y: 160,
-    width: 120,
-    height: 50,
+    width: 100,
+    height: 41.7,
   });
 }
 
@@ -518,7 +518,7 @@ const verifyUrl = `${baseUrl}/verify/${app.application_number}`;
 // Add verification text (below date and place)
 page.drawText('Verify this certificate online at:', {
   x: 60,
-  y: 25,
+  y: 20,
   size: 10,
   font: timesFont,
   color: rgb(0.4, 0.4, 0.4),
@@ -526,7 +526,7 @@ page.drawText('Verify this certificate online at:', {
 
 page.drawText(verifyUrl, {
   x: 60,
-  y: 20,
+  y: 15,
   size: 9,
   font: timesFont,
   color: rgb(0, 0, 0.8), // Blue color for the link
@@ -557,9 +557,9 @@ page.drawText(`${toProperCase(app.village_name)} Village`, {
 if (sealImage) {
   page.drawImage(sealImage, {
     x: width - 190, // Adjusted position for larger seal
-    y: 75, // Slightly adjusted position
-    width: 75, // Increased proportionally from 70
-    height: 26, // Increased proportionally from 70
+    y: 85, // Slightly adjusted position
+    width: 85, // Increased proportionally from 70
+    height: 29.5, // Increased proportionally from 70
   });
 }
 
