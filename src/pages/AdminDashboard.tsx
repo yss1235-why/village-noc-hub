@@ -103,6 +103,11 @@ const AdminDashboard = () => {
     confirmPassword: ""
   });
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+  const [viewDocumentModal, setViewDocumentModal] = useState({
+    isOpen: false,
+    document: null,
+    title: ""
+  });
   const [showProfilePasswords, setShowProfilePasswords] = useState({
     current: false,
     new: false,
@@ -1834,11 +1839,15 @@ const handleApproveFromModal = async () => {
                               alt="Aadhaar Card" 
                               className="max-w-full h-40 object-contain border rounded"
                             />
-                            <Button 
+                           <Button 
                               size="sm" 
                               variant="outline" 
                               className="mt-2"
-                              onClick={() => window.open(selectedApplication.aadhaar_document, '_blank')}
+                              onClick={() => setViewDocumentModal({
+                                isOpen: true,
+                                document: selectedApplication.aadhaar_document,
+                                title: "Aadhaar Card"
+                              })}
                             >
                               <Download className="h-4 w-4 mr-1" />
                               View Full Size
@@ -1861,7 +1870,11 @@ const handleApproveFromModal = async () => {
                               size="sm" 
                               variant="outline" 
                               className="mt-2"
-                              onClick={() => window.open(selectedApplication.passport_photo, '_blank')}
+                              onClick={() => setViewDocumentModal({
+                                isOpen: true,
+                                document: selectedApplication.passport_photo,
+                                title: "Passport Photo"
+                              })}
                             >
                               <Download className="h-4 w-4 mr-1" />
                               View Full Size
@@ -1943,6 +1956,43 @@ const handleApproveFromModal = async () => {
             </Card>
           </div>
             )}
+
+      {/* Document View Modal */}
+      {viewDocumentModal.isOpen && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-4 max-w-4xl max-h-[90vh] overflow-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">{viewDocumentModal.title}</h3>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setViewDocumentModal({isOpen: false, document: null, title: ""})}
+              >
+                ✕ Close
+              </Button>
+            </div>
+            <div className="flex justify-center">
+              {viewDocumentModal.document?.includes('data:application/pdf') ? (
+                <div className="text-center">
+                  <p className="mb-4">PDF Document - Click download to view</p>
+                  <Button
+                    onClick={() => window.open(viewDocumentModal.document, '_blank')}
+                    className="mb-4"
+                  >
+                    📄 Download PDF
+                  </Button>
+                </div>
+              ) : (
+                <img
+                  src={viewDocumentModal.document}
+                  alt={viewDocumentModal.title}
+                  className="max-w-full max-h-[70vh] object-contain"
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     
       </main>
     </div>
