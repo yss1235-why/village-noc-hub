@@ -498,7 +498,39 @@ page.drawText(`Place: ${toProperCase(app.sub_division || app.district)}`, {
   size: 12,
   font: timesFont,
 });
+// Smart domain detection
+const getBaseUrl = (event) => {
+  // Try environment variable first
+  if (process.env.SITE_URL) {
+    return process.env.SITE_URL;
+  }
+  
+  // Auto-detect from request headers
+  const protocol = event.headers['x-forwarded-proto'] || 'https';
+  const host = event.headers.host;
+  return `${protocol}://${host}`;
+};
 
+// Verification text at bottom of certificate
+const baseUrl = getBaseUrl(event);
+const verifyUrl = `${baseUrl}/verify/${app.application_number}`;
+
+// Add verification text (below date and place)
+page.drawText('Verify this certificate online at:', {
+  x: 60,
+  y: 45,
+  size: 10,
+  font: timesFont,
+  color: rgb(0.4, 0.4, 0.4),
+});
+
+page.drawText(verifyUrl, {
+  x: 60,
+  y: 30,
+  size: 9,
+  font: timesFont,
+  color: rgb(0, 0, 0.8), // Blue color for the link
+});
 // Official text (right side, aligned with signature)
 page.drawText(`${toProperCase(app.admin_name)}`, {
   x: width - 200,
@@ -524,7 +556,7 @@ page.drawText(`${toProperCase(app.village_name)} Village`, {
 // Regular Seal (right side, below village name with more space) - Updated size
 if (sealImage) {
   page.drawImage(sealImage, {
-    x: width - 200, // Adjusted position for larger seal
+    x: width - 180, // Adjusted position for larger seal
     y: 70, // Slightly adjusted position
     width: 75, // Increased proportionally from 70
     height: 26, // Increased proportionally from 70
