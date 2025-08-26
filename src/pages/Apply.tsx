@@ -10,9 +10,14 @@ import { ArrowLeft, FileText, Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import ApplicationSuccess from "@/components/ApplicationSuccess";
+import { useNavigate } from "react-router-dom";
 
 const Apply = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [submittedAppNumber, setSubmittedAppNumber] = useState('');
 
   // Function to convert numbers to words
   const numberToWords = (num: number): string => {
@@ -186,10 +191,9 @@ const handleSubmit = async (e: React.FormEvent) => {
     const result = await response.json();
 
     if (response.ok) {
-      toast({
-        title: "NOC Application Submitted Successfully!",
-        description: `Your application number is: ${appNo}. Please save this number to check your status.`,
-      });
+      // Instead of showing toast, show success page
+      setSubmittedAppNumber(appNo);
+      setShowSuccess(true);
       
       // Reset form after successful submission
       setFormData({
@@ -197,6 +201,9 @@ const handleSubmit = async (e: React.FormEvent) => {
         name: "",
         relation: "",
         fatherName: "",
+        husbandName: "",
+        motherName: "",
+        guardianName: "",
         address: "",
         houseNumber: "",
         villageId: "",
@@ -223,6 +230,31 @@ const handleSubmit = async (e: React.FormEvent) => {
   }
 };
 
+// Add these handler functions
+const handleApplyNew = () => {
+  setShowSuccess(false);
+  setSubmittedAppNumber('');
+};
+
+const handleCheckStatus = (applicationNumber: string) => {
+  navigate(`/status?number=${applicationNumber}`);
+};
+
+const handleBackToHome = () => {
+  navigate('/');
+};
+
+// Show success page if application was submitted
+if (showSuccess) {
+  return (
+    <ApplicationSuccess 
+      applicationNumber={submittedAppNumber}
+      onApplyNew={handleApplyNew}
+      onCheckStatus={handleCheckStatus}
+      onBackToHome={handleBackToHome}
+    />
+  );
+}
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/30">
