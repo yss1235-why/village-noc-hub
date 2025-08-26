@@ -10,8 +10,8 @@ const Index = () => {
       <header className="bg-primary text-primary-foreground py-6 shadow-lg">
         <div className="container mx-auto px-4">
           <div className="text-center">
-           <h1 className="text-3xl font-bold mb-2">Multi-Village NOC System</h1>
-          <p className="text-primary-foreground/90">No Objection Certificate Management</p>
+           <h1 className="text-3xl font-bold mb-2">Iram</h1>
+          <p className="text-primary-foreground/90"> Online No Objection Certificate</p>
           </div>
         </div>
       </header>
