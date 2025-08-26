@@ -31,8 +31,8 @@ export const handler = async (event, context) => {
         purpose_of_noc TEXT NOT NULL,
         phone VARCHAR(20) NOT NULL,
         email VARCHAR(255),
-        aadhaar_url VARCHAR(500),
-        passport_url VARCHAR(500),
+        aadhaar_document TEXT,
+        passport_photo TEXT,
         status VARCHAR(50) DEFAULT 'pending',
         admin_notes TEXT,
         created_at TIMESTAMP DEFAULT NOW(),
@@ -44,7 +44,7 @@ export const handler = async (event, context) => {
 
     // Add missing columns to existing table if they don't exist
     try {
-      await sql`
+     await sql`
         ALTER TABLE noc_applications 
         ADD COLUMN IF NOT EXISTS title VARCHAR(10),
         ADD COLUMN IF NOT EXISTS relation VARCHAR(10),
@@ -52,7 +52,9 @@ export const handler = async (event, context) => {
         ADD COLUMN IF NOT EXISTS tribe_name VARCHAR(100),
         ADD COLUMN IF NOT EXISTS religion VARCHAR(50),
         ADD COLUMN IF NOT EXISTS annual_income VARCHAR(20),
-        ADD COLUMN IF NOT EXISTS annual_income_words TEXT
+        ADD COLUMN IF NOT EXISTS annual_income_words TEXT,
+        ADD COLUMN IF NOT EXISTS aadhaar_document TEXT,
+        ADD COLUMN IF NOT EXISTS passport_photo TEXT
       `;
     } catch (error) {
       console.log('Columns might already exist:', error.message);
@@ -74,17 +76,21 @@ export const handler = async (event, context) => {
         annualIncomeWords,
         purposeOfNOC, 
         phone, 
-        email 
+        email,
+        aadhaarDocument,
+        passportPhoto
       } = JSON.parse(event.body);
       
       // Insert new NOC application
-     const result = await sql`
+    const result = await sql`
         INSERT INTO noc_applications (
           application_number, title, applicant_name, relation, father_name, address, house_number,
-          village_id, tribe_name, religion, annual_income, annual_income_words, purpose_of_noc, phone, email, status
+          village_id, tribe_name, religion, annual_income, annual_income_words, purpose_of_noc, phone, email,
+          aadhaar_document, passport_photo, status
         ) VALUES (
           ${applicationNumber}, ${title}, ${applicantName}, ${relation}, ${fatherName}, ${address}, ${houseNumber},
-          ${villageId}, ${tribeName}, ${religion}, ${annualIncome}, ${annualIncomeWords}, ${purposeOfNOC}, ${phone}, ${email}, 'pending'
+          ${villageId}, ${tribeName}, ${religion}, ${annualIncome}, ${annualIncomeWords}, ${purposeOfNOC}, ${phone}, ${email},
+          ${aadhaarDocument}, ${passportPhoto}, 'pending'
         )
         RETURNING id
       `;
