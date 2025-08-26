@@ -44,17 +44,18 @@ const Status = () => {
     const result = await response.json();
     if (response.ok && result.application) {
   setSearchResult({
-    applicationId: result.application.id, // Add this line
-    applicationNumber: result.application.application_number,
-    name: result.application.applicant_name,
-    fatherName: result.application.father_name,
-    certificateType: "NOC", // Since we only do NOC now
-    status: result.application.status,
-    submittedDate: result.application.created_at,
-    approvedDate: result.application.approved_at,
-    approvedBy: result.application.approved_by ? "Village Admin" : null,
-    villageName: result.application.village_name
-  });
+        applicationId: result.application.id,
+        applicationNumber: result.application.application_number,
+        name: result.application.applicant_name,
+        fatherName: result.application.father_name,
+        certificateType: "NOC",
+        status: result.application.status,
+        submittedDate: result.application.created_at,
+        approvedDate: result.application.approved_at,
+        approvedBy: result.application.approved_by ? "Village Admin" : null,
+        villageName: result.application.village_name,
+        rejectionReason: result.application.admin_notes
+      });
 } else {
       setSearchResult(null);
     }
@@ -266,7 +267,7 @@ const handleDownload = async () => {
                   </div>
                 )}
 
-                {searchResult.status === "pending" && (
+               {searchResult.status === "pending" && (
                   <div className="pt-4 border-t">
                     <div className="bg-muted p-4 rounded-lg">
                       <p className="text-sm">
@@ -276,7 +277,31 @@ const handleDownload = async () => {
                     </div>
                   </div>
                 )}
+
+                {searchResult.status === "rejected" && searchResult.rejectionReason && (
+                  <div className="pt-4 border-t">
+                    <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                      <div className="flex items-start gap-2">
+                        <div className="bg-red-100 dark:bg-red-900/40 p-2 rounded-full">
+                          <FileText className="h-4 w-4 text-red-600 dark:text-red-400" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-medium text-red-800 dark:text-red-200 mb-1">Application Rejected</h4>
+                          <p className="text-sm text-red-700 dark:text-red-300 mb-3">
+                            <strong>Reason:</strong> {searchResult.rejectionReason}
+                          </p>
+                          <div className="bg-red-100 dark:bg-red-900/40 p-3 rounded-md">
+                            <p className="text-xs text-red-700 dark:text-red-300">
+                              <strong>What to do next:</strong> Please address the issues mentioned above and submit a new application with the corrected documents/information.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </CardContent>
+              
             </Card>
           )}
         </div>
