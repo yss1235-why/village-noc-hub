@@ -704,12 +704,11 @@ if (showSuccess) {
                   </Alert>
                 </div>
 
-                {/* Submit Button */}
+              {/* Submit Button */}
                 <Button type="submit" className="w-full" size="lg">
                   Submit NOC Application
                 </Button>
-  </div>
-</form>
+              </form>
             </CardContent>
           </Card>
         </div>
