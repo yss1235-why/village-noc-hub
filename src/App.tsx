@@ -12,6 +12,7 @@ import NotFound from "./pages/NotFound";
 import SuperAdminLogin from "./pages/SuperAdminLogin";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import VillageRegistration from "./pages/VillageRegistration";
+import Verify from "./pages/Verify";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +32,7 @@ const App = () => (
           <Route path="/super-admin" element={<SuperAdminLogin />} />
           <Route path="/super-admin/dashboard" element={<SuperAdminDashboard />} />
           <Route path="/village/register" element={<VillageRegistration />} />
+          <Route path="/verify/:applicationNumber" element={<Verify />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
