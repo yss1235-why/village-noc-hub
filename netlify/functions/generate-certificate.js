@@ -527,7 +527,7 @@ if (sealImage) {
     x: width - 200, // Adjusted position for larger seal
     y: 70, // Slightly adjusted position
     width: 75, // Increased proportionally from 70
-    height: 50, // Increased proportionally from 70
+    height: 26, // Increased proportionally from 70
   });
 }
 
