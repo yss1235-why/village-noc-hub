@@ -21,7 +21,7 @@ const Index = () => {
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
             <Building2 className="mx-auto h-16 w-16 text-primary mb-4" />
-           <h2 className="text-2xl font-bold mb-4">Multi-Village NOC Services</h2>
+           <h2 className="text-2xl font-bold mb-4">Online NOC Services</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
               Apply for No Objection Certificates (NOC) from registered villages online. 
               Track your application status and download approved certificates.
