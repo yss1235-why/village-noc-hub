@@ -44,7 +44,16 @@ export const handler = async (event, context) => {
         status,
         admin_notes,
         created_at,
-        approved_at
+        approved_at,
+        aadhaar_document,
+        passport_photo,
+        title,
+        relation,
+        house_number,
+        tribe_name,
+        religion,
+        annual_income,
+        annual_income_words
       FROM noc_applications 
       WHERE village_id = ${villageId}
       ORDER BY created_at DESC
