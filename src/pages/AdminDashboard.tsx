@@ -1944,7 +1944,7 @@ const handleApproveFromModal = async () => {
           </div>
         )}
 
-    </main>
-    </div>
-  );
+      </main>
+      </div>
+    );
   export default AdminDashboard;
