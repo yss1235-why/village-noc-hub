@@ -6,7 +6,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ArrowLeft, FileText, Check, ChevronsUpDown } from "lucide-react";
+import { ArrowLeft, FileText, Upload, X, AlertTriangle, ChevronsUpDown, Check } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -81,26 +83,29 @@ const Apply = () => {
     });
   };
 const [formData, setFormData] = useState({
-  salutation: "",
-  name: "",
-  relation: "",
-  fatherName: "",
-  husbandName: "",
-  motherName: "",
-  guardianName: "",
-  address: "",
-  houseNumber: "",
-  villageId: "",
-  tribe: "",
-  religion: "",
-  annualIncome: "",
-  annualIncomeWords: "",
-  purposeOfNOC: "",
-  aadhaarFile: null as File | null,
-  passportFile: null as File | null,
-  phone: "",
-  email: ""
-});
+    salutation: "",
+    name: "",
+    relation: "",
+    fatherName: "",
+    husbandName: "",
+    motherName: "",
+    guardianName: "",
+    address: "",
+    houseNumber: "",
+    villageId: "",
+    tribe: "",
+    religion: "",
+    annualIncome: "",
+    annualIncomeWords: "",
+    purposeOfNOC: "",
+    aadhaarFile: null,
+    passportFile: null,
+    phone: "",
+    email: "",
+    termsAccepted: false,
+    privacyAccepted: false,
+    declarationAccepted: false
+  });
 
 const [villages, setVillages] = useState<any[]>([]);
 const [searchValue, setSearchValue] = useState("");
@@ -131,11 +136,28 @@ useEffect(() => {
 const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
   
-  // Validate required files
   if (!formData.aadhaarFile || !formData.passportFile) {
     toast({
-      title: "Missing Documents",
-      description: "Please upload both Aadhaar and Passport documents.",
+      title: "Documents Required",
+      description: "Please upload both Aadhaar card and passport photo.",
+      variant: "destructive",
+    });
+    return;
+  }
+  
+  if (!formData.termsAccepted) {
+    toast({
+      title: "Terms and Conditions Required",
+      description: "Please accept the Terms and Conditions to proceed.",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  if (!formData.privacyAccepted) {
+    toast({
+      title: "Privacy Policy Required", 
+      description: "Please accept the Privacy Policy to proceed.",
       variant: "destructive",
     });
     return;
@@ -196,7 +218,7 @@ const handleSubmit = async (e: React.FormEvent) => {
       setShowSuccess(true);
       
       // Reset form after successful submission
-      setFormData({
+     setFormData({
         salutation: "",
         name: "",
         relation: "",
@@ -215,7 +237,10 @@ const handleSubmit = async (e: React.FormEvent) => {
         aadhaarFile: null,
         passportFile: null,
         phone: "",
-        email: ""
+        email: "",
+        termsAccepted: false,
+        privacyAccepted: false,
+        declarationAccepted: false
       });
     } else {
       throw new Error(result.error || 'Submission failed');
@@ -609,11 +634,80 @@ if (showSuccess) {
     </div>
   </div>
 
-  {/* Submit Button */}
-  <div className="flex gap-4">
-    <Button type="submit" className="flex-1" disabled={!formData.villageId || isVillagesLoading}>
-      {isVillagesLoading ? "Loading..." : "Submit NOC Application"}
-    </Button>
+{/* Terms and Conditions Acceptance */}
+                <div className="space-y-4 p-4 bg-muted/30 rounded-lg border">
+                  <h3 className="text-lg font-semibold">Legal Agreements</h3>
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-start space-x-3">
+                      <Checkbox 
+                        id="terms"
+                        checked={formData.termsAccepted}
+                        onCheckedChange={(checked) => 
+                          setFormData(prev => ({ ...prev, termsAccepted: checked === true }))
+                        }
+                        className="mt-1"
+                      />
+                      <Label htmlFor="terms" className="text-sm leading-relaxed">
+                        I have read and agree to the{' '}
+                        <Link 
+                          to="/terms" 
+                          target="_blank" 
+                          className="text-primary hover:underline font-medium"
+                        >
+                          Terms and Conditions
+                        </Link>
+                        {' '}of using this Online NOC Platform. I understand that providing false information 
+                        or fraudulent documents is prohibited and may result in legal consequences. *
+                      </Label>
+                    </div>
+
+                    <div className="flex items-start space-x-3">
+                      <Checkbox 
+                        id="privacy"
+                        checked={formData.privacyAccepted}
+                        onCheckedChange={(checked) => 
+                          setFormData(prev => ({ ...prev, privacyAccepted: checked === true }))
+                        }
+                        className="mt-1"
+                      />
+                      <Label htmlFor="privacy" className="text-sm leading-relaxed">
+                        I consent to the collection, processing, and storage of my personal information 
+                        as described in the Terms and Conditions. I understand that my data will be used 
+                        for NOC application processing and certificate verification purposes. *
+                      </Label>
+                    </div>
+
+                    <div className="flex items-start space-x-3">
+                      <Checkbox 
+                        id="declaration"
+                        checked={formData.declarationAccepted || false}
+                        onCheckedChange={(checked) => 
+                          setFormData(prev => ({ ...prev, declarationAccepted: checked === true }))
+                        }
+                        className="mt-1"
+                      />
+                      <Label htmlFor="declaration" className="text-sm leading-relaxed">
+                        I declare that all the information provided in this application is true and correct 
+                        to the best of my knowledge. I understand that any false information may lead to 
+                        rejection of my application or cancellation of issued certificates.
+                      </Label>
+                    </div>
+                  </div>
+
+                  <Alert>
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription className="text-xs">
+                      <strong>Important:</strong> By submitting this application, you agree to all terms and conditions. 
+                      Applications with false information will be rejected and may be reported to relevant authorities.
+                    </AlertDescription>
+                  </Alert>
+                </div>
+
+                {/* Submit Button */}
+                <Button type="submit" className="w-full" size="lg">
+                  Submit NOC Application
+                </Button>
   </div>
 </form>
             </CardContent>
