@@ -143,7 +143,20 @@ const handleSubmit = async (e: React.FormEvent) => {
     const villageCode = selectedVillage ? selectedVillage.name.split(' ').map(word => word.charAt(0)).join('').toUpperCase() : 'NOC';
     const appNo = `${villageCode}${now.getDate().toString().padStart(2, '0')}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getFullYear()}${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}`;
     
-    // Submit to database
+   // Convert files to base64
+    const aadhaarBase64 = await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target?.result);
+      reader.readAsDataURL(formData.aadhaarFile);
+    });
+
+    const passportBase64 = await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target?.result);
+      reader.readAsDataURL(formData.passportFile);
+    });
+
+    // Submit to database with files
     const response = await fetch('/.netlify/functions/applications', {
       method: 'POST',
       headers: {
@@ -164,7 +177,9 @@ const handleSubmit = async (e: React.FormEvent) => {
         annualIncomeWords: formData.annualIncomeWords,
         purposeOfNOC: formData.purposeOfNOC,
         phone: formData.phone,
-        email: formData.email
+        email: formData.email,
+        aadhaarDocument: aadhaarBase64,
+        passportPhoto: passportBase64
       })
     });
 
