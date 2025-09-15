@@ -1,6 +1,7 @@
 const { sql } = require('./utils/db.js');
 
 exports.handler = async (event, context) => {
+
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
@@ -90,6 +91,7 @@ const profile = {
         error: 'Failed to load profile information',
         details: error.message,
         villageId: villageId
-      })
+     })
     };
   }
+};
