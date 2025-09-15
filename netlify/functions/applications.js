@@ -1,5 +1,7 @@
-const { sql } = require('./utils/db.js');
-exports.handler = async (event, context) => {
+import { neon } from '@neondatabase/serverless';
+
+export const handler = async (event, context) => {
+  const sql = neon(process.env.NETLIFY_DATABASE_URL);
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
