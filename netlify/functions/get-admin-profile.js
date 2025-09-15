@@ -20,8 +20,9 @@ module.exports.handler = async (event, context) => {
     };
   }
 
+ const { villageId } = event.queryStringParameters || {};
+  
   try {
-    const { villageId } = event.queryStringParameters;
 
     if (!villageId) {
       return {
@@ -90,7 +91,7 @@ const profile = {
       body: JSON.stringify({ 
         error: 'Failed to load profile information',
         details: error.message,
-        villageId: villageId
+        villageId: villageId || 'undefined'
      })
     };
   }
