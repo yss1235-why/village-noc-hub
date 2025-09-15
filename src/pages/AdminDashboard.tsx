@@ -904,13 +904,33 @@ const handleApproveFromModal = async () => {
                           <TableCell>
                             <div className="flex gap-2">
                               <Button
-                                size="sm"
-                                onClick={() => setSelectedApplication(app)}
-                                className="bg-blue-600 text-white hover:bg-blue-700"
-                              >
-                                <Eye className="h-4 w-4 mr-1" />
-                                Review
-                              </Button>
+  size="sm"
+  onClick={async () => {
+    try {
+      const response = await fetch(`/.netlify/functions/get-application-details?applicationId=${app.id}`);
+      const result = await response.json();
+      if (response.ok) {
+        setSelectedApplication(result.application);
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to load application details.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error", 
+        description: "Failed to load application details.",
+        variant: "destructive",
+      });
+    }
+  }}
+  className="bg-blue-600 text-white hover:bg-blue-700"
+>
+  <Eye className="h-4 w-4 mr-1" />
+  Review
+</Button>
                             </div>
                           </TableCell>
                         </TableRow>
