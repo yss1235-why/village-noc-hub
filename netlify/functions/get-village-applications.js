@@ -32,35 +32,33 @@ export const handler = async (event, context) => {
       };
     }
 
-   // Get applications WITH file attachments for review
-    const applications = await sql`
-      SELECT 
-        id,
-        application_number,
-        applicant_name,
-        father_name,
-        address,
-        purpose_of_noc,
-        phone,
-        email,
-        status,
-        admin_notes,
-        created_at,
-        approved_at,
-        title,
-        relation,
-        house_number,
-        tribe_name,
-        religion,
-        annual_income,
-        annual_income_words,
-        aadhaar_document,
-        passport_photo
-      FROM noc_applications 
-      WHERE village_id = ${villageId}::uuid
-      ORDER BY created_at DESC
-      LIMIT 100
-    `;
+   // Get applications WITHOUT large file attachments to reduce size
+const applications = await sql`
+  SELECT 
+    id,
+    application_number,
+    applicant_name,
+    father_name,
+    address,
+    purpose_of_noc,
+    phone,
+    email,
+    status,
+    admin_notes,
+    created_at,
+    approved_at,
+    title,
+    relation,
+    house_number,
+    tribe_name,
+    religion,
+    annual_income,
+    annual_income_words
+  FROM noc_applications 
+  WHERE village_id = ${villageId}::uuid
+  ORDER BY created_at DESC
+  LIMIT 100
+`;
     
     return {
       statusCode: 200,
