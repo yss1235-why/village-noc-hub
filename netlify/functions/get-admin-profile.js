@@ -1,7 +1,6 @@
 import { sql } from './utils/db.js';
 
 export const handler = async (event, context) => {
-
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
@@ -20,17 +19,9 @@ export const handler = async (event, context) => {
     };
   }
 
- const { villageId } = event.queryStringParameters || {};
-  
   try {
-    // Debug the sql function
-    console.log('=== DEBUG INFO ===');
-    console.log('sql function type:', typeof sql);
-    console.log('sql function name:', sql.name);
-    console.log('sql function:', sql.toString().substring(0, 100));
-    console.log('villageId:', villageId);
-    console.log('=================');
-    
+    const { villageId } = event.queryStringParameters || {};
+
     if (!villageId) {
       return {
         statusCode: 400,
@@ -40,7 +31,7 @@ export const handler = async (event, context) => {
     }
 
     // Get admin profile from villages table
- const village = await sql`
+    const village = await sql`
       SELECT 
         id,
         admin_name,
@@ -55,6 +46,7 @@ export const handler = async (event, context) => {
       FROM villages 
       WHERE id = ${villageId}::uuid
     `;
+
     if (village.length === 0) {
       return {
         statusCode: 404,
@@ -64,42 +56,40 @@ export const handler = async (event, context) => {
     }
 
     // Try to get additional user info (like phone) from users table
-   const user = await sql`
+    const user = await sql`
       SELECT phone
       FROM users 
       WHERE village_id = ${villageId}::uuid AND role = 'village_admin'
     `;
 
-const profile = {
-  adminName: village[0].admin_name,     
-  email: village[0].email,
-  phone: user.length > 0 ? user[0].phone : '',
-  villageName: village[0].villagename,  
-  district: village[0].district,
-  state: village[0].state,
-  pinCode: village[0].pincode,
-  postOffice: village[0].postoffice || '',
-  policeStation: village[0].policestation || '',
-  subDivision: village[0].subdivision || ''         
-};
+    const profile = {
+      adminName: village[0].admin_name,     
+      email: village[0].email,
+      phone: user.length > 0 ? user[0].phone : '',
+      villageName: village[0].villagename,  
+      district: village[0].district,
+      state: village[0].state,
+      pinCode: village[0].pincode,
+      postOffice: village[0].postoffice || '',
+      policeStation: village[0].policestation || '',
+      subDivision: village[0].subdivision || ''         
+    };
+
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({ profile })
     };
 
-} catch (error) {
+  } catch (error) {
     console.error('Get admin profile error:', error);
-    console.error('Village ID:', villageId);
-    console.error('Error details:', error.message);
     return {
       statusCode: 500,
       headers,
       body: JSON.stringify({ 
         error: 'Failed to load profile information',
-        details: error.message,
-        villageId: villageId || 'undefined'
-     })
+        details: error.message
+      })
     };
   }
 };
