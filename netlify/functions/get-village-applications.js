@@ -30,7 +30,7 @@ export const handler = async (event, context) => {
       };
     }
 
-    // Get all applications for this village
+   // Get applications WITHOUT large file attachments to reduce size
     const applications = await sql`
       SELECT 
         id,
@@ -45,8 +45,6 @@ export const handler = async (event, context) => {
         admin_notes,
         created_at,
         approved_at,
-        aadhaar_document,
-        passport_photo,
         title,
         relation,
         house_number,
@@ -55,14 +53,19 @@ export const handler = async (event, context) => {
         annual_income,
         annual_income_words
       FROM noc_applications 
-      WHERE village_id = ${villageId}
+      WHERE village_id = ${villageId}::uuid
       ORDER BY created_at DESC
+      LIMIT 100
     `;
     
-    return {
+   return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ applications })
+      body: JSON.stringify({ 
+        applications,
+        totalCount: applications.length,
+        note: "File attachments excluded to reduce response size"
+      })
     };
 
   } catch (error) {
