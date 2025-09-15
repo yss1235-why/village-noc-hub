@@ -23,7 +23,14 @@ module.exports.handler = async (event, context) => {
  const { villageId } = event.queryStringParameters || {};
   
   try {
-
+    // Debug the sql function
+    console.log('=== DEBUG INFO ===');
+    console.log('sql function type:', typeof sql);
+    console.log('sql function name:', sql.name);
+    console.log('sql function:', sql.toString().substring(0, 100));
+    console.log('villageId:', villageId);
+    console.log('=================');
+    
     if (!villageId) {
       return {
         statusCode: 400,
