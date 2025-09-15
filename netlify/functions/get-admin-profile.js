@@ -31,7 +31,7 @@ export const handler = async (event, context) => {
     }
 
     // Get admin profile from villages table
-   const village = await sql`
+ const village = await sql`
       SELECT 
         id,
         admin_name,
@@ -44,7 +44,7 @@ export const handler = async (event, context) => {
         COALESCE(police_station, '') as policeStation,
         COALESCE(sub_division, '') as subDivision
       FROM villages 
-      WHERE id = ${villageId}
+      WHERE id = ${villageId}::uuid
     `;
     if (village.length === 0) {
       return {
@@ -55,10 +55,10 @@ export const handler = async (event, context) => {
     }
 
     // Try to get additional user info (like phone) from users table
-    const user = await sql`
+   const user = await sql`
       SELECT phone
       FROM users 
-      WHERE village_id = ${villageId} AND role = 'village_admin'
+      WHERE village_id = ${villageId}::uuid AND role = 'village_admin'
     `;
 
 const profile = {
@@ -81,12 +81,15 @@ const profile = {
 
 } catch (error) {
     console.error('Get admin profile error:', error);
+    console.error('Village ID:', villageId);
+    console.error('Error details:', error.message);
     return {
       statusCode: 500,
       headers,
       body: JSON.stringify({ 
         error: 'Failed to load profile information',
-        details: error.message
+        details: error.message,
+        villageId: villageId
       })
     };
   }
