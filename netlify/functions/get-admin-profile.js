@@ -1,6 +1,6 @@
 const { sql } = require('./utils/db.js');
 
-exports.handler = async (event, context) => {
+module.exports.handler = async (event, context) => {
 
   const headers = {
     'Access-Control-Allow-Origin': '*',
