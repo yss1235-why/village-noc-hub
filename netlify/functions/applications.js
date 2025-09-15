@@ -103,25 +103,53 @@ export const handler = async (event, context) => {
       };
     }
 
-    if (event.httpMethod === 'GET') {
-      const { applicationNumber } = event.queryStringParameters;
+   if (event.httpMethod === 'GET') {
+      const { applicationNumber } = event.queryStringParameters || {};
       
       if (applicationNumber) {
-      // Get specific application by number
+        // SECURITY FIX: Only return basic info for status checking
         const application = await sql`
-          SELECT a.*, v.name as village_name 
+          SELECT 
+            application_number,
+            applicant_name,
+            status,
+            created_at,
+            approved_at,
+            v.name as village_name
           FROM noc_applications a
           JOIN villages v ON a.village_id = v.id
           WHERE a.application_number = ${applicationNumber}
         `;
         
+        // Don't expose internal ID or sensitive data for public lookup
         return {
           statusCode: 200,
           headers,
-          body: JSON.stringify({ application: application[0] || null })
+          body: JSON.stringify({ 
+            application: application[0] ? {
+              application_number: application[0].application_number,
+              applicant_name: application[0].applicant_name,
+              status: application[0].status,
+              created_at: application[0].created_at,
+              approved_at: application[0].approved_at,
+              village_name: application[0].village_name
+            } : null 
+          })
+        };
+      } else {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: 'Application number is required' })
         };
       }
     }
+
+    return {
+      statusCode: 405,
+      headers,
+      body: JSON.stringify({ error: 'Method not allowed' })
+    };
 
   } catch (error) {
     return {
