@@ -643,15 +643,17 @@ const handleApproveFromModal = async () => {
     
     setIsProcessingAction(true);
     try {
-      const response = await fetch('/.netlify/functions/update-application-status', {
+     const response = await fetch('/.netlify/functions/update-application-status', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'x-admin-session': JSON.stringify(villageInfo),
+          'x-village-id': villageInfo?.villageId || ''
         },
         body: JSON.stringify({
           applicationId: selectedApplication.id,
           status: 'approved',
-          approvedBy: villageInfo?.adminName
+          adminNotes: null
         })
       });
 
@@ -700,16 +702,17 @@ const handleApproveFromModal = async () => {
     
     setIsProcessingAction(true);
     try {
-      const response = await fetch('/.netlify/functions/update-application-status', {
+   const response = await fetch('/.netlify/functions/update-application-status', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'x-admin-session': JSON.stringify(villageInfo),
+          'x-village-id': villageInfo?.villageId || ''
         },
         body: JSON.stringify({
           applicationId: selectedApplication.id,
           status: 'rejected',
-          adminNotes: rejectionRemark,
-          approvedBy: villageInfo?.adminName
+          adminNotes: rejectionRemark
         })
       });
 
