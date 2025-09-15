@@ -1,6 +1,8 @@
-const { sql } = require('./utils/db.js');
+import { neon } from '@neondatabase/serverless';
 
-exports.handler = async (event, context) => {
+export const handler = async (event, context) => {
+  const sql = neon(process.env.NETLIFY_DATABASE_URL);
+  
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
@@ -20,7 +22,7 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    const { villageId } = event.queryStringParameters;
+    const { villageId } = event.queryStringParameters || {};
 
     if (!villageId) {
       return {
@@ -30,7 +32,7 @@ exports.handler = async (event, context) => {
       };
     }
 
-   // Get applications WITHOUT large file attachments to reduce size
+    // Get applications WITHOUT large file attachments to reduce size
     const applications = await sql`
       SELECT 
         id,
@@ -58,7 +60,7 @@ exports.handler = async (event, context) => {
       LIMIT 100
     `;
     
-   return {
+    return {
       statusCode: 200,
       headers,
       body: JSON.stringify({ 
@@ -73,7 +75,10 @@ exports.handler = async (event, context) => {
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: 'Failed to load applications' })
+      body: JSON.stringify({ 
+        error: 'Failed to load applications',
+        details: error.message 
+      })
     };
   }
 };
