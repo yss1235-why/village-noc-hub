@@ -1,6 +1,8 @@
-import { sql } from './utils/db.js';
+import { neon } from '@neondatabase/serverless';
 
 export const handler = async (event, context) => {
+  const sql = neon(process.env.NETLIFY_DATABASE_URL);
+  
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
@@ -39,16 +41,6 @@ export const handler = async (event, context) => {
     }
 
     // Update application status
-    const updateData = {
-      status,
-      admin_notes: adminNotes || null
-    };
-
-    if (status === 'approved') {
-      updateData.approved_at = new Date().toISOString();
-      updateData.approved_by = approvedBy;
-    }
-
     const result = await sql`
       UPDATE noc_applications 
       SET 
@@ -82,7 +74,10 @@ export const handler = async (event, context) => {
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: 'Failed to update application status' })
+      body: JSON.stringify({ 
+        error: 'Failed to update application status',
+        details: error.message 
+      })
     };
   }
 };
