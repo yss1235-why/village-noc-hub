@@ -1,7 +1,10 @@
-import { sql } from './utils/db.js';
-import bcrypt from 'bcrypt';
 
+
+
+import { neon } from '@neondatabase/serverless';
+import bcrypt from 'bcrypt';
 export const handler = async (event, context) => {
+  const sql = neon(process.env.NETLIFY_DATABASE_URL);
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
