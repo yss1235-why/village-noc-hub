@@ -85,8 +85,8 @@ const AdminDashboard = () => {
   const [isUploadingDocument, setIsUploadingDocument] = useState(false);
   const [selectedApplication, setSelectedApplication] = useState<any>(null);
   const [rejectionRemark, setRejectionRemark] = useState("");
-  const [isProcessingAction, setIsProcessingAction] = useState(false);
-
+ const [isProcessingAction, setIsProcessingAction] = useState(false);
+ const [isLoadingApplicationDetails, setIsLoadingApplicationDetails] = useState(false);
   // Certificate template state
   const [showTemplateManager, setShowTemplateManager] = useState(false);
   const [certificateTemplate, setCertificateTemplate] = useState("");
@@ -906,6 +906,7 @@ const handleApproveFromModal = async () => {
                               <Button
   size="sm"
   onClick={async () => {
+    setIsLoadingApplicationDetails(true);
     try {
       const response = await fetch(`/.netlify/functions/get-application-details?applicationId=${app.id}`);
       const result = await response.json();
@@ -924,12 +925,24 @@ const handleApproveFromModal = async () => {
         description: "Failed to load application details.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoadingApplicationDetails(false);
     }
   }}
-  className="bg-blue-600 text-white hover:bg-blue-700"
+  disabled={isLoadingApplicationDetails}
+  className="bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
 >
-  <Eye className="h-4 w-4 mr-1" />
-  Review
+  {isLoadingApplicationDetails ? (
+    <>
+      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-1"></div>
+      Loading...
+    </>
+  ) : (
+    <>
+      <Eye className="h-4 w-4 mr-1" />
+      Review
+    </>
+  )}
 </Button>
                             </div>
                           </TableCell>
