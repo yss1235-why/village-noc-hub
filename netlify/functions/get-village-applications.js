@@ -32,7 +32,7 @@ export const handler = async (event, context) => {
       };
     }
 
-    // Get applications WITHOUT large file attachments to reduce size
+   // Get applications WITH file attachments for review
     const applications = await sql`
       SELECT 
         id,
@@ -53,7 +53,9 @@ export const handler = async (event, context) => {
         tribe_name,
         religion,
         annual_income,
-        annual_income_words
+        annual_income_words,
+        aadhaar_document,
+        passport_photo
       FROM noc_applications 
       WHERE village_id = ${villageId}::uuid
       ORDER BY created_at DESC
