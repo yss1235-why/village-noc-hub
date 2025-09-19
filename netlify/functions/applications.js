@@ -103,21 +103,21 @@ export const handler = async (event, context) => {
       };
     }
 
-   if (event.httpMethod === 'GET') {
+ if (event.httpMethod === 'GET') {
       const { applicationNumber } = event.queryStringParameters || {};
       
       if (applicationNumber) {
-        // SECURITY FIX: Only return basic info for status checking
+        // FIX: Use LEFT JOIN to handle missing villages and add better error handling
         const application = await sql`
           SELECT 
-            application_number,
-            applicant_name,
-            status,
-            created_at,
-            approved_at,
-            v.name as village_name
+            a.application_number,
+            a.applicant_name,
+            a.status,
+            a.created_at,
+            a.approved_at,
+            COALESCE(v.name, 'Village Not Found') as village_name
           FROM noc_applications a
-          JOIN villages v ON a.village_id = v.id
+          LEFT JOIN villages v ON a.village_id::uuid = v.id::uuid
           WHERE a.application_number = ${applicationNumber}
         `;
         
