@@ -64,19 +64,18 @@ export const handler = async (event, context) => {
       WHERE village_id = ${villageId}::uuid AND role = 'village_admin'
     `;
 
-    const profile = {
+   const profile = {
       adminName: village[0].admin_name,     
       email: village[0].email,
       phone: user.length > 0 ? user[0].phone : '',
-      villageName: village[0].villagename,  
+      villageName: village[0].villagename,  // Fixed: lowercase 'n'
       district: village[0].district,
       state: village[0].state,
-      pinCode: village[0].pincode,
-      postOffice: village[0].postoffice || '',
-      policeStation: village[0].policestation || '',
-      subDivision: village[0].subdivision || ''         
+      pinCode: village[0].pincode,          // Fixed: lowercase 'c'
+      postOffice: village[0].postoffice || '',    // Fixed: lowercase 'o'
+      policeStation: village[0].policestation || '',  // Fixed: lowercase 's'
+      subDivision: village[0].subdivision || ''        // Fixed: lowercase 'd'      
     };
-
     return {
       statusCode: 200,
       headers,
