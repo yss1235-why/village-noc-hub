@@ -42,25 +42,37 @@ export const handler = async (event, context) => {
       )
     `;
 
-    // Get application data
-  const application = await sql`
-      SELECT a.*, v.name as village_name, v.district, v.state, v.pin_code, 
-             v.admin_name, v.post_office, v.police_station, v.sub_division
-      FROM noc_applications a
-      JOIN villages v ON a.village_id::uuid = v.id
-      WHERE a.id = ${applicationId} AND a.status = 'approved'
-    `;
-    console.log('2. Application found:', application.length > 0);
+   // SECURITY: Only allow certificate generation for approved applications
+const application = await sql`
+    SELECT a.*, v.name as village_name, v.district, v.state, v.pin_code, 
+           v.admin_name, v.post_office, v.police_station, v.sub_division
+    FROM noc_applications a
+    JOIN villages v ON a.village_id::uuid = v.id
+    WHERE a.id = ${applicationId} AND a.status = 'approved'
+  `;
+  console.log('2. Application found:', application.length > 0);
 
-    if (!application.length) {
-      console.log('3. No application found or not approved');
-      return {
-        statusCode: 404,
-        headers,
-        body: JSON.stringify({ error: 'Application not found or not approved' })
-      };
-    }
+  if (!application.length) {
+    console.log('3. No application found or not approved');
+    return {
+      statusCode: 404,
+      headers,
+      body: JSON.stringify({ 
+        error: 'Certificate not available: Application not found or not yet approved' 
+      })
+    };
+  }
 
+  // SECURITY: Additional verification that application is truly approved
+  if (application[0].status !== 'approved') {
+    return {
+      statusCode: 403,
+      headers,
+      body: JSON.stringify({ 
+        error: 'Certificate download not allowed: Application must be approved first' 
+      })
+    };
+  }
     const app = application[0];
 console.log('4. Application data:', app.applicant_name);
 
