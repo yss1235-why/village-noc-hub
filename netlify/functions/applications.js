@@ -108,8 +108,9 @@ export const handler = async (event, context) => {
       
       if (applicationNumber) {
         // FIX: Use LEFT JOIN to handle missing villages and add better error handling
-        const application = await sql`
+       const application = await sql`
           SELECT 
+            a.id,  -- ADD THIS LINE
             a.application_number,
             a.applicant_name,
             a.status,
@@ -121,21 +122,21 @@ export const handler = async (event, context) => {
           WHERE a.application_number = ${applicationNumber}
         `;
         
-        // Don't expose internal ID or sensitive data for public lookup
-        return {
-          statusCode: 200,
-          headers,
-          body: JSON.stringify({ 
-            application: application[0] ? {
-              application_number: application[0].application_number,
-              applicant_name: application[0].applicant_name,
-              status: application[0].status,
-              created_at: application[0].created_at,
-              approved_at: application[0].approved_at,
-              village_name: application[0].village_name
-            } : null 
-          })
-        };
+                 return {
+            statusCode: 200,
+            headers,
+            body: JSON.stringify({ 
+              application: application[0] ? {
+                id: application[0].id,  // ADD THIS LINE - needed for certificate download
+                application_number: application[0].application_number,
+                applicant_name: application[0].applicant_name,
+                status: application[0].status,
+                created_at: application[0].created_at,
+                approved_at: application[0].approved_at,
+                village_name: application[0].village_name
+              } : null 
+            })
+          };
       } else {
         return {
           statusCode: 400,
