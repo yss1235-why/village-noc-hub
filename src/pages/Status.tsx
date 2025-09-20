@@ -116,11 +116,10 @@ const handleDownload = async () => {
     return;
   }
   
-  if (searchResult.status !== 'approved') {
-    alert('Certificate can only be downloaded for approved applications.');
-    return;
-  }
-
+ if (searchResult.status !== 'approved') {
+  alert('Certificate download not available: Your application must be approved first. Current status: ' + searchResult.status);
+  return;
+}
   try {
     console.log('Downloading certificate for application:', searchResult.applicationId);
     
