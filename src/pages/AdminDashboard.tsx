@@ -911,7 +911,13 @@ const handleApproveFromModal = async () => {
   onClick={async () => {
     setIsLoadingApplicationDetails(true);
     try {
-      const response = await fetch(`/.netlify/functions/get-application-details?applicationId=${app.id}`);
+     const response = await fetch(`/.netlify/functions/get-application-details?applicationId=${app.id}`, {
+  headers: {
+    'Content-Type': 'application/json',
+    'x-admin-session': localStorage.getItem('villageAdmin') || '',
+    'x-village-id': villageInfo?.villageId || ''
+  }
+});
       const result = await response.json();
       if (response.ok) {
         setSelectedApplication(result.application);
