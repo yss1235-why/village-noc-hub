@@ -3,10 +3,35 @@ import { neon } from '@neondatabase/serverless';
 export const handler = async (event, context) => {
   const sql = neon(process.env.NETLIFY_DATABASE_URL);
   
+ // SECURITY: CORS origin validation
+const getAllowedOrigin = (event) => {
+  const origin = event.headers.origin || event.headers.Origin;
+  
+  const allowedOrigins = [
+    'https://iramm.netlify.app',
+   
+  ];
+  
+  if (process.env.NODE_ENV === 'development' || process.env.NETLIFY_DEV === 'true') {
+    allowedOrigins.push(
+      
+      
+    );
+  }
+  
+  if (origin && allowedOrigins.includes(origin)) {
+    return origin;
+  }
+  
+  return allowedOrigins[0] || 'https://your-domain.com';
+};
+
  const headers = {
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': getAllowedOrigin(event),
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-admin-session, x-village-id',
     'Access-Control-Allow-Methods': 'PUT',
+    'Access-Control-Allow-Credentials': 'true',
+    'Vary': 'Origin'
   };
 
   if (event.httpMethod === 'OPTIONS') {
