@@ -122,21 +122,22 @@ export const handler = async (event, context) => {
           WHERE a.application_number = ${applicationNumber}
         `;
         
-                 return {
-            statusCode: 200,
-            headers,
-            body: JSON.stringify({ 
-              application: application[0] ? {
-                id: application[0].id,  // ADD THIS LINE - needed for certificate download
-                application_number: application[0].application_number,
-                applicant_name: application[0].applicant_name,
-                status: application[0].status,
-                created_at: application[0].created_at,
-                approved_at: application[0].approved_at,
-                village_name: application[0].village_name
-              } : null 
-            })
-          };
+                            return {
+                statusCode: 200,
+                headers,
+                body: JSON.stringify({ 
+                  application: application[0] ? {
+                    id: application[0].id,  // Only for certificate download
+                    application_number: application[0].application_number,
+                    applicant_name: application[0].applicant_name,
+                    status: application[0].status,
+                    created_at: application[0].created_at,
+                    approved_at: application[0].approved_at,
+                    village_name: application[0].village_name
+                    // SECURITY: Never expose sensitive data like phone, email, documents, address, income
+                  } : null 
+                })
+              };
       } else {
         return {
           statusCode: 400,
