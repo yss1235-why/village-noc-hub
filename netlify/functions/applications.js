@@ -1,5 +1,36 @@
 import { neon } from '@neondatabase/serverless';
 
+// SECURITY: CORS origin validation
+const getAllowedOrigin = (event) => {
+  const origin = event.headers.origin || event.headers.Origin;
+  
+  // Define allowed origins (replace with your actual domains)
+  const allowedOrigins = [
+    'https://irram.netlify.app',
+    'https://irram.netlify.app',
+    'https://irram.netlify.app',
+    // Add your actual production and staging domains here
+  ];
+  
+  // For development, allow localhost
+  if (process.env.NODE_ENV === 'development' || process.env.NETLIFY_DEV === 'true') {
+    allowedOrigins.push(
+      'http://localhost:3000',
+      'http://localhost:5173',
+      'http://127.0.0.1:3000',
+      'http://127.0.0.1:5173'
+    );
+  }
+  
+  // Check if the requesting origin is in the allowed list
+  if (origin && allowedOrigins.includes(origin)) {
+    return origin;
+  }
+  
+  // Default to the first allowed origin if origin is not provided or not allowed
+  return allowedOrigins[0] || 'https://your-domain.com';
+};
+
 // SECURITY: Import validation functions (same as upload-village-document.js)
 const validateFileContent = (base64Data) => {
   try {
@@ -131,9 +162,11 @@ const calculateEntropy = (buffer) => {
 export const handler = async (event, context) => {
   const sql = neon(process.env.NETLIFY_DATABASE_URL);
   const headers = {
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': getAllowedOrigin(event),
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE',
+    'Access-Control-Allow-Credentials': 'true',
+    'Vary': 'Origin'
   };
 
   if (event.httpMethod === 'OPTIONS') {
