@@ -37,31 +37,57 @@ const Status = () => {
   };
 
  const handleSearch = async () => {
+  if (!applicationNumber.trim()) {
+    alert('Please enter an application number');
+    return;
+  }
+
   setIsLoading(true);
+  setSearchResult(null);
   
   try {
-    const response = await fetch(`/.netlify/functions/applications?applicationNumber=${applicationNumber}`);
+    console.log('Searching for application:', applicationNumber);
+    
+    const response = await fetch(`/.netlify/functions/applications?applicationNumber=${encodeURIComponent(applicationNumber.trim())}`);
     const result = await response.json();
-    if (response.ok && result.application) {
-  setSearchResult({
-        applicationId: result.application.id,
-        applicationNumber: result.application.application_number,
-        name: result.application.applicant_name,
-        fatherName: result.application.father_name,
-        certificateType: "NOC",
-        status: result.application.status,
-        submittedDate: result.application.created_at,
-        approvedDate: result.application.approved_at,
-        approvedBy: result.application.approved_by ? "Village Admin" : null,
-        villageName: result.application.village_name,
-        rejectionReason: result.application.admin_notes
-      });
-} else {
-      setSearchResult(null);
+    
+    console.log('API Response:', result);
+    console.log('Response status:', response.status);
+    
+    if (response.ok) {
+      if (result.application) {
+        if (!result.application.id) {
+          console.error('Application found but missing ID:', result.application);
+          alert('Application found but has data issues. Please contact support.');
+          return;
+        }
+        
+        setSearchResult({
+          applicationId: result.application.id,
+          applicationNumber: result.application.application_number,
+          name: result.application.applicant_name,
+          fatherName: result.application.father_name,
+          certificateType: "NOC",
+          status: result.application.status,
+          submittedDate: result.application.created_at,
+          approvedDate: result.application.approved_at,
+          approvedBy: result.application.approved_by ? "Village Admin" : null,
+          villageName: result.application.village_name,
+          rejectionReason: result.application.admin_notes
+        });
+        
+        console.log('Search successful, applicationId:', result.application.id);
+      } else {
+        console.log('No application found for number:', applicationNumber);
+        alert(`No application found with number: ${applicationNumber}`);
+      }
+    } else {
+      console.error('API Error:', result);
+      alert(`Search failed: ${result.error || 'Unknown error'}`);
     }
   } catch (error) {
     console.error('Search error:', error);
-    setSearchResult(null);
+    alert('Network error. Please check your connection and try again.');
   } finally {
     setIsLoading(false);
   }
@@ -79,8 +105,19 @@ const Status = () => {
     }
   };
 const handleDownload = async () => {
-  if (!searchResult || !searchResult.applicationId) {
-    alert('Application ID not found. Please try searching again.');
+  if (!searchResult) {
+    alert('No application selected. Please search for an application first.');
+    return;
+  }
+  
+  if (!searchResult.applicationId) {
+    console.error('Missing applicationId in searchResult:', searchResult);
+    alert('Application ID not found. Please search again and contact support if the issue persists.');
+    return;
+  }
+  
+  if (searchResult.status !== 'approved') {
+    alert('Certificate can only be downloaded for approved applications.');
     return;
   }
 
@@ -107,10 +144,18 @@ const handleDownload = async () => {
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
+      
+      console.log('Certificate downloaded successfully');
     } else {
       const errorText = await response.text();
-      console.error('Server error:', errorText);
-      throw new Error(`Failed to generate certificate: ${response.status}`);
+      console.error('Certificate generation failed:', errorText);
+      
+      try {
+        const errorJson = JSON.parse(errorText);
+        alert(`Failed to generate certificate: ${errorJson.error || 'Unknown error'}`);
+      } catch {
+        alert(`Failed to generate certificate. Server responded with: ${response.status}`);
+      }
     }
   } catch (error) {
     console.error('Download error:', error);
