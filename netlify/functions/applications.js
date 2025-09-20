@@ -1,5 +1,133 @@
 import { neon } from '@neondatabase/serverless';
 
+// SECURITY: Import validation functions (same as upload-village-document.js)
+const validateFileContent = (base64Data) => {
+  try {
+    const base64Content = base64Data.includes(',') ? base64Data.split(',')[1] : base64Data;
+    const buffer = Buffer.from(base64Content, 'base64');
+    
+    if (buffer.length < 100) {
+      return { isValid: false, error: 'File appears to be corrupted or too small' };
+    }
+    
+    if (buffer.length > 10 * 1024 * 1024) {
+      return { isValid: false, error: 'File size exceeds 10MB limit' };
+    }
+    
+    const fileSignature = buffer.slice(0, 8).toString('hex').toUpperCase();
+    
+    if (fileSignature.startsWith('89504E47')) {
+      return validatePNGContent(buffer);
+    }
+    
+    if (fileSignature.startsWith('FFD8FF')) {
+      return validateJPEGContent(buffer);
+    }
+    
+    if (fileSignature.startsWith('25504446')) {
+      return validatePDFContent(buffer);
+    }
+    
+    return { isValid: false, error: 'Unsupported file format. Only PNG, JPEG, and PDF files are allowed.' };
+    
+  } catch (error) {
+    return { isValid: false, error: 'File validation failed: corrupted or invalid file' };
+  }
+};
+
+const validatePNGContent = (buffer) => {
+  const pngFooter = buffer.slice(-8).toString('hex').toUpperCase();
+  if (!pngFooter.includes('49454E44AE426082')) {
+    return { isValid: false, error: 'Invalid PNG file: corrupted or tampered' };
+  }
+  
+  const suspicious = checkForSuspiciousContent(buffer);
+  if (!suspicious.isSafe) {
+    return { isValid: false, error: suspicious.reason };
+  }
+  
+  return { isValid: true };
+};
+
+const validateJPEGContent = (buffer) => {
+  const jpegFooter = buffer.slice(-2).toString('hex').toUpperCase();
+  if (jpegFooter !== 'FFD9') {
+    return { isValid: false, error: 'Invalid JPEG file: corrupted or tampered' };
+  }
+  
+  const suspicious = checkForSuspiciousContent(buffer);
+  if (!suspicious.isSafe) {
+    return { isValid: false, error: suspicious.reason };
+  }
+  
+  return { isValid: true };
+};
+
+const validatePDFContent = (buffer) => {
+  const content = buffer.toString('ascii', 0, Math.min(buffer.length, 1000));
+  if (!content.includes('%PDF-')) {
+    return { isValid: false, error: 'Invalid PDF file format' };
+  }
+  
+  const pdfContent = buffer.toString('ascii').toLowerCase();
+  if (pdfContent.includes('/javascript') || pdfContent.includes('/js')) {
+    return { isValid: false, error: 'PDF files with JavaScript are not allowed for security reasons' };
+  }
+  
+  const suspicious = checkForSuspiciousContent(buffer);
+  if (!suspicious.isSafe) {
+    return { isValid: false, error: suspicious.reason };
+  }
+  
+  return { isValid: true };
+};
+
+const checkForSuspiciousContent = (buffer) => {
+  const content = buffer.toString('ascii').toLowerCase();
+  
+  const suspiciousPatterns = [
+    '<script', 'javascript:', 'onload=', 'onerror=', 'eval(', 'function(',
+    '<?php', '<%', 'cmd.exe', 'powershell', '/bin/sh'
+  ];
+  
+  for (const pattern of suspiciousPatterns) {
+    if (content.includes(pattern)) {
+      return { 
+        isSafe: false, 
+        reason: 'File contains potentially malicious content and cannot be uploaded' 
+      };
+    }
+  }
+  
+  const entropy = calculateEntropy(buffer);
+  if (entropy > 7.5) {
+    return { 
+      isSafe: false, 
+      reason: 'File appears to contain encrypted or compressed data which is not allowed' 
+    };
+  }
+  
+  return { isSafe: true };
+};
+
+const calculateEntropy = (buffer) => {
+  const frequencies = new Array(256).fill(0);
+  
+  for (let i = 0; i < buffer.length; i++) {
+    frequencies[buffer[i]]++;
+  }
+  
+  let entropy = 0;
+  for (let i = 0; i < 256; i++) {
+    if (frequencies[i] > 0) {
+      const probability = frequencies[i] / buffer.length;
+      entropy -= probability * Math.log2(probability);
+    }
+  }
+  
+  return entropy;
+};
+
 export const handler = async (event, context) => {
   const sql = neon(process.env.NETLIFY_DATABASE_URL);
   const headers = {
@@ -82,6 +210,29 @@ export const handler = async (event, context) => {
         passportPhoto
       } = JSON.parse(event.body);
       
+      // SECURITY: Validate uploaded documents before storing
+      if (aadhaarDocument) {
+        const aadhaarValidation = validateFileContent(aadhaarDocument);
+        if (!aadhaarValidation.isValid) {
+          return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ error: `Aadhaar document validation failed: ${aadhaarValidation.error}` })
+          };
+        }
+      }
+
+      if (passportPhoto) {
+        const photoValidation = validateFileContent(passportPhoto);
+        if (!photoValidation.isValid) {
+          return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ error: `Passport photo validation failed: ${photoValidation.error}` })
+          };
+        }
+      }
+
       // Insert new NOC application
     const result = await sql`
         INSERT INTO noc_applications (
