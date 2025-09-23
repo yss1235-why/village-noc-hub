@@ -1,4 +1,5 @@
 import { neon } from '@neondatabase/serverless';
+import { requireVillageAdmin } from './utils/auth-middleware.js';
 
 export const handler = async (event, context) => {
   const sql = neon(process.env.NETLIFY_DATABASE_URL);
@@ -28,7 +29,7 @@ const getAllowedOrigin = (event) => {
 
  const headers = {
     'Access-Control-Allow-Origin': getAllowedOrigin(event),
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-admin-session, x-village-id',
+   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'PUT',
     'Access-Control-Allow-Credentials': 'true',
     'Vary': 'Origin'
@@ -47,41 +48,16 @@ const getAllowedOrigin = (event) => {
   }
 
   try {
-    // SECURITY FIX: Check for admin session
-    const adminSession = event.headers['x-admin-session'];
-    const villageId = event.headers['x-village-id'];
-    
-    if (!adminSession || !villageId) {
+   // JWT-based authentication
+    const authResult = requireVillageAdmin(event);
+    if (!authResult.isValid) {
       return {
-        statusCode: 401,
+        statusCode: authResult.statusCode,
         headers,
-        body: JSON.stringify({ 
-          error: 'Unauthorized: Admin login required to approve applications' 
-        })
+        body: JSON.stringify({ error: authResult.error })
       };
     }
-
-    // SECURITY FIX: Verify admin session exists in localStorage format
-    let adminInfo;
-    try {
-      adminInfo = JSON.parse(adminSession);
-    } catch {
-      return {
-        statusCode: 401,
-        headers,
-        body: JSON.stringify({ error: 'Invalid admin session' })
-      };
-    }
-
-    if (!adminInfo.villageId || adminInfo.villageId !== villageId) {
-      return {
-        statusCode: 403,
-        headers,
-        body: JSON.stringify({ 
-          error: 'Forbidden: You can only approve applications for your village' 
-        })
-      };
-    }
+    const adminInfo = authResult.user;
 
     const { applicationId, status, adminNotes } = JSON.parse(event.body);
 
@@ -115,7 +91,7 @@ const getAllowedOrigin = (event) => {
       };
     }
 
-    if (applicationCheck[0].village_id !== villageId) {
+ if (applicationCheck[0].village_id !== adminInfo.villageId) {
       return {
         statusCode: 403,
         headers,
@@ -132,7 +108,7 @@ const getAllowedOrigin = (event) => {
         status = ${status},
         admin_notes = ${adminNotes || null},
         approved_at = ${status === 'approved' ? new Date().toISOString() : null},
-        approved_by = ${status === 'approved' ? adminInfo.id : null}
+       approved_by = ${status === 'approved' ? adminInfo.userId : null}
       WHERE id = ${applicationId}::uuid
       RETURNING application_number
     `;
