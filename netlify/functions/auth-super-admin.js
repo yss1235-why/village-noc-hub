@@ -30,7 +30,7 @@ try {
     const user = await sql`
       SELECT id, email, password_hash, role 
       FROM users 
-      WHERE (email = ${username} OR email = ${username + '@noc.com'} OR email = 'superadmin@noc.com') 
+      WHERE (email = ${username} OR email = ${username + '@noc.com'} OR email = '') 
       AND role = 'super_admin' AND is_approved = true
     `;
     if (user.length > 0) {
@@ -59,7 +59,7 @@ try {
     }
 
     // Fallback to hardcoded credentials only if no user in database
-    if (username === 'superadmin' && password === 'super123') {
+    if (username === 'superadmin' && password === '') {
       return {
         statusCode: 200,
         headers,
