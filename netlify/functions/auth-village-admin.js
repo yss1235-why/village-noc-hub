@@ -1,5 +1,7 @@
 import { neon } from '@neondatabase/serverless';
 import bcrypt from 'bcrypt';
+import crypto from 'crypto';
+import { generateToken } from './utils/jwt.js';
 export const handler = async (event, context) => {
   const sql = neon(process.env.NETLIFY_DATABASE_URL);
 
@@ -8,8 +10,9 @@ export const handler = async (event, context) => {
 
   const headers = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'POST',
+    'Access-Control-Allow-Credentials': 'true'
   };
 
   if (event.httpMethod === 'OPTIONS') {
@@ -80,20 +83,51 @@ export const handler = async (event, context) => {
           VALUES (${email}, ${hashedPassword}, 'village_admin', ${villageData.id}, true)
           RETURNING id, email
         `;
+// Generate JWT token
+        const tokenPayload = {
+          userId: newUser[0].id,
+          email: newUser[0].email,
+          role: 'village_admin',
+          villageId: villageData.id,
+          villageName: villageData.name,
+          sessionId: crypto.randomUUID(),
+          isDefaultPassword: true // Flag for password change requirement
+        };
+
+        const token = generateToken(tokenPayload);
+
+        // Set secure HTTP-only cookie
+        const cookieOptions = [
+          `auth-token=${token}`,
+          'HttpOnly',
+          'Secure',
+          'SameSite=Strict',
+          `Max-Age=${24 * 60 * 60}`, // 24 hours
+          'Path=/'
+        ];
 
         return {
           statusCode: 200,
-          headers,
+          headers: {
+            ...headers,
+            'Set-Cookie': cookieOptions.join('; ')
+          },
           body: JSON.stringify({
             success: true,
-            user: newUser[0],
+            user: {
+              id: newUser[0].id,
+              email: newUser[0].email,
+              role: 'village_admin'
+            },
             village: {
               id: villageData.id,
               name: villageData.name,
               district: villageData.district,
               state: villageData.state
             },
-            message: 'Please change your password after login'
+            token: token,
+            message: 'Please change your password after login',
+            requirePasswordChange: true
           })
         };
       } else {
@@ -114,22 +148,48 @@ export const handler = async (event, context) => {
         body: JSON.stringify({ error: 'Invalid email or password' })
       };
     }
+// Generate JWT token
+    const tokenPayload = {
+      userId: user[0].id,
+      email: user[0].email,
+      role: 'village_admin',
+      villageId: villageData.id,
+      villageName: villageData.name,
+      sessionId: crypto.randomUUID()
+    };
+
+    const token = generateToken(tokenPayload);
+
+    // Set secure HTTP-only cookie
+    const cookieOptions = [
+      `auth-token=${token}`,
+      'HttpOnly',
+      'Secure',
+      'SameSite=Strict',
+      `Max-Age=${24 * 60 * 60}`, // 24 hours
+      'Path=/'
+    ];
 
     return {
       statusCode: 200,
-      headers,
+      headers: {
+        ...headers,
+        'Set-Cookie': cookieOptions.join('; ')
+      },
       body: JSON.stringify({
         success: true,
         user: {
           id: user[0].id,
-          email: user[0].email
+          email: user[0].email,
+          role: 'village_admin'
         },
         village: {
           id: villageData.id,
           name: villageData.name,
           district: villageData.district,
           state: villageData.state
-        }
+        },
+        token: token
       })
     };
 
