@@ -1,6 +1,20 @@
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secure-secret-key-change-in-production';
+// SECURITY FIX: Use environment variable for JWT secret
+const JWT_SECRET = process.env.JWT_SECRET;
+
+// Check if JWT_SECRET exists - fail fast if missing
+if (!JWT_SECRET) {
+  throw new Error('❌ JWT_SECRET environment variable is required but not set. Please add it to your environment variables.');
+}
+
+// Make sure the secret is long enough to be secure
+if (JWT_SECRET.length < 32) {
+  throw new Error('❌ JWT_SECRET must be at least 32 characters long for security.');
+}
+
+console.log('✅ JWT_SECRET loaded successfully');
+
 const JWT_EXPIRY = '24h'; // Token expires in 24 hours
 
 export const generateToken = (payload) => {
@@ -18,6 +32,7 @@ export const verifyToken = (token) => {
       audience: 'noc-users'
     });
   } catch (error) {
+    console.error('JWT verification failed:', error.message);
     return null;
   }
 };
