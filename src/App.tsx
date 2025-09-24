@@ -14,6 +14,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
 import SuperAdminLogin from "./pages/SuperAdminLogin";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
+import SystemAdminDashboard from "./pages/SystemAdminDashboard";
 import VillageRegistration from './pages/VillageRegistration';
 import Terms from './pages/Terms';
 import Verify from "./pages/Verify";
@@ -38,7 +39,8 @@ const App = () => (
            <Route path="/admin" element={<AdminLogin />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/super-admin" element={<SuperAdminLogin />} />
-          <Route path="/super-admin/dashboard" element={<SuperAdminDashboard />} />
+         <Route path="/super-admin/dashboard" element={<SuperAdminDashboard />} />
+          <Route path="/system-admin/dashboard" element={<SystemAdminDashboard />} />
           <Route path="/village/register" element={<VillageRegistration />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/verify/:applicationNumber" element={<Verify />} />
