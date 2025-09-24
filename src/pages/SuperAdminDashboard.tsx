@@ -46,8 +46,73 @@ const [isChangingPassword, setIsChangingPassword] = useState(false);
   });
   const [isChangingAdminPassword, setIsChangingAdminPassword] = useState(false);
 
-  const [villageRequests, setVillageRequests] = useState([]);
+ const [villageRequests, setVillageRequests] = useState([]);
   const [isLoadingVillages, setIsLoadingVillages] = useState(true);
+
+  // New admin management state
+  const [adminUsers, setAdminUsers] = useState([]);
+  const [isLoadingAdmins, setIsLoadingAdmins] = useState(true);
+  const [showCreateAdmin, setShowCreateAdmin] = useState(false);
+  const [selectedAdmin, setSelectedAdmin] = useState(null);
+
+  // Security and monitoring state
+  const [securityAlerts, setSecurityAlerts] = useState([]);
+  const [systemHealth, setSystemHealth] = useState({
+    status: 'operational',
+    uptime: '99.9%',
+    lastBackup: null,
+    activeConnections: 0
+  });
+  const [fraudDetectionSettings, setFraudDetectionSettings] = useState({
+    enabled: true,
+    alertThreshold: 5,
+    autoBlockEnabled: false
+  });
+
+  // Audit and analytics state
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [systemAnalytics, setSystemAnalytics] = useState({
+    totalUsers: 0,
+    totalApplications: 0,
+    approvalRate: 0,
+    fraudAttempts: 0
+  });
+
+  // Broadcast messaging state
+  const [broadcastMessages, setBroadcastMessages] = useState([]);
+  const [showBroadcastModal, setShowBroadcastModal] = useState(false);
+  const [newMessage, setNewMessage] = useState({
+    title: '',
+    content: '',
+    targetRole: 'all',
+    priority: 'normal'
+  });
+
+  // Create admin form state
+  const [createAdminForm, setCreateAdminForm] = useState({
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    permissions: {
+      approve_user: true,
+      manage_points: true,
+      view_applications: true,
+      fraud_monitoring: false,
+      send_message: false,
+      view_analytics: true,
+      manage_certificates: true
+    }
+  });
+  const [isCreatingAdmin, setIsCreatingAdmin] = useState(false);
+
+  // Computed values for statistics
+  const activeAdmins = adminUsers.filter(admin => admin.is_active);
+  const inactiveAdmins = adminUsers.filter(admin => !admin.is_active);
+  const criticalAlerts = securityAlerts.filter(alert => alert.severity === 'critical');
+  const warningAlerts = securityAlerts.filter(alert => alert.severity === 'warning');
+  const pendingVillages = villageRequests.filter(v => v.status === "pending");
+  const approvedVillages = villageRequests.filter(v => v.status === "approved");
 
   const handleLogout = () => {
     toast({
@@ -413,8 +478,60 @@ const handleRejectVillage = async (villageId: string) => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+       {/* Enhanced Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Villages</CardTitle>
+              <Building className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{villageRequests.length}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {approvedVillages.length} active, {pendingVillages.length} pending
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Admin Users</CardTitle>
+              <Users className="h-4 w-4 text-primary" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{adminUsers.length}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {activeAdmins.length} active, {inactiveAdmins.length} inactive
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Security Alerts</CardTitle>
+              <AlertCircle className="h-4 w-4 text-destructive" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{securityAlerts.length}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {criticalAlerts.length} critical, {warningAlerts.length} warnings
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">System Health</CardTitle>
+              <CheckCircle className="h-4 w-4 text-success" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-success">98%</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                All systems operational
+              </p>
+            </CardContent>
+          </Card>
+        </div>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Villages</CardTitle>
@@ -446,23 +563,70 @@ const handleRejectVillage = async (villageId: string) => {
           </Card>
         </div>
 
-        {/* Village Management */}
+       {/* Enhanced Management System */}
         <Card>
           <CardHeader>
-            <CardTitle>Village Management</CardTitle>
-            <CardDescription>Approve or reject village admin registrations.</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>System Administration</CardTitle>
+                <CardDescription>Comprehensive management of villages, administrators, and security.</CardDescription>
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={() => setShowCreateAdmin(true)}
+                  className="bg-primary hover:bg-primary/90"
+                >
+                  <Users className="h-4 w-4 mr-2" />
+                  Create Admin
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => setShowBroadcastModal(true)}
+                >
+                  <AlertCircle className="h-4 w-4 mr-2" />
+                  Broadcast Message
+                </Button>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="pending" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="pending">
-                  Pending Approval ({pendingVillages.length})
+            <Tabs defaultValue="villages" className="w-full">
+              <TabsList className="grid w-full grid-cols-5">
+                <TabsTrigger value="villages">
+                  Villages ({villageRequests.length})
                 </TabsTrigger>
-                <TabsTrigger value="approved">
-                  Approved Villages ({approvedVillages.length})
+                <TabsTrigger value="admins">
+                  Administrators ({adminUsers.length})
+                </TabsTrigger>
+                <TabsTrigger value="security">
+                  Security ({securityAlerts.length})
+                </TabsTrigger>
+                <TabsTrigger value="audit">
+                  Audit Logs
+                </TabsTrigger>
+                <TabsTrigger value="analytics">
+                  Analytics
                 </TabsTrigger>
               </TabsList>
 
+              {/* Villages Tab */}
+              <TabsContent value="villages" className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-medium">Village Management</h3>
+                  <Badge variant="outline">
+                    {pendingVillages.length} Pending Approval
+                  </Badge>
+                </div>
+                
+                <Tabs defaultValue="pending" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="pending">
+                      Pending ({pendingVillages.length})
+                    </TabsTrigger>
+                    <TabsTrigger value="approved">
+                      Active ({approvedVillages.length})
+                    </TabsTrigger>
+                  </TabsList>
              <TabsContent value="pending" className="space-y-4">
                 {isLoadingVillages ? (
                   <div className="flex items-center justify-center py-8">
