@@ -1,162 +1,70 @@
 import { neon } from '@neondatabase/serverless';
 
-// SECURITY: File content validation function
-const validateFileContent = (base64Data) => {
+// SECURITY: Secure file processing with image conversion
+const sharp = require('sharp');
+const pdf2pic = require('pdf2pic');
+
+const secureFileProcessing = async (base64Data) => {
   try {
-    // Remove data URL prefix if present
+    // Parse base64 data
     const base64Content = base64Data.includes(',') ? base64Data.split(',')[1] : base64Data;
-    
-    // Convert base64 to buffer for analysis
     const buffer = Buffer.from(base64Content, 'base64');
     
-    // Check minimum file size (empty or too small files are suspicious)
+    // Basic size validation
     if (buffer.length < 100) {
-      return { isValid: false, error: 'File appears to be corrupted or too small' };
+      throw new Error('File appears to be corrupted or too small');
     }
     
-    // Check maximum file size (10MB)
     if (buffer.length > 10 * 1024 * 1024) {
-      return { isValid: false, error: 'File size exceeds 10MB limit' };
+      throw new Error('File size exceeds 10MB limit');
     }
     
-    // Validate file signatures (magic numbers)
+    // Detect file type
     const fileSignature = buffer.slice(0, 8).toString('hex').toUpperCase();
+    let imageBuffer;
     
-    // PNG signature: 89504E470D0A1A0A
-    if (fileSignature.startsWith('89504E47')) {
-      return validatePNGContent(buffer);
-    }
-    
-    // JPEG signature: FFD8FF
-    if (fileSignature.startsWith('FFD8FF')) {
-      return validateJPEGContent(buffer);
-    }
-    
-    // PDF signature: 25504446
     if (fileSignature.startsWith('25504446')) {
-      return validatePDFContent(buffer);
+      // PDF file - convert to image
+      console.log('Processing PDF file...');
+      const convert = pdf2pic.fromBuffer(buffer, {
+        density: 150,           // High quality for text readability
+        saveFilename: "page",
+        format: "png",
+        width: 1200,           // Good resolution for documents
+        height: 1600
+      });
+      
+      const result = await convert(1, { responseType: "buffer" });
+      imageBuffer = result.buffer;
+    } else if (fileSignature.startsWith('89504E47') || fileSignature.startsWith('FFD8FF')) {
+      // Already an image (PNG or JPEG)
+      imageBuffer = buffer;
+    } else {
+      throw new Error('Unsupported file format. Only PNG, JPEG, and PDF files are allowed.');
     }
     
-    return { isValid: false, error: 'Unsupported file format. Only PNG, JPEG, and PDF files are allowed.' };
+    // Process image with Sharp - creates completely clean file
+    const cleanImage = await sharp(imageBuffer)
+      .png()                    // Convert to PNG (removes any embedded content)
+      .resize(1200, 1600, {     // Standardize size
+        fit: 'inside',          // Maintain aspect ratio
+        withoutEnlargement: true // Don't upscale small images
+      })
+      .removeMetadata()         // Strip all EXIF and metadata
+      .toBuffer();
     
+    // Convert back to base64 for storage
+    const cleanBase64 = `data:image/png;base64,${cleanImage.toString('base64')}`;
+    
+    console.log(`File processed successfully. Original: ${buffer.length} bytes, Clean: ${cleanImage.length} bytes`);
+    
+    return cleanBase64;
   } catch (error) {
-    return { isValid: false, error: 'File validation failed: corrupted or invalid file' };
+    console.error('File processing error:', error);
+    throw new Error(`File processing failed: ${error.message}`);
   }
 };
 
-// SECURITY: PNG-specific validation
-const validatePNGContent = (buffer) => {
-  // Check PNG footer
-  const pngFooter = buffer.slice(-8).toString('hex').toUpperCase();
-  if (!pngFooter.includes('49454E44AE426082')) {
-    return { isValid: false, error: 'Invalid PNG file: corrupted or tampered' };
-  }
-  
-  // Check for suspicious patterns that might indicate embedded content
-  const suspicious = checkForSuspiciousContent(buffer);
-  if (!suspicious.isSafe) {
-    return { isValid: false, error: suspicious.reason };
-  }
-  
-  return { isValid: true };
-};
-
-// SECURITY: JPEG-specific validation
-const validateJPEGContent = (buffer) => {
-  // Check JPEG footer (FFD9)
-  const jpegFooter = buffer.slice(-2).toString('hex').toUpperCase();
-  if (jpegFooter !== 'FFD9') {
-    return { isValid: false, error: 'Invalid JPEG file: corrupted or tampered' };
-  }
-  
-  const suspicious = checkForSuspiciousContent(buffer);
-  if (!suspicious.isSafe) {
-    return { isValid: false, error: suspicious.reason };
-  }
-  
-  return { isValid: true };
-};
-
-// SECURITY: PDF-specific validation
-const validatePDFContent = (buffer) => {
-  // Check PDF footer
-  const content = buffer.toString('ascii', 0, Math.min(buffer.length, 1000));
-  if (!content.includes('%PDF-')) {
-    return { isValid: false, error: 'Invalid PDF file format' };
-  }
-  
-  // Check for JavaScript in PDF (security risk)
-  const pdfContent = buffer.toString('ascii').toLowerCase();
-  if (pdfContent.includes('/javascript') || pdfContent.includes('/js')) {
-    return { isValid: false, error: 'PDF files with JavaScript are not allowed for security reasons' };
-  }
-  
-  const suspicious = checkForSuspiciousContent(buffer);
-  if (!suspicious.isSafe) {
-    return { isValid: false, error: suspicious.reason };
-  }
-  
-  return { isValid: true };
-};
-
-// SECURITY: Check for suspicious content patterns
-const checkForSuspiciousContent = (buffer) => {
-  const content = buffer.toString('ascii').toLowerCase();
-  
-  // Check for script tags or executable content
-  const suspiciousPatterns = [
-    '<script',
-    'javascript:',
-    'onload=',
-    'onerror=',
-    'eval(',
-    'function(',
-    '<?php',
-    '<%',
-    'cmd.exe',
-    'powershell',
-    '/bin/sh'
-  ];
-  
-  for (const pattern of suspiciousPatterns) {
-    if (content.includes(pattern)) {
-      return { 
-        isSafe: false, 
-        reason: 'File contains potentially malicious content and cannot be uploaded' 
-      };
-    }
-  }
-  
-  // Check for unusually high entropy (might indicate encrypted malware)
-  const entropy = calculateEntropy(buffer);
-  if (entropy > 7.5) {
-    return { 
-      isSafe: false, 
-      reason: 'File appears to contain encrypted or compressed data which is not allowed' 
-    };
-  }
-  
-  return { isSafe: true };
-};
-
-// SECURITY: Calculate Shannon entropy to detect encrypted content
-const calculateEntropy = (buffer) => {
-  const frequencies = new Array(256).fill(0);
-  
-  for (let i = 0; i < buffer.length; i++) {
-    frequencies[buffer[i]]++;
-  }
-  
-  let entropy = 0;
-  for (let i = 0; i < 256; i++) {
-    if (frequencies[i] > 0) {
-      const probability = frequencies[i] / buffer.length;
-      entropy -= probability * Math.log2(probability);
-    }
-  }
-  
-  return entropy;
-};
 
 export const handler = async (event, context) => {
   const sql = neon(process.env.NETLIFY_DATABASE_URL);
@@ -235,31 +143,25 @@ export const handler = async (event, context) => {
       };
     }
 
-    // SECURITY: Validate file format and content
-    const securityValidation = validateFileContent(uploadedBase64);
-    if (!securityValidation.isValid) {
+    // SECURITY: Process and clean uploaded document
+    let cleanDocument;
+    try {
+      cleanDocument = await secureFileProcessing(uploadedBase64);
+      console.log('Village document processed successfully');
+    } catch (error) {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ error: securityValidation.error })
+        body: JSON.stringify({ error: `Document processing failed: ${error.message}` })
       };
     }
 
-    // SECURITY: Additional file size validation
-    const fileSizeInBytes = (uploadedBase64.length * 3) / 4; // Approximate base64 to bytes conversion
-    const maxSizeInMB = 10;
-    if (fileSizeInBytes > maxSizeInMB * 1024 * 1024) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ error: `File size exceeds ${maxSizeInMB}MB limit` })
-      };
-    }
+
     
     // Insert or update document with the actual uploaded file
     await sql`
       INSERT INTO village_documents (village_id, document_type, document_data, file_name)
-      VALUES (${villageId}, ${documentType}, ${uploadedBase64}, ${documentType + '.png'})
+     VALUES (${villageId}, ${documentType}, ${cleanDocument}, ${documentType + '.png'})
       ON CONFLICT (village_id, document_type) 
       DO UPDATE SET 
         document_data = EXCLUDED.document_data,
