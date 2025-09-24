@@ -1,4 +1,6 @@
 import { neon } from '@neondatabase/serverless';
+import crypto from 'crypto';
+import { requireMinimumPoints } from './utils/auth-middleware.js';
 
 // SECURITY: CORS origin validation
 const getAllowedOrigin = (event) => {
@@ -117,9 +119,10 @@ export const handler = async (event, context) => {
   try {
     // Create noc_applications table if it doesn't exist (with correct UUID type)
     await sql`
-     CREATE TABLE IF NOT EXISTS noc_applications (
+    CREATE TABLE IF NOT EXISTS noc_applications (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         application_number VARCHAR(50) UNIQUE NOT NULL,
+        user_id UUID REFERENCES users(id),
         title VARCHAR(10),
         applicant_name VARCHAR(255) NOT NULL,
         relation VARCHAR(10),
@@ -163,11 +166,23 @@ export const handler = async (event, context) => {
       console.log('Columns might already exist:', error.message);
     }
 
-    if (event.httpMethod === 'POST') {
+   if (event.httpMethod === 'POST') {
+      // Check authentication and points BEFORE processing
+      const authResult = requireMinimumPoints(event, 15);
+      if (!authResult.isValid) {
+        return {
+          statusCode: authResult.statusCode,
+          headers,
+          body: JSON.stringify({ error: authResult.error })
+        };
+      }
+
+      const userInfo = authResult.user;
+      
       const { 
         applicationNumber, 
         title,
-        applicantName, 
+        applicantName,
         relation,
         fatherName, 
         address, 
@@ -213,32 +228,106 @@ export const handler = async (event, context) => {
           };
         }
       }
-      // Insert new NOC application
-    const result = await sql`
-        INSERT INTO noc_applications (
-          application_number, title, applicant_name, relation, father_name, address, house_number,
+      // Start database transaction for application + point deduction
+      await sql`BEGIN`;
+      
+      try {
+        // Generate application number if not provided
+        let finalApplicationNumber = applicationNumber;
+        if (!finalApplicationNumber) {
+          const maxNumber = await sql`
+            SELECT COALESCE(MAX(CAST(SUBSTRING(application_number FROM '[0-9]+') AS INTEGER)), 0) as max_num
+            FROM noc_applications 
+            WHERE application_number ~ '^NOC[0-9]+$'
+          `;
+          const nextNumber = (maxNumber[0]?.max_num || 0) + 1;
+          finalApplicationNumber = `NOC${nextNumber.toString().padStart(6, '0')}`;
+        }
+
+        // Insert new NOC application with user_id
+        const result = await sql`
+          INSERT INTO noc_applications (
+            application_number, user_id, title, applicant_name, relation, father_name, address, house_number,
           village_id, tribe_name, religion, annual_income, annual_income_words, purpose_of_noc, phone, email,
           aadhaar_document, passport_photo, status
-       ) VALUES (
-          ${applicationNumber}, ${title}, ${applicantName}, ${relation}, ${fatherName}, ${address}, ${houseNumber},
+      ) VALUES (
+          ${finalApplicationNumber}, ${userInfo.id}, ${title}, ${applicantName}, ${relation}, ${fatherName}, ${address}, ${houseNumber},
           ${villageId}, ${tribeName}, ${religion}, ${annualIncome}, ${annualIncomeWords}, ${purposeOfNOC}, ${phone}, ${email},
           ${cleanAadhaarDocument}, ${cleanPassportPhoto}, 'pending'
         )
-        RETURNING id
+       RETURNING id, application_number
       `;
+
+      const applicationId = result[0].id;
+
+      // DEDUCT POINTS IMMEDIATELY
+      const currentBalance = await sql`SELECT point_balance FROM users WHERE id = ${userInfo.id}`;
       
+      if (currentBalance[0].point_balance < 15) {
+        await sql`ROLLBACK`;
+        return {
+          statusCode: 402,
+          headers,
+          body: JSON.stringify({ error: 'Insufficient points for application' })
+        };
+      }
+
+      const newBalance = currentBalance[0].point_balance - 15;
+
+      // Create deduction transaction
+      const transactionHash = crypto.createHash('sha256')
+        .update(`${userInfo.id}-${applicationId}-${Date.now()}`)
+        .digest('hex');
+
+      await sql`
+        INSERT INTO point_transactions (
+          transaction_hash, user_id, type, amount, previous_balance, new_balance,
+          application_id, reason, admin_ip
+        )
+        VALUES (
+          ${transactionHash}, ${userInfo.id}, 'DEDUCT', -15, ${currentBalance[0].point_balance}, ${newBalance},
+          ${applicationId}, 'NOC Application Fee', ${event.headers['x-forwarded-for'] || 'unknown'}
+        )
+      `;
+
+      // Update user balance
+      await sql`UPDATE users SET point_balance = ${newBalance} WHERE id = ${userInfo.id}`;
+
+      // Create point distribution (5-5-5)
+      await sql`
+        INSERT INTO point_distributions (
+          application_id, village_id, total_points,
+          server_maintenance_points, super_admin_points, village_admin_points
+        )
+        VALUES (${applicationId}, ${villageId}, 15, 5, 5, 5)
+      `;
+
+      await sql`COMMIT`;
+
       return {
         statusCode: 201,
         headers,
-        body: JSON.stringify({ success: true, id: result[0].id })
+        body: JSON.stringify({ 
+          success: true, 
+          id: applicationId,
+          applicationNumber: result[0].application_number,
+          pointsDeducted: 15,
+          newBalance: newBalance,
+          message: 'Application submitted successfully'
+        })
       };
+
+      } catch (error) {
+        await sql`ROLLBACK`;
+        throw error;
+      }
     }
 
- if (event.httpMethod === 'GET') {
+if (event.httpMethod === 'GET') {
       const { applicationNumber } = event.queryStringParameters || {};
       
       if (applicationNumber) {
-        // FIX: Use LEFT JOIN to handle missing villages and add better error handling
+        // Public application status check - no auth required
        const application = await sql`
           SELECT 
             a.id,  -- ADD THIS LINE
@@ -269,11 +358,50 @@ export const handler = async (event, context) => {
                   } : null 
                 })
               };
-      } else {
+     } else {
+        // Get user's own applications - requires authentication
+        const authResult = requireMinimumPoints(event, 0); // Just need to be authenticated
+        if (!authResult.isValid) {
+          return {
+            statusCode: authResult.statusCode,
+            headers,
+            body: JSON.stringify({ error: authResult.error })
+          };
+        }
+
+        const userInfo = authResult.user;
+        
+        // Return only user's own applications if regular user
+        if (userInfo.role === 'applicant') {
+          const applications = await sql`
+            SELECT 
+              id, application_number, applicant_name, status, 
+              created_at, approved_at, purpose_of_noc
+            FROM noc_applications 
+            WHERE user_id = ${userInfo.id}
+            ORDER BY created_at DESC
+          `;
+          
+          return {
+            statusCode: 200,
+            headers,
+            body: JSON.stringify({ applications })
+          };
+        }
+        
+        // Admin users see all applications
+        const applications = await sql`
+          SELECT 
+            id, application_number, applicant_name, status, 
+            created_at, approved_at, purpose_of_noc, user_id
+          FROM noc_applications 
+          ORDER BY created_at DESC
+        `;
+        
         return {
-          statusCode: 400,
+          statusCode: 200,
           headers,
-          body: JSON.stringify({ error: 'Application number is required' })
+          body: JSON.stringify({ applications })
         };
       }
     }
