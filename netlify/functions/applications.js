@@ -74,14 +74,16 @@ const secureFileProcessing = async (base64Data) => {
       throw new Error('Unsupported file format. Only PNG, JPEG, and PDF files are allowed.');
     }
     
-    // Process image with Sharp - creates completely clean file
+  // Process image with Sharp - creates completely clean file
     const cleanImage = await sharp(imageBuffer)
-      .png()                    // Convert to PNG (removes any embedded content)
+      .png({
+        compressionLevel: 6,    // Good compression
+        palette: false          // Don't use palette (removes some metadata)
+      })
       .resize(1200, 1600, {     // Standardize size
         fit: 'inside',          // Maintain aspect ratio
         withoutEnlargement: true // Don't upscale small images
       })
-      .removeMetadata()         // Strip all EXIF and metadata
       .toBuffer();
     
     // Convert back to base64 for storage
