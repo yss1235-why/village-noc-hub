@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,6 +19,7 @@ import { useNavigate } from "react-router-dom";
 const Apply = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { isAuthenticated, user, isLoading, refreshUser } = useAuth();
   const [showSuccess, setShowSuccess] = useState(false);
   const [submittedAppNumber, setSubmittedAppNumber] = useState('');
 
@@ -183,11 +185,13 @@ const handleSubmit = async (e: React.FormEvent) => {
       reader.readAsDataURL(formData.passportFile);
     });
 
-    // Submit to database with files
+  // Submit to database with files (with authentication)
+    const token = localStorage.getItem('auth-token');
     const response = await fetch('/.netlify/functions/applications', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
       },
      body: JSON.stringify({
         applicationNumber: appNo,
@@ -212,9 +216,10 @@ const handleSubmit = async (e: React.FormEvent) => {
 
     const result = await response.json();
 
-    if (response.ok) {
-      // Instead of showing toast, show success page
-      setSubmittedAppNumber(appNo);
+   if (response.ok) {
+      // Update user balance and show success page
+      await refreshUser(); // Refresh to get new point balance
+      setSubmittedAppNumber(result.applicationNumber || appNo);
       setShowSuccess(true);
       
       // Reset form after successful submission
@@ -269,6 +274,105 @@ const handleBackToHome = () => {
   navigate('/');
 };
 
+// Show loading while checking authentication
+if (isLoading) {
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <Card className="w-full max-w-md">
+        <CardContent className="flex flex-col items-center space-y-4 pt-6">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <p>Loading...</p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// Show login required message if not authenticated
+if (!isAuthenticated) {
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <CardTitle className="text-red-600">Login Required</CardTitle>
+          <CardDescription>
+            You must be logged in to submit NOC applications
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-center text-gray-600">
+            Please log in to your account or register if you don't have one.
+          </p>
+          <div className="space-y-2">
+            <Link to="/login" className="w-full">
+              <Button className="w-full">Login to Continue</Button>
+            </Link>
+            <Link to="/register" className="w-full">
+              <Button variant="outline" className="w-full">Create New Account</Button>
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// Show pending approval message if user not approved
+if (user && !user.isApproved) {
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <CardTitle className="text-yellow-600">Account Pending Approval</CardTitle>
+          <CardDescription>
+            Your account is waiting for admin approval
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-center text-gray-600">
+            Please wait for the super admin to approve your registration before you can submit applications.
+          </p>
+          <div className="text-center">
+            <Button variant="outline" onClick={() => window.location.reload()}>
+              Refresh Status
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// Show insufficient points message
+if (user && user.pointBalance < 15) {
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <CardTitle className="text-red-600">Insufficient Points</CardTitle>
+          <CardDescription>
+            You need 15 points to submit an NOC application
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="text-center">
+            <p className="text-lg font-semibold">Current Balance: {user.pointBalance} points</p>
+            <p className="text-sm text-gray-600 mt-2">Required: 15 points</p>
+          </div>
+          <p className="text-center text-gray-600">
+            Please contact the super admin to add points to your account.
+          </p>
+          <div className="text-center">
+            <Button variant="outline" onClick={refreshUser}>
+              Refresh Balance
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 // Show success page if application was submitted
 if (showSuccess) {
   return (
@@ -306,10 +410,28 @@ if (showSuccess) {
         <div className="max-w-2xl mx-auto">
           <Card>
             <CardHeader>
-              <CardTitle>Apply for No Objection Certificate (NOC)</CardTitle>
-              <CardDescription>
-                Fill in the details below to apply for your NOC. Upload required documents for verification. All fields marked with * are required.
-              </CardDescription>
+             <CardTitle>Apply for No Objection Certificate (NOC)</CardTitle>
+            <CardDescription>
+              Fill in the details below to apply for your NOC. Upload required documents for verification. All fields marked with * are required.
+            </CardDescription>
+            
+            {/* Point Balance Display */}
+            <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="flex items-center justify-between">
+                <div className="text-center flex-1">
+                  <p className="text-sm text-blue-600 font-medium">Your Balance</p>
+                  <p className="text-2xl font-bold text-blue-800">{user?.pointBalance || 0} points</p>
+                </div>
+                <div className="text-center flex-1">
+                  <p className="text-sm text-gray-600">Application Cost</p>
+                  <p className="text-lg font-semibold text-red-600">15 points</p>
+                </div>
+                <div className="text-center flex-1">
+                  <p className="text-sm text-gray-600">After Submission</p>
+                  <p className="text-lg font-semibold text-gray-800">{(user?.pointBalance || 0) - 15} points</p>
+                </div>
+              </div>
+            </div>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
