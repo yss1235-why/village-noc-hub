@@ -70,6 +70,7 @@ const [formData, setFormData] = useState({
 
     const submitData = { ...baseData };
 
+   // Convert files to base64 with correct backend field names
     if (formData.aadhaar_document) {
       submitData.aadhaar_document = await processFile(formData.aadhaar_document);
     }
@@ -78,14 +79,15 @@ const [formData, setFormData] = useState({
       submitData.passport_photo = await processFile(formData.passport_photo);
     }
 
-   if (formData.police_verification_document) {
+    if (formData.police_verification_document) {
       submitData.police_verification = await processFile(formData.police_verification_document);
     }
 
-    // Remove file objects from submitData (keep only base64 strings and text fields)
-    delete submitData.aadhaar_document;
-    delete submitData.passport_photo; 
+    // Remove only the original file object key that doesn't match backend expectation
     delete submitData.police_verification_document;
+    
+    // Keep aadhaar_document and passport_photo - backend expects these exact field names
+    // Don't delete them after converting to base64!
 
     // Add passport_number as empty string since backend expects it
     submitData.passport_number = '';
