@@ -1,6 +1,6 @@
 import { verifyToken } from './jwt.js';
 
-export const authenticateAdmin = (event) => {
+export const authenticateUser = (event) => {
   // Try to get token from cookie first, then from Authorization header
   const cookies = event.headers.cookie || '';
   const authTokenMatch = cookies.match(/auth-token=([^;]+)/);
@@ -37,8 +37,67 @@ export const authenticateAdmin = (event) => {
   };
 };
 
+export const requireSuperAdmin = (event) => {
+  const authResult = authenticateUser(event);
+  
+  if (!authResult.isValid) {
+    return authResult;
+  }
+  
+  if (authResult.user.role !== 'super_admin') {
+    return {
+      isValid: false,
+      error: 'Super admin access required',
+      statusCode: 403
+    };
+  }
+  
+  return authResult;
+};
+
+export const requireApprovedUser = (event) => {
+  const authResult = authenticateUser(event);
+  
+  if (!authResult.isValid) {
+    return authResult;
+  }
+  
+  if (authResult.user.role === 'applicant' && !authResult.user.isApproved) {
+    return {
+      isValid: false,
+      error: 'Account pending approval',
+      statusCode: 403
+    };
+  }
+  
+  return authResult;
+};
+
+export const requireMinimumPoints = (event, minimumPoints = 15) => {
+  const authResult = requireApprovedUser(event);
+  
+  if (!authResult.isValid) {
+    return authResult;
+  }
+  
+  if (authResult.user.role === 'applicant' && authResult.user.pointBalance < minimumPoints) {
+    return {
+      isValid: false,
+      error: `Insufficient points. Required: ${minimumPoints}, Current: ${authResult.user.pointBalance}`,
+      statusCode: 402 // Payment Required
+    };
+  }
+  
+  return authResult;
+};
+
+// Existing functions remain the same
+export const authenticateAdmin = (event) => {
+  return authenticateUser(event);
+};
+
 export const requireVillageAdmin = (event, requiredVillageId = null) => {
-  const authResult = authenticateAdmin(event);
+  const authResult = authenticateUser(event);
   
   if (!authResult.isValid) {
     return authResult;
@@ -47,7 +106,7 @@ export const requireVillageAdmin = (event, requiredVillageId = null) => {
   if (authResult.user.role !== 'village_admin') {
     return {
       isValid: false,
-      error: 'Insufficient permissions - village admin required',
+      error: 'Village admin access required',
       statusCode: 403
     };
   }
