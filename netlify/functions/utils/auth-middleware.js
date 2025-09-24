@@ -55,6 +55,118 @@ export const requireSuperAdmin = (event) => {
   return authResult;
 };
 
+// Role hierarchy for permission checking
+const ROLE_HIERARCHY = {
+  'super_admin': 4,
+  'admin': 3,
+  'village_admin': 2,
+  'user': 1,
+  'applicant': 1
+};
+
+// New admin role authentication
+export const requireAdmin = (event) => {
+  const authResult = authenticateUser(event);
+  
+  if (!authResult.isValid) {
+    return authResult;
+  }
+  
+  if (authResult.user.role !== 'admin') {
+    return {
+      isValid: false,
+      error: 'Admin access required',
+      statusCode: 403
+    };
+  }
+  
+  return authResult;
+};
+
+// Flexible role-based authentication
+export const requireRole = (event, requiredRole) => {
+  const authResult = authenticateUser(event);
+  
+  if (!authResult.isValid) {
+    return authResult;
+  }
+  
+  const userRoleLevel = ROLE_HIERARCHY[authResult.user.role] || 0;
+  const requiredRoleLevel = ROLE_HIERARCHY[requiredRole] || 1;
+  
+  if (userRoleLevel < requiredRoleLevel) {
+    return {
+      isValid: false,
+      error: `Insufficient permissions. Required: ${requiredRole}, Current: ${authResult.user.role}`,
+      statusCode: 403
+    };
+  }
+  
+  return authResult;
+};
+
+// Check if user has specific permission
+export const hasPermission = (userRole, action) => {
+  const permissions = {
+    'super_admin': {
+      'create_admin': true,
+      'manage_admin': true,
+      'delete_admin': true,
+      'approve_village': true,
+      'delete_village': true,
+      'system_settings': true,
+      'view_audit': true,
+      'manage_fraud': true,
+      'broadcast_message': true,
+      'manual_backup': true,
+      'view_all_analytics': true
+    },
+    'admin': {
+      'approve_user': true,
+      'manage_points': true,
+      'view_applications': true,
+      'fraud_monitoring': true,
+      'send_message': true,
+      'view_analytics': true,
+      'manage_certificates': true
+    },
+    'village_admin': {
+      'approve_user': true,
+      'manage_points': true,
+      'view_applications': true,
+      'village_analytics': true
+    },
+    'user': {
+      'apply_certificate': true,
+      'view_status': true
+    },
+    'applicant': {
+      'apply_certificate': true,
+      'view_status': true
+    }
+  };
+
+  return permissions[userRole]?.[action] || false;
+};
+
+// Enhanced authentication with permission checking
+export const requirePermission = (event, requiredPermission) => {
+  const authResult = authenticateUser(event);
+  
+  if (!authResult.isValid) {
+    return authResult;
+  }
+  
+  if (!hasPermission(authResult.user.role, requiredPermission)) {
+    return {
+      isValid: false,
+      error: `Permission denied. Required: ${requiredPermission}`,
+      statusCode: 403
+    };
+  }
+  
+  return authResult;
+};
 export const requireApprovedUser = (event) => {
   const authResult = authenticateUser(event);
   
