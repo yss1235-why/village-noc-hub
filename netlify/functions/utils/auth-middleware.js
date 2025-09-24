@@ -234,3 +234,52 @@ export const requireVillageAdmin = (event, requiredVillageId = null) => {
   
   return authResult;
 };
+
+// New system admin authentication
+export const requireSystemAdmin = (event) => {
+  const authResult = authenticateUser(event);
+  
+  if (!authResult.isValid) {
+    return authResult;
+  }
+  
+  if (authResult.user.role !== 'admin') {
+    return {
+      isValid: false,
+      error: 'System admin access required',
+      statusCode: 403
+    };
+  }
+  
+  return authResult;
+};
+
+// Enhanced role checking for multi-tier system
+export const requireMinimumRole = (event, minimumRole) => {
+  const authResult = authenticateUser(event);
+  
+  if (!authResult.isValid) {
+    return authResult;
+  }
+  
+  const roleHierarchy = {
+    'user': 1,
+    'applicant': 1,
+    'village_admin': 2,
+    'admin': 3,
+    'super_admin': 4
+  };
+  
+  const userLevel = roleHierarchy[authResult.user.role] || 0;
+  const requiredLevel = roleHierarchy[minimumRole] || 0;
+  
+  if (userLevel < requiredLevel) {
+    return {
+      isValid: false,
+      error: `Insufficient permissions. Required: ${minimumRole}, Current: ${authResult.user.role}`,
+      statusCode: 403
+    };
+  }
+  
+  return authResult;
+};
