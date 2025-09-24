@@ -23,13 +23,14 @@ export const handler = async (event, context) => {
 
   try {
     console.log('Starting point system migration...');
-
-    // 1. Add new columns to users table
+// 1. Add new columns to users table
     await sql`
       ALTER TABLE users 
       ADD COLUMN IF NOT EXISTS full_name VARCHAR(100),
       ADD COLUMN IF NOT EXISTS aadhaar_number VARCHAR(12),
+      ADD COLUMN IF NOT EXISTS aadhaar_document TEXT,
       ADD COLUMN IF NOT EXISTS passport_number VARCHAR(20),
+      ADD COLUMN IF NOT EXISTS passport_photo TEXT,
       ADD COLUMN IF NOT EXISTS id_code VARCHAR(50),
       ADD COLUMN IF NOT EXISTS police_verification TEXT,
       ADD COLUMN IF NOT EXISTS address TEXT,
