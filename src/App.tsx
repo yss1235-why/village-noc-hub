@@ -3,7 +3,10 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 import Apply from "./pages/Apply";
 import Status from "./pages/Status";
 import AdminLogin from "./pages/AdminLogin";
@@ -17,16 +20,20 @@ import Verify from "./pages/Verify";
 
 const queryClient = new QueryClient();
 
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
+      <AuthProvider>
+        <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/apply" element={<Apply />} />
           <Route path="/status" element={<Status />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
           
            <Route path="/admin" element={<AdminLogin />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
@@ -37,10 +44,10 @@ const App = () => (
           <Route path="/verify/:applicationNumber" element={<Verify />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
-        </Routes>
+       </Routes>
       </BrowserRouter>
+    </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
-
 export default App;
