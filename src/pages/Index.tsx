@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2, FileText, Search, Shield } from "lucide-react";
+import { Building2, FileText, Search, Shield, Crown } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Index = () => {
@@ -119,9 +119,18 @@ const Index = () => {
               Register Your Village
             </Button>
           </Link>
-          <Link to="/super-admin" className="text-xs text-primary-foreground/70 hover:text-primary-foreground/90 underline">
-            System Admin
-          </Link>
+          <Link to="/super-admin">
+              <Button className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                <Crown className="mr-2 h-4 w-4" />
+                System Admin 1
+              </Button>
+            </Link>
+            <Link to="/system-admin">
+              <Button className="bg-purple-600 text-white hover:bg-purple-700">
+                <Shield className="mr-2 h-4 w-4" />
+                System Admin
+              </Button>
+            </Link>
         </div>
       </div>
 
