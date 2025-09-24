@@ -9,12 +9,13 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/contexts/AuthContext';
 
 const Register: React.FC = () => {
-  const [formData, setFormData] = useState({
+const [formData, setFormData] = useState({
     full_name: '',
     aadhaar_number: '',
-    passport_number: '',
+    aadhaar_document: null,
+    passport_photo: null,
     id_code: '',
-    police_verification: '',
+    police_verification_document: null,
     address: '',
     username: '',
     password: '',
@@ -55,11 +56,41 @@ const Register: React.FC = () => {
       return;
     }
 
-    // Remove confirmPassword from submission data
-    const { confirmPassword, termsAccepted, ...submitData } = formData;
+    // Convert files to base64 and prepare submission data
+    const { confirmPassword, termsAccepted, ...baseData } = formData;
+    
+    // Convert files to base64
+    const processFile = (file: File): Promise<string> => {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target?.result as string);
+        reader.readAsDataURL(file);
+      });
+    };
+
+    const submitData = { ...baseData };
+
+    if (formData.aadhaar_document) {
+      submitData.aadhaar_document = await processFile(formData.aadhaar_document);
+    }
+
+    if (formData.passport_photo) {
+      submitData.passport_photo = await processFile(formData.passport_photo);
+    }
+
+   if (formData.police_verification_document) {
+      submitData.police_verification = await processFile(formData.police_verification_document);
+    }
+
+    // Remove file objects from submitData (keep only base64 strings and text fields)
+    delete submitData.aadhaar_document;
+    delete submitData.passport_photo; 
+    delete submitData.police_verification_document;
+
+    // Add passport_number as empty string since backend expects it
+    submitData.passport_number = '';
 
     const result = await register(submitData);
-
     if (result.success) {
       setSuccess(true);
     } else {
@@ -186,7 +217,7 @@ const Register: React.FC = () => {
                 />
               </div>
 
-              <div>
+             <div>
                 <Label htmlFor="aadhaar_number">Aadhaar Number</Label>
                 <Input
                   id="aadhaar_number"
@@ -200,14 +231,26 @@ const Register: React.FC = () => {
               </div>
 
               <div>
-                <Label htmlFor="passport_number">Passport Number (Optional)</Label>
+                <Label htmlFor="aadhaar_document">Aadhaar Card Document</Label>
                 <Input
-                  id="passport_number"
-                  type="text"
-                  value={formData.passport_number}
-                  onChange={(e) => setFormData(prev => ({ ...prev, passport_number: e.target.value }))}
-                  placeholder="Enter passport number if available"
+                  id="aadhaar_document"
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onChange={(e) => setFormData(prev => ({ ...prev, aadhaar_document: e.target.files?.[0] || null }))}
+                  required
                 />
+                <p className="text-xs text-muted-foreground mt-1">Upload PDF, JPG, or PNG (max 5MB)</p>
+              </div>
+              <div>
+                <Label htmlFor="passport_photo">Passport Size Photo</Label>
+                <Input
+                  id="passport_photo"
+                  type="file"
+                  accept=".jpg,.jpeg,.png"
+                  onChange={(e) => setFormData(prev => ({ ...prev, passport_photo: e.target.files?.[0] || null }))}
+                  required
+                />
+                <p className="text-xs text-muted-foreground mt-1">Upload JPG or PNG (max 2MB)</p>
               </div>
 
               <div>
@@ -247,14 +290,14 @@ const Register: React.FC = () => {
               </div>
 
               <div>
-                <Label htmlFor="police_verification">Police Verification (Optional)</Label>
+                <Label htmlFor="police_verification_document">Police Verification Document (Optional)</Label>
                 <Input
-                  id="police_verification"
-                  type="text"
-                  value={formData.police_verification}
-                  onChange={(e) => setFormData(prev => ({ ...prev, police_verification: e.target.value }))}
-                  placeholder="Police verification details if any"
+                  id="police_verification_document"
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onChange={(e) => setFormData(prev => ({ ...prev, police_verification_document: e.target.files?.[0] || null }))}
                 />
+                <p className="text-xs text-muted-foreground mt-1">Upload PDF, JPG, or PNG (max 5MB)</p>
               </div>
 
               <div>
