@@ -57,7 +57,7 @@ const SystemAdminDashboard = () => {
   // Redirect if not authenticated as admin
   useEffect(() => {
     if (!adminInfo || !authToken || adminInfo.role !== 'admin') {
-      navigate('/admin');
+      navigate('/system-admin');
     } else {
       initializeDashboard();
     }
