@@ -41,12 +41,8 @@ const UserDashboard = () => {
   useEffect(() => {
     if (!userInfo || !authToken) {
       navigate('/login');
-    } else {
-      loadUserApplications();
-      loadUserPointBalance();
     }
   }, [userInfo, authToken, navigate]);
-
   const loadUserApplications = async () => {
     if (!userInfo?.userId) return;
     
