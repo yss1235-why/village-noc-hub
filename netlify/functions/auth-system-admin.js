@@ -1,10 +1,10 @@
-const { neon } = require('@neondatabase/serverless');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
+import { neon } from '@neondatabase/serverless';
+import bcrypt from 'bcrypt';
+import { generateToken } from './utils/jwt.js';
 
 const sql = neon(process.env.NETLIFY_DATABASE_URL);
 
-exports.handler = async (event, context) => {
+export const handler = async (event, context) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
@@ -62,8 +62,8 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Generate JWT token
-   const tokenPayload = {
+   // Generate JWT token using the proper utility
+    const tokenPayload = {
       userId: adminData.id,
       email: adminData.email,
       role: 'admin',
@@ -71,11 +71,7 @@ exports.handler = async (event, context) => {
       permissions: adminData.permissions
     };
 
-    const token = jwt.sign(
-      tokenPayload,
-      process.env.JWT_SECRET || 'fallback_secret',
-      { expiresIn: '24h' }
-    );
+    const token = generateToken(tokenPayload);
 
     // Update last login timestamp if the column exists
     try {
@@ -107,7 +103,7 @@ exports.handler = async (event, context) => {
       },
       body: JSON.stringify({
         success: true,
-        user: {
+       user: {
           id: adminData.id,
           name: adminData.name,
           email: adminData.email,
