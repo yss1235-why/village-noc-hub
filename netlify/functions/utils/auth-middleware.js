@@ -130,12 +130,12 @@ export const hasPermission = (userRole, action) => {
       'view_analytics': true,
       'manage_certificates': true
     },
-    'village_admin': {
-      'approve_user': true,
-      'manage_points': true,
-      'view_applications': true,
-      'village_analytics': true
-    },
+   'village_admin': {
+  'approve_user': true,
+  'view_applications': true,
+  'village_analytics': true,
+  'view_own_points': true
+}
     'user': {
       'apply_certificate': true,
       'view_status': true
