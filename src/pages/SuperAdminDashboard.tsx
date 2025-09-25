@@ -879,8 +879,238 @@ const handleRejectVillage = async (villageId: string) => {
           </div>
         )}
 
-        {/* Delete Village Confirmation Dialog */}
-       {/* Change Admin Password Dialog */}
+       {/* Create Admin Modal */}
+        {showCreateAdmin && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <Card className="w-full max-w-lg mx-4">
+              <CardHeader>
+                <CardTitle>Create System Administrator</CardTitle>
+                <CardDescription>
+                  Add a new system administrator with specified permissions
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+                  // Handle create admin logic here
+                  console.log('Create admin:', createAdminForm);
+                  toast({
+                    title: "Admin Created",
+                    description: `Administrator ${createAdminForm.name} has been created successfully.`,
+                  });
+                  setShowCreateAdmin(false);
+                  setCreateAdminForm({
+                    name: '',
+                    email: '',
+                    password: '',
+                    confirmPassword: '',
+                    permissions: {
+                      approve_user: true,
+                      manage_points: true,
+                      view_applications: true,
+                      fraud_monitoring: false,
+                      send_message: false,
+                      view_analytics: true,
+                      manage_certificates: true
+                    }
+                  });
+                }} className="space-y-4">
+                  <div>
+                    <Label htmlFor="adminName">Administrator Name</Label>
+                    <Input
+                      id="adminName"
+                      type="text"
+                      value={createAdminForm.name}
+                      onChange={(e) => setCreateAdminForm({...createAdminForm, name: e.target.value})}
+                      placeholder="Enter administrator name"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="adminEmail">Email Address</Label>
+                    <Input
+                      id="adminEmail"
+                      type="email"
+                      value={createAdminForm.email}
+                      onChange={(e) => setCreateAdminForm({...createAdminForm, email: e.target.value})}
+                      placeholder="Enter email address"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="adminPassword">Password</Label>
+                    <Input
+                      id="adminPassword"
+                      type="password"
+                      value={createAdminForm.password}
+                      onChange={(e) => setCreateAdminForm({...createAdminForm, password: e.target.value})}
+                      placeholder="Enter password"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="confirmAdminPassword">Confirm Password</Label>
+                    <Input
+                      id="confirmAdminPassword"
+                      type="password"
+                      value={createAdminForm.confirmPassword}
+                      onChange={(e) => setCreateAdminForm({...createAdminForm, confirmPassword: e.target.value})}
+                      placeholder="Confirm password"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label>Permissions</Label>
+                    <div className="grid grid-cols-2 gap-3">
+                      {Object.entries(createAdminForm.permissions).map(([key, value]) => (
+                        <div key={key} className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id={key}
+                            checked={value}
+                            onChange={(e) => setCreateAdminForm({
+                              ...createAdminForm,
+                              permissions: {
+                                ...createAdminForm.permissions,
+                                [key]: e.target.checked
+                              }
+                            })}
+                            className="rounded border-gray-300"
+                          />
+                          <Label htmlFor={key} className="text-sm font-normal">
+                            {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 pt-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setShowCreateAdmin(false);
+                        setCreateAdminForm({
+                          name: '',
+                          email: '',
+                          password: '',
+                          confirmPassword: '',
+                          permissions: {
+                            approve_user: true,
+                            manage_points: true,
+                            view_applications: true,
+                            fraud_monitoring: false,
+                            send_message: false,
+                            view_analytics: true,
+                            manage_certificates: true
+                          }
+                        });
+                      }}
+                      className="flex-1"
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      type="submit"
+                      disabled={isCreatingAdmin}
+                      className="flex-1"
+                    >
+                      {isCreatingAdmin ? "Creating..." : "Create Administrator"}
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Broadcast Message Modal */}
+        {showBroadcastModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <Card className="w-full max-w-lg mx-4">
+              <CardHeader>
+                <CardTitle>Broadcast Message</CardTitle>
+                <CardDescription>
+                  Send a message to all administrators or specific groups
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+                  console.log('Broadcast message:', newMessage);
+                  toast({
+                    title: "Message Sent",
+                    description: "Broadcast message has been sent successfully.",
+                  });
+                  setShowBroadcastModal(false);
+                  setNewMessage({
+                    title: '',
+                    content: '',
+                    targetRole: 'all',
+                    priority: 'normal'
+                  });
+                }} className="space-y-4">
+                  <div>
+                    <Label htmlFor="messageTitle">Message Title</Label>
+                    <Input
+                      id="messageTitle"
+                      type="text"
+                      value={newMessage.title}
+                      onChange={(e) => setNewMessage({...newMessage, title: e.target.value})}
+                      placeholder="Enter message title"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="messageContent">Message Content</Label>
+                    <textarea
+                      id="messageContent"
+                      value={newMessage.content}
+                      onChange={(e) => setNewMessage({...newMessage, content: e.target.value})}
+                      placeholder="Enter message content"
+                      rows={4}
+                      className="w-full px-3 py-2 border border-input rounded-md resize-none"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex gap-2 pt-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setShowBroadcastModal(false);
+                        setNewMessage({
+                          title: '',
+                          content: '',
+                          targetRole: 'all',
+                          priority: 'normal'
+                        });
+                      }}
+                      className="flex-1"
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      type="submit"
+                      className="flex-1"
+                    >
+                      Send Message
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+    
         {showChangeAdminPassword && adminToChangePassword && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <Card className="w-full max-w-md mx-4">
