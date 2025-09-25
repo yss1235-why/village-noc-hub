@@ -47,8 +47,8 @@ export const handler = async (event, context) => {
         v.name as village_name,
         v.district,
         v.state,
-        COUNT(DISTINCT a.id) as application_count,
-        COUNT(DISTINCT CASE WHEN a.status = 'approved' THEN a.id END) as approved_applications,
+       COALESCE(COUNT(DISTINCT a.id), 0) as application_count,
+        COALESCE(COUNT(DISTINCT CASE WHEN a.status = 'approved' THEN a.id END), 0) as approved_applications,
         COALESCE(pt.total_points_earned, 0) as total_points_earned,
         COALESCE(pt.total_points_spent, 0) as total_points_spent
       FROM users u
