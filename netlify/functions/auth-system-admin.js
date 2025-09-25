@@ -1,10 +1,10 @@
-import { neon } from '@neondatabase/serverless';
-import bcrypt from 'bcrypt';
-import { generateToken } from './utils/jwt.js';
+const { neon } = require('@neondatabase/serverless');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
 const sql = neon(process.env.NETLIFY_DATABASE_URL);
 
-export const handler = async (event, context) => {
+exports.handler = async (event, context) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
@@ -34,15 +34,14 @@ export const handler = async (event, context) => {
       };
     }
 
-    // Find system admin user
-    const user = await sql`
-      SELECT id, name, email, password_hash, role, is_approved, is_active
-      FROM users 
-      WHERE email = ${email.toLowerCase()} AND role = 'admin' 
-      AND is_approved = true AND is_active = true
+    // Find system admin user in system_admins table
+    const adminResult = await sql`
+      SELECT id, name, email, password, permissions, is_active
+      FROM system_admins 
+      WHERE email = ${email.toLowerCase()} AND is_active = true
     `;
 
-    if (user.length === 0) {
+    if (adminResult.length === 0) {
       return {
         statusCode: 401,
         headers,
@@ -50,23 +49,12 @@ export const handler = async (event, context) => {
       };
     }
 
-    const userData = user[0];
+    const adminData = adminResult[0];
 
     // Verify password
-    const isValidPassword = await bcrypt.compare(password, userData.password_hash);
+    const isValidPassword = await bcrypt.compare(password, adminData.password);
+    
     if (!isValidPassword) {
-      // Log failed login attempt
-      await sql`
-        INSERT INTO security_logs (
-          user_id, action, details, ip_address, created_at
-        ) VALUES (
-          ${userData.id}, 'FAILED_LOGIN', 
-          ${JSON.stringify({ reason: 'Invalid password', email: email })},
-          ${event.headers['x-forwarded-for'] || 'unknown'},
-          NOW()
-        )
-      `;
-
       return {
         statusCode: 401,
         headers,
@@ -76,32 +64,30 @@ export const handler = async (event, context) => {
 
     // Generate JWT token
     const tokenPayload = {
-      userId: userData.id,
-      email: userData.email,
-      role: userData.role,
-      name: userData.name
+      userId: adminData.id,
+      email: adminData.email,
+      role: 'system_admin',
+      name: adminData.name,
+      permissions: adminData.permissions
     };
 
-    const token = generateToken(tokenPayload);
+    const token = jwt.sign(
+      tokenPayload,
+      process.env.JWT_SECRET || 'fallback_secret',
+      { expiresIn: '24h' }
+    );
 
-    // Update last login timestamp
-    await sql`
-      UPDATE users 
-      SET last_login = NOW(), updated_at = NOW()
-      WHERE id = ${userData.id}
-    `;
-
-    // Log successful login
-    await sql`
-      INSERT INTO security_logs (
-        user_id, action, details, ip_address, created_at
-      ) VALUES (
-        ${userData.id}, 'SUCCESSFUL_LOGIN', 
-        ${JSON.stringify({ role: userData.role, loginTime: new Date() })},
-        ${event.headers['x-forwarded-for'] || 'unknown'},
-        NOW()
-      )
-    `;
+    // Update last login timestamp if the column exists
+    try {
+      await sql`
+        UPDATE system_admins 
+        SET updated_at = NOW()
+        WHERE id = ${adminData.id}
+      `;
+    } catch (updateError) {
+      // Column might not exist, continue without error
+      console.warn('Could not update last login timestamp:', updateError);
+    }
 
     // Set secure HTTP-only cookie
     const cookieOptions = [
@@ -122,10 +108,11 @@ export const handler = async (event, context) => {
       body: JSON.stringify({
         success: true,
         user: {
-          id: userData.id,
-          name: userData.name,
-          email: userData.email,
-          role: userData.role
+          id: adminData.id,
+          name: adminData.name,
+          email: adminData.email,
+          role: 'system_admin',
+          permissions: adminData.permissions
         },
         token: token,
         message: 'System administrator login successful'
@@ -137,7 +124,10 @@ export const handler = async (event, context) => {
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: 'Authentication failed' })
+      body: JSON.stringify({ 
+        error: 'Authentication failed',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      })
     };
   }
 };
