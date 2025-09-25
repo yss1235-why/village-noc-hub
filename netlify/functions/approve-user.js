@@ -32,8 +32,10 @@ export const handler = async (event, context) => {
       };
     }
 
-    const adminInfo = authResult.user;
+   const adminInfo = authResult.user;
+    console.log('Admin info:', adminInfo); // Debug line
     const { userId, action, reason } = JSON.parse(event.body); // action: 'approve' or 'reject'
+    console.log('Request data:', { userId, action, reason }); // Debug line
 
     if (!userId || !action || !['approve', 'reject'].includes(action)) {
       return {
@@ -65,14 +67,20 @@ export const handler = async (event, context) => {
         body: JSON.stringify({ error: 'User is already approved' })
       };
     }
-
-    if (action === 'approve') {
+if (action === 'approve') {
       // Approve user
-      await sql`
-        UPDATE users 
-        SET is_approved = true 
-        WHERE id = ${userId}
-      `;
+      console.log('About to approve user:', userId); // Debug line
+      try {
+        await sql`
+          UPDATE users 
+          SET is_approved = true 
+          WHERE id = ${userId}
+        `;
+        console.log('User approved successfully'); // Debug line
+      } catch (updateError) {
+        console.error('Update failed:', updateError);
+        throw updateError;
+      }
 
       // Log approval
       await sql`
