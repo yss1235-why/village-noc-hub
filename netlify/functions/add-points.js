@@ -87,8 +87,8 @@ export const handler = async (event, context) => {
     const currentBalance = targetUser.point_balance || 0;
     const newBalance = currentBalance + amount;
 
-    // Generate transaction hash
-    const crypto = await import('crypto');
+   // Generate transaction hash
+    const crypto = require('crypto');
     const transactionData = {
       userId,
       amount,
@@ -99,42 +99,51 @@ export const handler = async (event, context) => {
     };
     const transactionHash = crypto.createHash('sha256').update(JSON.stringify(transactionData)).digest('hex');
 
-    // Create point transaction record
-    await sql`
-      INSERT INTO point_transactions (
-        transaction_hash, user_id, admin_id, type, amount,
-        previous_balance, new_balance, reason, admin_ip
-      ) VALUES (
-        ${transactionHash}, ${userId}, ${adminId}, 'CREATE', ${amount},
-        ${currentBalance}, ${newBalance}, ${reason}, ${event.headers['x-forwarded-for'] || 'unknown'}
-      )
-    `;
-
-    // Update user point balance
+    // Update user point balance first
     await sql`
       UPDATE users 
-      SET point_balance = ${newBalance}, updated_at = NOW()
+      SET point_balance = COALESCE(point_balance, 0) + ${amount}
       WHERE id = ${userId}
     `;
 
-  // Log the action for audit purposes
-    await sql`
-      INSERT INTO admin_audit_log (
-        admin_id, action, details, ip_address, timestamp
-      ) VALUES (
-        ${adminId}, 'ADD_POINTS',
-        ${JSON.stringify({ 
-          targetUserId: userId,
-          targetUserName: targetUser.name,
-          pointsAdded: amount,
-          reason: reason,
-         newBalance: newBalance,
-          village: targetUser.village_name
-        })},
-        ${event.headers['x-forwarded-for'] || 'unknown'},
-        NOW()
-      )
-    `;
+    // Create simplified point transaction record
+    try {
+      await sql`
+        INSERT INTO point_transactions (
+          user_id, transaction_type, amount, description, 
+          created_by, ip_address, created_at
+        ) VALUES (
+          ${userId}, 'credit', ${amount}, ${reason},
+          ${adminId}, ${event.headers['x-forwarded-for'] || 'unknown'}, NOW()
+        )
+      `;
+    } catch (transactionError) {
+      console.log('Point transaction logging failed:', transactionError.message);
+      // Continue execution - don't fail the entire operation for logging issues
+    }
+
+    // Log the action for audit purposes
+    try {
+      await sql`
+        INSERT INTO admin_audit_log (
+          admin_id, action, details, ip_address
+        ) VALUES (
+          ${adminId}, 'ADD_POINTS',
+          ${JSON.stringify({ 
+            targetUserId: userId,
+            targetUserName: targetUser.name,
+            pointsAdded: amount,
+            reason: reason,
+            newBalance: newBalance,
+            village: targetUser.village_name
+          })},
+          ${event.headers['x-forwarded-for'] || 'unknown'}
+        )
+      `;
+   } catch (auditError) {
+      console.log('Audit logging failed:', auditError.message);
+      // Continue execution - don't fail the entire operation for audit logging issues
+    }
 
     return {
       statusCode: 200,
