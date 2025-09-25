@@ -46,7 +46,7 @@ export const handler = async (event, context) => {
         status,
         created_at,
         approved_at
-      FROM applications
+      FROM noc_applications
       ORDER BY created_at DESC
       LIMIT 1000
     `;
@@ -59,7 +59,7 @@ export const handler = async (event, context) => {
         COUNT(CASE WHEN status = 'approved' THEN 1 END) as approved_count,
         COUNT(CASE WHEN status = 'rejected' THEN 1 END) as rejected_count,
         COUNT(CASE WHEN created_at >= NOW() - INTERVAL '30 days' THEN 1 END) as recent_applications
-      FROM applications
+      FROM noc_applications
     `;
 
     // Log the access for audit purposes
