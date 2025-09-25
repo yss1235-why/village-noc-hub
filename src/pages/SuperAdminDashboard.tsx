@@ -528,37 +528,7 @@ const handleRejectVillage = async (villageId: string) => {
               </p>
             </CardContent>
           </Card>
-        </div>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Villages</CardTitle>
-              <Building className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{villageRequests.length}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending Approval</CardTitle>
-              <Clock className="h-4 w-4 text-warning" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-warning">{pendingVillages.length}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Villages</CardTitle>
-              <CheckCircle className="h-4 w-4 text-success" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-success">{approvedVillages.length}</div>
-            </CardContent>
-          </Card>
-        </div>
+       </div>
 
        {/* Enhanced Management System */}
         <Card>
@@ -648,13 +618,14 @@ const handleRejectVillage = async (villageId: string) => {
                             <p className="font-medium">{village.villageName}</p>
                             <p className="text-sm text-muted-foreground">{village.district}, {village.state}</p>
                           </div>
-                        </TableCell>
-                       <TableCell>
+                     </TableCell>
+                        <TableCell>
                           <div>
                             <p className="font-medium">{village.adminName}</p>
                             <p className="text-sm text-muted-foreground">{village.email}</p>
                           </div>
                         </TableCell>
+                        <TableCell>{village.createdAt ? new Date(village.createdAt).toLocaleDateString() : 'N/A'}</TableCell>
                         <TableCell>{getStatusBadge(village.status)}</TableCell>
                         <TableCell>
                           <div className="flex gap-2">
@@ -711,14 +682,15 @@ const handleRejectVillage = async (villageId: string) => {
                             <p className="font-medium">{village.villageName}</p>
                             <p className="text-sm text-muted-foreground">{village.district}, {village.state}</p>
                           </div>
-                        </TableCell>
+                       </TableCell>
                         <TableCell>
                           <div>
                             <p className="font-medium">{village.adminName}</p>
                             <p className="text-sm text-muted-foreground">{village.email}</p>
                           </div>
                         </TableCell>
-                     <TableCell>
+                        <TableCell>{getStatusBadge(village.status)}</TableCell>
+                        <TableCell>
                           <div className="flex gap-2">
                             <Button
                               size="sm"
@@ -750,8 +722,39 @@ const handleRejectVillage = async (villageId: string) => {
                     <p>No approved villages</p>
                   </div>
                 )}
-             </TabsContent>
-            </Tabs>
+              </TabsContent>
+              </Tabs>
+            </TabsContent>
+
+            {/* Additional tabs content can go here */}
+            <TabsContent value="admins" className="space-y-4">
+              <div className="text-center py-8 text-muted-foreground">
+                <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Admin management coming soon</p>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="security" className="space-y-4">
+              <div className="text-center py-8 text-muted-foreground">
+                <AlertCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Security monitoring coming soon</p>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="audit" className="space-y-4">
+              <div className="text-center py-8 text-muted-foreground">
+                <Settings className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Audit logs coming soon</p>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="analytics" className="space-y-4">
+              <div className="text-center py-8 text-muted-foreground">
+                <CheckCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Analytics dashboard coming soon</p>
+              </div>
+            </TabsContent>
+          </Tabs>
           </CardContent>
         </Card>
 
