@@ -295,8 +295,27 @@ const handleRejectVillage = async (villageId: string) => {
     }
   };
 
+  const loadSystemAdmins = async () => {
+    setIsLoadingAdmins(true);
+    try {
+      const response = await fetch('/.netlify/functions/get-system-admins');
+      const result = await response.json();
+      
+      if (response.ok && result.admins) {
+        setAdminUsers(result.admins);
+      } else {
+        console.error('Failed to load system admins:', result.error);
+      }
+    } catch (error) {
+      console.error('Failed to load system admins:', error);
+    } finally {
+      setIsLoadingAdmins(false);
+    }
+  };
+
   useEffect(() => {
     loadVillages();
+    loadSystemAdmins();
   }, []);
 
   const handleDeleteVillage = (village: any) => {
@@ -890,30 +909,84 @@ const handleRejectVillage = async (villageId: string) => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={(e) => {
+               <form onSubmit={async (e) => {
                   e.preventDefault();
-                  // Handle create admin logic here
-                  console.log('Create admin:', createAdminForm);
-                  toast({
-                    title: "Admin Created",
-                    description: `Administrator ${createAdminForm.name} has been created successfully.`,
-                  });
-                  setShowCreateAdmin(false);
-                  setCreateAdminForm({
-                    name: '',
-                    email: '',
-                    password: '',
-                    confirmPassword: '',
-                    permissions: {
-                      approve_user: true,
-                      manage_points: true,
-                      view_applications: true,
-                      fraud_monitoring: false,
-                      send_message: false,
-                      view_analytics: true,
-                      manage_certificates: true
+                  
+                  if (createAdminForm.password !== createAdminForm.confirmPassword) {
+                    toast({
+                      title: "Error",
+                      description: "Passwords do not match.",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+
+                  if (createAdminForm.password.length < 6) {
+                    toast({
+                      title: "Error",
+                      description: "Password must be at least 6 characters long.",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+
+                  setIsCreatingAdmin(true);
+
+                  try {
+                    const response = await fetch('/.netlify/functions/create-system-admin', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        name: createAdminForm.name,
+                        email: createAdminForm.email,
+                        password: createAdminForm.password,
+                        permissions: createAdminForm.permissions
+                      })
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                      toast({
+                        title: "Admin Created",
+                        description: `Administrator ${createAdminForm.name} has been created successfully.`,
+                      });
+                      setShowCreateAdmin(false);
+                      setCreateAdminForm({
+                        name: '',
+                        email: '',
+                        password: '',
+                        confirmPassword: '',
+                        permissions: {
+                          approve_user: true,
+                          manage_points: true,
+                          view_applications: true,
+                          fraud_monitoring: false,
+                          send_message: false,
+                          view_analytics: true,
+                          manage_certificates: true
+                        }
+                      });
+                     // Reload admin users to update the dashboard
+                      loadSystemAdmins();
+                    } else {
+                      toast({
+                        title: "Error",
+                        description: result.error || "Failed to create administrator.",
+                        variant: "destructive",
+                      });
                     }
-                  });
+                  } catch (error) {
+                    toast({
+                      title: "Error",
+                      description: "Failed to create administrator. Please try again.",
+                      variant: "destructive",
+                    });
+                  } finally {
+                    setIsCreatingAdmin(false);
+                  }
                 }} className="space-y-4">
                   <div>
                     <Label htmlFor="adminName">Administrator Name</Label>
