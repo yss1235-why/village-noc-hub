@@ -26,7 +26,7 @@ const Login: React.FC = () => {
     const result = await login(formData);
 
     if (result.success) {
-      navigate('/dashboard');
+      navigate('/userDashboard');
     } else {
       setError(result.error || 'Login failed');
     }
