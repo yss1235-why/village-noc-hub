@@ -111,9 +111,6 @@ const [isChangingPassword, setIsChangingPassword] = useState(false);
   const inactiveAdmins = adminUsers.filter(admin => !admin.is_active);
   const criticalAlerts = securityAlerts.filter(alert => alert.severity === 'critical');
   const warningAlerts = securityAlerts.filter(alert => alert.severity === 'warning');
-  const pendingVillages = villageRequests.filter(v => v.status === "pending");
-  const approvedVillages = villageRequests.filter(v => v.status === "approved");
-
   const handleLogout = () => {
     toast({
       title: "Logged Out",
@@ -753,8 +750,8 @@ const handleRejectVillage = async (villageId: string) => {
                     <p>No approved villages</p>
                   </div>
                 )}
-              </TabsContent>
-           </Tabs>
+             </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
 
