@@ -64,13 +64,13 @@ export const handler = async (event, context) => {
 
     // Get summary statistics
     const stats = await sql`
-      SELECT 
+     SELECT 
         COUNT(*) as total_applications,
         COUNT(CASE WHEN a.status = 'pending' THEN 1 END) as pending_count,
         COUNT(CASE WHEN a.status = 'approved' THEN 1 END) as approved_count,
         COUNT(CASE WHEN a.status = 'rejected' THEN 1 END) as rejected_count,
         COUNT(CASE WHEN a.created_at >= NOW() - INTERVAL '30 days' THEN 1 END) as recent_applications
-      FROM applications a
+      FROM noc_applications a
       JOIN villages v ON a.village_id = v.id
       WHERE v.status = 'approved'
     `;
