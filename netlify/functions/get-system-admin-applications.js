@@ -52,10 +52,10 @@ export const handler = async (event, context) => {
         v.name as village_name,
         v.district,
         v.state,
-        u.name as applicant_user_name,
-        u.point_balance
+        COALESCE(u.name, 'N/A') as applicant_user_name,
+        COALESCE(u.point_balance, 0) as point_balance
      FROM noc_applications a
-      JOIN villages v ON a.village_id = v.id
+      LEFT JOIN villages v ON a.village_id = v.id
       LEFT JOIN users u ON a.user_id = u.id
       WHERE v.status = 'approved'
       ORDER BY a.created_at DESC
@@ -70,9 +70,9 @@ export const handler = async (event, context) => {
         COUNT(CASE WHEN a.status = 'approved' THEN 1 END) as approved_count,
         COUNT(CASE WHEN a.status = 'rejected' THEN 1 END) as rejected_count,
         COUNT(CASE WHEN a.created_at >= NOW() - INTERVAL '30 days' THEN 1 END) as recent_applications
-      FROM noc_applications a
-      JOIN villages v ON a.village_id = v.id
-      WHERE v.status = 'approved'
+     FROM noc_applications a
+      LEFT JOIN villages v ON a.village_id = v.id
+      WHERE (v.status = 'approved' OR v.status IS NULL)
     `;
 
     // Log the access for audit purposes
