@@ -90,17 +90,18 @@ try {
         INSERT INTO audit_logs (
           user_id, action, resource_type, details, ip_address, created_at
         ) VALUES (
-          ${authResult.user.userId}, 'VIEW_[SOMETHING]', '[something]',
-          ${JSON.stringify({ ... })},
+          ${authResult.user.userId}, 'VIEW_USERS', 'users',
+          ${JSON.stringify({ 
+            userCount: users.length,
+            stats: stats[0] || {}
+          })},
           ${event.headers['x-forwarded-for'] || 'unknown'},
           NOW()
         )
       `;
     } catch (auditError) {
-      // Audit table might not exist yet, continue without logging
       console.log('Audit logging skipped:', auditError.message);
     }
-
     return {
       statusCode: 200,
       headers,
