@@ -53,11 +53,16 @@ const SystemAdminDashboard = () => {
   const [userFilter, setUserFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // User review modal state
+ // User review modal state
   const [selectedUser, setSelectedUser] = useState(null);
   const [isLoadingUserDetails, setIsLoadingUserDetails] = useState(false);
   const [isProcessingUserAction, setIsProcessingUserAction] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
+  
+  // User action states
+  const [showDisableConfirm, setShowDisableConfirm] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
+  const [disableReason, setDisableReason] = useState('');
   
   // Document view modal state
   const [viewDocumentModal, setViewDocumentModal] = useState({
@@ -245,6 +250,86 @@ const SystemAdminDashboard = () => {
     }
   };
 
+ const handleDisableUser = async (userId, reason) => {
+    try {
+      const response = await fetch('/.netlify/functions/disable-user', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId, reason })
+      });
+
+      const result = await response.json();
+      if (response.ok) {
+        setUsers(prev => 
+          prev.map(user => 
+            user.id === userId 
+              ? { ...user, is_active: false, status: 'disabled' }
+              : user
+          )
+        );
+        toast({
+          title: "User Disabled",
+          description: "User has been successfully disabled.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to disable user.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to disable user. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setShowDisableConfirm(null);
+      setDisableReason('');
+    }
+  };
+
+  const handleDeleteUser = async (userId) => {
+    try {
+      const response = await fetch('/.netlify/functions/delete-user', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId })
+      });
+
+      const result = await response.json();
+      if (response.ok) {
+        setUsers(prev => prev.filter(user => user.id !== userId));
+        toast({
+          title: "User Deleted",
+          description: "User has been permanently removed from the system.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to delete user.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete user. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setShowDeleteConfirm(null);
+    }
+  };
   const handleRejectFromModal = async () => {
     if (!selectedUser || !rejectionReason.trim()) {
       toast({
@@ -432,7 +517,7 @@ const SystemAdminDashboard = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        {/* Quick Actions */}
+      {/* Quick Actions */}
         <div className="flex flex-wrap gap-3 mb-8">
           <Button 
             onClick={() => setShowPointsModal(true)}
@@ -628,6 +713,26 @@ const SystemAdminDashboard = () => {
                                 }}
                               >
                                 <BarChart className="h-4 w-4" />
+                              </Button>
+                              {user.is_approved && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setShowDisableConfirm(user)}
+                                  className="text-orange-600 hover:text-orange-700"
+                                  title="Disable User"
+                                >
+                                  <XCircle className="h-4 w-4" />
+                                </Button>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => setShowDeleteConfirm(user)}
+                                className="text-red-600 hover:text-red-700"
+                                title="Delete User"
+                              >
+                                <XCircle className="h-4 w-4" />
                               </Button>
                             </div>
                           </TableCell>
@@ -1068,7 +1173,93 @@ const SystemAdminDashboard = () => {
           </div>
         </div>
       )}
-    
+    {/* Disable User Confirmation Modal */}
+      {showDisableConfirm && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+          <Card className="w-full max-w-md mx-4">
+            <CardHeader>
+              <CardTitle>Disable User Account</CardTitle>
+              <CardDescription>
+                This will prevent {showDisableConfirm.name} from accessing the system.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="disable-reason">Reason for disabling (required)</Label>
+                  <textarea
+                    id="disable-reason"
+                    value={disableReason}
+                    onChange={(e) => setDisableReason(e.target.value)}
+                    placeholder="Enter reason for disabling this user account"
+                    className="w-full mt-2 p-3 border rounded-md h-24 resize-none"
+                    required
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowDisableConfirm(null);
+                      setDisableReason('');
+                    }}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => handleDisableUser(showDisableConfirm.id, disableReason)}
+                    disabled={!disableReason.trim()}
+                    className="flex-1"
+                  >
+                    Disable User
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Delete User Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+          <Card className="w-full max-w-md mx-4">
+            <CardHeader>
+              <CardTitle className="text-red-600">Delete User Account</CardTitle>
+              <CardDescription>
+                This action cannot be undone. All data associated with {showDeleteConfirm.name} will be permanently removed.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <p className="text-sm text-red-800">
+                    <strong>Warning:</strong> This will permanently delete the user account and all associated data including applications, point history, and audit trails.
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowDeleteConfirm(null)}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => handleDeleteUser(showDeleteConfirm.id)}
+                    className="flex-1 bg-red-600 hover:bg-red-700"
+                  >
+                    Delete Permanently
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
       </main>
     </div>
   );
