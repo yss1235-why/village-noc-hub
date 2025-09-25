@@ -6,7 +6,7 @@ import SealCropInterface from '@/components/SealCropInterface';
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LogOut, CheckCircle, XCircle, Clock, Eye, FileText, Users, AlertCircle, Settings, EyeOff, ChevronDown, Key, Building2, Download } from "lucide-react";
+import { LogOut, CheckCircle, XCircle, Clock, Eye, FileText, Users, AlertCircle, Settings, EyeOff, ChevronDown, Key, Building2, Download, BarChart } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
@@ -17,7 +17,7 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Get logged-in village info
+ // Get logged-in village info
   const [villageInfo, setVillageInfo] = useState(() => {
     const stored = sessionStorage.getItem('userInfo');
     return stored ? JSON.parse(stored) : null;
@@ -27,13 +27,18 @@ const AdminDashboard = () => {
     return sessionStorage.getItem('auth-token');
   });
 
+  // Village admin point balance state
+  const [adminPointBalance, setAdminPointBalance] = useState(0);
+  const [isLoadingPointBalance, setIsLoadingPointBalance] = useState(false);
+
  // Redirect if not logged in
   useEffect(() => {
     if (!villageInfo || !authToken) {
       navigate('/admin');
     } else {
-      loadApplications();
+    loadApplications();
       loadProfileInfo();
+      loadAdminPointBalance();
     }
   }, [villageInfo, authToken, navigate]);
 
@@ -493,6 +498,32 @@ const handleUpdateTemplate = async () => {
     }
   };
 
+  const loadAdminPointBalance = async () => {
+    if (!villageInfo?.villageAdminId && !villageInfo?.userId) return;
+    
+    setIsLoadingPointBalance(true);
+    try {
+      const adminId = villageInfo.villageAdminId || villageInfo.userId;
+      const response = await fetch(`/.netlify/functions/get-admin-point-balance?adminId=${adminId}`, {
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const result = await response.json();
+      if (response.ok) {
+        setAdminPointBalance(result.pointBalance || 0);
+      } else {
+        console.error('Failed to load point balance:', result.error);
+      }
+    } catch (error) {
+      console.error('Error loading point balance:', error);
+    } finally {
+      setIsLoadingPointBalance(false);
+    }
+  };
+
   const loadProfileInfo = async () => {
     try {
      const response = await fetch(`/.netlify/functions/get-admin-profile?villageId=${villageInfo?.villageId}`, {
@@ -847,8 +878,24 @@ const handleApproveFromModal = async () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        
+       {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">My Point Balance</CardTitle>
+              <BarChart className="h-4 w-4 text-green-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">
+                {isLoadingPointBalance ? "..." : adminPointBalance}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Points earned from processing
+              </p>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Applications</CardTitle>
