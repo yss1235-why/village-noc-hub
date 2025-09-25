@@ -82,23 +82,8 @@ if (action === 'approve') {
         throw updateError;
       }
 
-      // Log approval
-      await sql`
-        INSERT INTO admin_audit_log (admin_id, action, details, ip_address)
-        VALUES (
-         ${adminInfo.userId},
-          'USER_APPROVED', 
-          ${JSON.stringify({ 
-            approvedUserId: userId, 
-            approvedUsername: user[0].username,
-            approvedUserEmail: user[0].email,
-            reason: reason || 'User approved'
-          })},
-          ${event.headers['x-forwarded-for'] || 'unknown'}
-        )
-      `;
-
-      return {
+      // Return success immediately after UPDATE
+      const successResponse = {
         statusCode: 200,
         headers,
         body: JSON.stringify({
@@ -113,28 +98,34 @@ if (action === 'approve') {
         })
       };
 
-    } else if (action === 'reject') {
-      // For rejection, we might want to delete the user or mark as rejected
-      // For now, let's delete the rejected application
+      // Try audit logging but don't fail if it crashes
+      try {
+        await sql`
+          INSERT INTO admin_audit_log (admin_id, action, details, ip_address)
+          VALUES (
+            ${adminInfo.userId || adminInfo.id}, 
+            'USER_APPROVED', 
+            ${JSON.stringify({ 
+              approvedUserId: userId, 
+              approvedUsername: user[0].username,
+              approvedUserEmail: user[0].email,
+              reason: reason || 'User approved'
+            })},
+            ${event.headers['x-forwarded-for'] || 'unknown'}
+          )
+        `;
+      } catch (auditError) {
+        console.log('Audit logging failed but approval succeeded:', auditError.message);
+      }
+
+      return successResponse;
+
+   } else if (action === 'reject') {
+      // Delete the user
       await sql`DELETE FROM users WHERE id = ${userId}`;
 
-      // Log rejection
-      await sql`
-        INSERT INTO admin_audit_log (admin_id, action, details, ip_address)
-        VALUES (
-          ${adminInfo.id}, 
-          'USER_REJECTED', 
-          ${JSON.stringify({ 
-            rejectedUserId: userId, 
-            rejectedUsername: user[0].username,
-            rejectedUserEmail: user[0].email,
-            reason: reason || 'User registration rejected'
-          })},
-          ${event.headers['x-forwarded-for'] || 'unknown'}
-        )
-      `;
-
-      return {
+      // Return success immediately after DELETE
+      const successResponse = {
         statusCode: 200,
         headers,
         body: JSON.stringify({
@@ -143,8 +134,29 @@ if (action === 'approve') {
           action: 'rejected'
         })
       };
-    }
 
+      // Try audit logging but don't fail if it crashes
+      try {
+        await sql`
+          INSERT INTO admin_audit_log (admin_id, action, details, ip_address)
+          VALUES (
+            ${adminInfo.userId || adminInfo.id}, 
+            'USER_REJECTED', 
+            ${JSON.stringify({ 
+              rejectedUserId: userId, 
+              rejectedUsername: user[0].username,
+              rejectedUserEmail: user[0].email,
+              reason: reason || 'User registration rejected'
+            })},
+            ${event.headers['x-forwarded-for'] || 'unknown'}
+          )
+        `;
+      } catch (auditError) {
+        console.log('Audit logging failed but rejection succeeded:', auditError.message);
+      }
+
+      return successResponse;
+    }
   } catch (error) {
     console.error('Approve user error:', error);
     return {
