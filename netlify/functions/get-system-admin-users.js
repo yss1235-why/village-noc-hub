@@ -32,42 +32,20 @@ export const handler = async (event, context) => {
   }
 
   try {
-    // Get users across all villages with detailed information
+   // Get users - start simple like working applications function
     const users = await sql`
       SELECT 
-        u.id,
-        u.name,
-        u.email,
-        u.role,
-        u.is_approved,
-        u.is_active,
-        u.point_balance,
-        u.created_at,
-        u.last_login,
-        v.name as village_name,
-        v.district,
-        v.state,
-       COALESCE(COUNT(DISTINCT a.id), 0) as application_count,
-        COALESCE(COUNT(DISTINCT CASE WHEN a.status = 'approved' THEN a.id END), 0) as approved_applications,
-        COALESCE(pt.total_points_earned, 0) as total_points_earned,
-        COALESCE(pt.total_points_spent, 0) as total_points_spent
-      FROM users u
-      LEFT JOIN villages v ON u.village_id = v.id
-     LEFT JOIN noc_applications a ON u.id = a.user_id
-     LEFT JOIN (
-        SELECT 
-          user_id,
-          COALESCE(SUM(CASE WHEN transaction_type = 'credit' THEN amount ELSE 0 END), 0) as total_points_earned,
-          COALESCE(SUM(CASE WHEN transaction_type = 'debit' THEN amount ELSE 0 END), 0) as total_points_spent
-        FROM point_transactions
-        WHERE EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'point_transactions')
-        GROUP BY user_id
-      ) pt ON u.id = pt.user_id
-      WHERE u.role IN ('user', 'applicant', 'village_admin')
-      GROUP BY u.id, u.name, u.email, u.role, u.is_approved, u.is_active, u.point_balance, 
-               u.created_at, u.last_login, v.name, v.district, v.state, 
-               pt.total_points_earned, pt.total_points_spent
-      ORDER BY u.created_at DESC
+        id,
+        email,
+        role,
+        is_approved,
+        created_at,
+        COALESCE(name, 'N/A') as name,
+        COALESCE(point_balance, 0) as point_balance,
+        COALESCE(is_active, true) as is_active
+      FROM users
+      WHERE role IN ('user', 'applicant', 'village_admin')
+      ORDER BY created_at DESC
       LIMIT 1000
     `;
 
