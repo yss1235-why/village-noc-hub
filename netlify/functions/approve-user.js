@@ -1,5 +1,5 @@
 import { neon } from '@neondatabase/serverless';
-import { requireSuperAdmin } from './utils/auth-middleware.js';
+import { requireSystemAdmin } from './utils/auth-middleware.js';
 
 export const handler = async (event, context) => {
   const sql = neon(process.env.NETLIFY_DATABASE_URL);
@@ -7,14 +7,14 @@ export const handler = async (event, context) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Allow-Methods': 'POST',
+   'Access-Control-Allow-Methods': 'PUT, OPTIONS',
   };
 
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers };
   }
 
-  if (event.httpMethod !== 'POST') {
+ if (event.httpMethod !== 'PUT') {
     return {
       statusCode: 405,
       headers,
@@ -23,7 +23,7 @@ export const handler = async (event, context) => {
   }
 
   try {
-    const authResult = requireSuperAdmin(event);
+   const authResult = requireSystemAdmin(event);
     if (!authResult.isValid) {
       return {
         statusCode: authResult.statusCode,
@@ -78,7 +78,7 @@ export const handler = async (event, context) => {
       await sql`
         INSERT INTO admin_audit_log (admin_id, action, details, ip_address)
         VALUES (
-          ${adminInfo.id}, 
+         ${adminInfo.userId},
           'USER_APPROVED', 
           ${JSON.stringify({ 
             approvedUserId: userId, 
