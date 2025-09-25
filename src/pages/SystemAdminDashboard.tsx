@@ -49,11 +49,22 @@ const SystemAdminDashboard = () => {
     content: '',
     priority: 'normal'
   });
-
-  // User filter state
+// User filter state
   const [userFilter, setUserFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
+  // User review modal state
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [isLoadingUserDetails, setIsLoadingUserDetails] = useState(false);
+  const [isProcessingUserAction, setIsProcessingUserAction] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState('');
+  
+  // Document view modal state
+  const [viewDocumentModal, setViewDocumentModal] = useState({
+    isOpen: false,
+    document: null,
+    title: ""
+  });
   // Redirect if not authenticated as admin
   useEffect(() => {
     if (!adminInfo || !authToken || adminInfo.role !== 'admin') {
@@ -157,7 +168,41 @@ const SystemAdminDashboard = () => {
     }
   };
 
-  const handleApproveUser = async (userId: string) => {
+  const handleReviewUser = async (userId: string) => {
+    setIsLoadingUserDetails(true);
+    try {
+      const response = await fetch(`/.netlify/functions/get-user-details?userId=${userId}`, {
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const result = await response.json();
+      if (response.ok) {
+        setSelectedUser(result.user);
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to load user details.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load user details.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingUserDetails(false);
+    }
+  };
+
+  const handleApproveFromModal = async () => {
+    if (!selectedUser) return;
+    
+    setIsProcessingUserAction(true);
     try {
       const response = await fetch('/.netlify/functions/approve-user', {
         method: 'PUT',
@@ -165,22 +210,23 @@ const SystemAdminDashboard = () => {
           'Authorization': `Bearer ${authToken}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ userId, action: 'approve' })
+        body: JSON.stringify({ userId: selectedUser.id, action: 'approve' })
       });
 
       const result = await response.json();
       if (response.ok) {
         setUsers(prev => 
           prev.map(user => 
-            user.id === userId 
+            user.id === selectedUser.id 
               ? { ...user, is_approved: true, status: 'approved' }
               : user
           )
         );
         toast({
           title: "User Approved",
-          description: "User has been approved successfully.",
+          description: `User ${selectedUser.username} has been approved successfully.`,
         });
+        setSelectedUser(null);
       } else {
         toast({
           title: "Error",
@@ -194,9 +240,63 @@ const SystemAdminDashboard = () => {
         description: "Failed to approve user. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsProcessingUserAction(false);
     }
   };
 
+  const handleRejectFromModal = async () => {
+    if (!selectedUser || !rejectionReason.trim()) {
+      toast({
+        title: "Error",
+        description: "Please provide a reason for rejection.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsProcessingUserAction(true);
+    try {
+      const response = await fetch('/.netlify/functions/approve-user', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          userId: selectedUser.id, 
+          action: 'reject',
+          reason: rejectionReason 
+        })
+      });
+
+      const result = await response.json();
+      if (response.ok) {
+        setUsers(prev => prev.filter(user => user.id !== selectedUser.id));
+        toast({
+          title: "User Rejected",
+          description: `User ${selectedUser.username} has been rejected and removed.`,
+          variant: "destructive",
+        });
+        setSelectedUser(null);
+        setRejectionReason("");
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to reject user.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to reject user. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessingUserAction(false);
+    }
+  };
   const handleManagePoints = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -499,13 +599,24 @@ const SystemAdminDashboard = () => {
                           <TableCell>{user.point_balance || 0}</TableCell>
                           <TableCell>
                             <div className="flex gap-1">
-                              {!user.is_approved && (
+                             {!user.is_approved && (
                                 <Button
                                   size="sm"
-                                  onClick={() => handleApproveUser(user.id)}
-                                  className="bg-success text-success-foreground hover:bg-success/90"
+                                  onClick={() => handleReviewUser(user.id)}
+                                  disabled={isLoadingUserDetails}
+                                  className="bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
                                 >
-                                  <UserCheck className="h-4 w-4" />
+                                  {isLoadingUserDetails ? (
+                                    <>
+                                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-1"></div>
+                                      Loading...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Eye className="h-4 w-4 mr-1" />
+                                      Review
+                                    </>
+                                  )}
                                 </Button>
                               )}
                               <Button
@@ -711,10 +822,257 @@ const SystemAdminDashboard = () => {
               </CardContent>
             </Card>
           </div>
-        )}
+)}
+
+      {/* User Review Modal */}
+      {selectedUser && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-900 rounded-lg max-w-4xl max-h-[90vh] overflow-y-auto m-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <UserCheck className="h-5 w-5" />
+                  Review User Registration - {selectedUser.username}
+                </CardTitle>
+                <CardDescription>
+                  Review user information and uploaded documents before approval
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {/* User Information */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-semibold">Full Name</Label>
+                      <p className="text-sm">{selectedUser.full_name}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-semibold">Username</Label>
+                      <p className="text-sm">{selectedUser.username}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-semibold">Email</Label>
+                      <p className="text-sm">{selectedUser.email}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-semibold">Phone</Label>
+                      <p className="text-sm">{selectedUser.phone}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-semibold">Aadhaar Number</Label>
+                      <p className="text-sm">{selectedUser.aadhaar_number}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-semibold">ID Code</Label>
+                      <p className="text-sm">{selectedUser.id_code}</p>
+                    </div>
+                    <div className="md:col-span-2">
+                      <Label className="text-sm font-semibold">Address</Label>
+                      <p className="text-sm">{selectedUser.address}</p>
+                    </div>
+                    <div className="md:col-span-2">
+                      <Label className="text-sm font-semibold">Center/Shop Name</Label>
+                      <p className="text-sm">{selectedUser.center_shop_name}</p>
+                    </div>
+                  </div>
+
+                  {/* Documents Section */}
+                  <div className="border rounded-lg p-4">
+                    <h4 className="font-medium mb-4 flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      Uploaded Documents
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="border rounded p-3">
+                        <Label className="text-sm font-semibold">Aadhaar Document</Label>
+                        {selectedUser.aadhaar_document ? (
+                          <div className="mt-2">
+                            <img 
+                              src={selectedUser.aadhaar_document} 
+                              alt="Aadhaar Document" 
+                              className="max-w-full h-40 object-contain border rounded"
+                            />
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="mt-2"
+                              onClick={() => setViewDocumentModal({
+                                isOpen: true,
+                                document: selectedUser.aadhaar_document,
+                                title: "Aadhaar Document"
+                              })}
+                            >
+                              <Download className="h-4 w-4 mr-1" />
+                              View Full Size
+                            </Button>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground mt-2">No Aadhaar document uploaded</p>
+                        )}
+                      </div>
+                      
+                      <div className="border rounded p-3">
+                        <Label className="text-sm font-semibold">Passport Photo</Label>
+                        {selectedUser.passport_photo ? (
+                          <div className="mt-2">
+                            <img 
+                              src={selectedUser.passport_photo} 
+                              alt="Passport Photo" 
+                              className="max-w-full h-40 object-contain border rounded"
+                            />
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="mt-2"
+                              onClick={() => setViewDocumentModal({
+                                isOpen: true,
+                                document: selectedUser.passport_photo,
+                                title: "Passport Photo"
+                              })}
+                            >
+                              <Download className="h-4 w-4 mr-1" />
+                              View Full Size
+                            </Button>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground mt-2">No passport photo uploaded</p>
+                        )}
+                      </div>
+
+                      {selectedUser.police_verification && (
+                        <div className="border rounded p-3 md:col-span-2">
+                          <Label className="text-sm font-semibold">Police Verification Document</Label>
+                          <div className="mt-2">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => setViewDocumentModal({
+                                isOpen: true,
+                                document: selectedUser.police_verification,
+                                title: "Police Verification Document"
+                              })}
+                            >
+                              <Download className="h-4 w-4 mr-1" />
+                              View Document
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Rejection Reason */}
+                  <div className="border rounded-lg p-4 bg-red-50 dark:bg-red-950/20">
+                    <Label htmlFor="rejection-reason" className="text-sm font-semibold">
+                      Rejection Reason (Required if rejecting)
+                    </Label>
+                    <textarea
+                      id="rejection-reason"
+                      value={rejectionReason}
+                      onChange={(e) => setRejectionReason(e.target.value)}
+                      placeholder="Enter reason for rejection (e.g., Documents not clear, Information incomplete, etc.)"
+                      className="w-full mt-2 p-3 border rounded-md h-24 resize-none"
+                    />
+                    <div className="mt-2">
+                      <Label className="text-xs text-muted-foreground">Common reasons:</Label>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {[
+                          "Documents not clear/readable",
+                          "Information incomplete", 
+                          "Invalid documents",
+                          "Suspicious registration"
+                        ].map((reason) => (
+                          <Button
+                            key={reason}
+                            size="sm"
+                            variant="outline"
+                            className="text-xs h-6"
+                            onClick={() => setRejectionReason(reason)}
+                          >
+                            {reason}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex justify-end gap-3 pt-4 border-t">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setSelectedUser(null);
+                        setRejectionReason("");
+                      }}
+                      disabled={isProcessingUserAction}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={handleRejectFromModal}
+                      disabled={isProcessingUserAction || !rejectionReason.trim()}
+                    >
+                      <XCircle className="h-4 w-4 mr-1" />
+                      {isProcessingUserAction ? "Processing..." : "Reject User"}
+                    </Button>
+                    <Button
+                      onClick={handleApproveFromModal}
+                      disabled={isProcessingUserAction}
+                      className="bg-success text-success-foreground hover:bg-success/90"
+                    >
+                      <CheckCircle className="h-4 w-4 mr-1" />
+                      {isProcessingUserAction ? "Processing..." : "Approve User"}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
+
+      {/* Document View Modal */}
+      {viewDocumentModal.isOpen && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-4 max-w-4xl max-h-[90vh] overflow-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">{viewDocumentModal.title}</h3>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setViewDocumentModal({isOpen: false, document: null, title: ""})}
+              >
+                ✕ Close
+              </Button>
+            </div>
+            <div className="flex justify-center">
+              {viewDocumentModal.document?.includes('data:application/pdf') ? (
+                <div className="text-center">
+                  <p className="mb-4">PDF Document - Click download to view</p>
+                  <Button
+                    onClick={() => window.open(viewDocumentModal.document, '_blank')}
+                    className="mb-4"
+                  >
+                    📄 Download PDF
+                  </Button>
+                </div>
+              ) : (
+                <img
+                  src={viewDocumentModal.document}
+                  alt={viewDocumentModal.title}
+                  className="max-w-full max-h-[70vh] object-contain"
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    
       </main>
     </div>
   );
 };
 
 export default SystemAdminDashboard;
+
