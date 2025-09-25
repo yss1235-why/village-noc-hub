@@ -111,7 +111,7 @@ exports.handler = async (event, context) => {
           id: adminData.id,
           name: adminData.name,
           email: adminData.email,
-          role: 'system_admin',
+          role: 'admin',
           permissions: adminData.permissions
         },
         token: token,
