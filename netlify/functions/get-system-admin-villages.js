@@ -50,7 +50,7 @@ export const handler = async (event, context) => {
         COUNT(DISTINCT CASE WHEN a.status = 'approved' THEN a.id END) as approved_applications,
         COUNT(DISTINCT CASE WHEN u.is_approved = true THEN u.id END) as approved_users
       FROM villages v
-      LEFT JOIN applications a ON v.id = a.village_id
+    LEFT JOIN noc_applications a ON v.id = a.village_id
       LEFT JOIN users u ON v.id = u.village_id
       WHERE v.status = 'approved'
       GROUP BY v.id, v.name, v.district, v.state, v.pin_code, v.admin_name, v.admin_email, v.status, v.created_at
