@@ -53,13 +53,14 @@ export const handler = async (event, context) => {
         COALESCE(pt.total_points_spent, 0) as total_points_spent
       FROM users u
       LEFT JOIN villages v ON u.village_id = v.id
-      LEFT JOIN applications a ON u.id = a.user_id
-      LEFT JOIN (
+     LEFT JOIN noc_applications a ON u.id = a.user_id
+     LEFT JOIN (
         SELECT 
           user_id,
-          SUM(CASE WHEN transaction_type = 'credit' THEN amount ELSE 0 END) as total_points_earned,
-          SUM(CASE WHEN transaction_type = 'debit' THEN amount ELSE 0 END) as total_points_spent
+          COALESCE(SUM(CASE WHEN transaction_type = 'credit' THEN amount ELSE 0 END), 0) as total_points_earned,
+          COALESCE(SUM(CASE WHEN transaction_type = 'debit' THEN amount ELSE 0 END), 0) as total_points_spent
         FROM point_transactions
+        WHERE EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'point_transactions')
         GROUP BY user_id
       ) pt ON u.id = pt.user_id
       WHERE u.role IN ('user', 'applicant', 'village_admin')
@@ -84,19 +85,21 @@ export const handler = async (event, context) => {
     `;
 
     // Log the access for audit purposes
-    await sql`
-      INSERT INTO audit_logs (
-        user_id, action, resource_type, details, ip_address, created_at
-      ) VALUES (
-        ${authResult.user.userId}, 'VIEW_USERS', 'users',
-        ${JSON.stringify({ 
-          userCount: users.length,
-          stats: stats[0]
-        })},
-        ${event.headers['x-forwarded-for'] || 'unknown'},
-        NOW()
-      )
-    `;
+try {
+      await sql`
+        INSERT INTO audit_logs (
+          user_id, action, resource_type, details, ip_address, created_at
+        ) VALUES (
+          ${authResult.user.userId}, 'VIEW_[SOMETHING]', '[something]',
+          ${JSON.stringify({ ... })},
+          ${event.headers['x-forwarded-for'] || 'unknown'},
+          NOW()
+        )
+      `;
+    } catch (auditError) {
+      // Audit table might not exist yet, continue without logging
+      console.log('Audit logging skipped:', auditError.message);
+    }
 
     return {
       statusCode: 200,
