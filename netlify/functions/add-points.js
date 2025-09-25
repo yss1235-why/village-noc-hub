@@ -1,5 +1,5 @@
 import { neon } from '@neondatabase/serverless';
-import { requireMinimumRole } from './utils/auth-middleware.js';
+import { requireMinimumRole, requireSystemAdmin } from './utils/auth-middleware.js';
 
 const sql = neon(process.env.NETLIFY_DATABASE_URL);
 
@@ -22,17 +22,22 @@ export const handler = async (event, context) => {
     };
   }
 
-  const authResult = requireMinimumRole(event, 'village_admin');
+ // Try village admin first, then system admin
+  let authResult = requireMinimumRole(event, 'village_admin');
   if (!authResult.isValid) {
-    return {
-      statusCode: authResult.statusCode,
-      headers,
-      body: JSON.stringify({ error: authResult.error })
-    };
+    authResult = requireSystemAdmin(event);
+    if (!authResult.isValid) {
+      return {
+        statusCode: 403,
+        headers,
+        body: JSON.stringify({ error: 'Insufficient permissions. Admin access required.' })
+      };
+    }
   }
 
   try {
-    const { userId, amount, reason, adminId } = JSON.parse(event.body);
+   const { userId, amount, reason } = JSON.parse(event.body);
+    const adminId = authResult.user.userId || authResult.user.id;
 
     if (!userId || !amount || !reason) {
       return {
@@ -49,15 +54,13 @@ export const handler = async (event, context) => {
         body: JSON.stringify({ error: 'Amount must be between 1 and 1000 points' })
       };
     }
-
-    // Get user details and verify access permissions
+// Get user details and verify access permissions
     const user = await sql`
-      SELECT u.id, u.name, u.email, u.point_balance, u.village_id, v.name as village_name
+      SELECT u.id, u.full_name as name, u.email, u.point_balance, u.village_id, v.name as village_name
       FROM users u
       LEFT JOIN villages v ON u.village_id = v.id
       WHERE u.id = ${userId} AND u.is_approved = true
     `;
-
     if (user.length === 0) {
       return {
         statusCode: 404,
@@ -68,7 +71,7 @@ export const handler = async (event, context) => {
 
     const targetUser = user[0];
 
-    // Village admin can only manage users in their village
+   // Village admin can only manage users in their village (system admin can manage all)
     if (authResult.user.role === 'village_admin') {
       if (targetUser.village_id !== authResult.user.villageId) {
         return {
@@ -78,41 +81,54 @@ export const handler = async (event, context) => {
         };
       }
     }
+    // System admin can manage all users - no village restriction
+
+    // Get current balance first
+    const currentBalance = targetUser.point_balance || 0;
+    const newBalance = currentBalance + amount;
+
+    // Generate transaction hash
+    const crypto = await import('crypto');
+    const transactionData = {
+      userId,
+      amount,
+      previousBalance: currentBalance,
+      newBalance,
+      timestamp: Date.now(),
+      reason
+    };
+    const transactionHash = crypto.createHash('sha256').update(JSON.stringify(transactionData)).digest('hex');
 
     // Create point transaction record
     await sql`
       INSERT INTO point_transactions (
-        user_id, transaction_type, amount, description, 
-        created_by, ip_address, created_at
+        transaction_hash, user_id, admin_id, type, amount,
+        previous_balance, new_balance, reason, admin_ip
       ) VALUES (
-        ${userId}, 'credit', ${amount}, ${reason},
-        ${authResult.user.userId}, ${event.headers['x-forwarded-for'] || 'unknown'}, NOW()
+        ${transactionHash}, ${userId}, ${adminId}, 'CREATE', ${amount},
+        ${currentBalance}, ${newBalance}, ${reason}, ${event.headers['x-forwarded-for'] || 'unknown'}
       )
     `;
 
     // Update user point balance
     await sql`
       UPDATE users 
-      SET point_balance = COALESCE(point_balance, 0) + ${amount}, updated_at = NOW()
+      SET point_balance = ${newBalance}, updated_at = NOW()
       WHERE id = ${userId}
     `;
 
-    // Get updated balance
-    const updatedUser = await sql`
-      SELECT point_balance FROM users WHERE id = ${userId}
-    `;
-
-    // Log the action for audit purposes
+  // Log the action for audit purposes
     await sql`
-      INSERT INTO audit_logs (
-        user_id, action, resource_type, resource_id, details, ip_address, created_at
+      INSERT INTO admin_audit_log (
+        admin_id, action, details, ip_address, timestamp
       ) VALUES (
-        ${authResult.user.userId}, 'ADD_POINTS', 'user', ${userId},
+        ${adminId}, 'ADD_POINTS',
         ${JSON.stringify({ 
+          targetUserId: userId,
           targetUserName: targetUser.name,
           pointsAdded: amount,
           reason: reason,
-          newBalance: updatedUser[0].point_balance,
+         newBalance: newBalance,
           village: targetUser.village_name
         })},
         ${event.headers['x-forwarded-for'] || 'unknown'},
@@ -126,7 +142,7 @@ export const handler = async (event, context) => {
       body: JSON.stringify({
         success: true,
         message: `${amount} points added to ${targetUser.name} successfully`,
-        newBalance: updatedUser[0].point_balance,
+      newBalance: newBalance,
         transaction: {
           userId: userId,
           amount: amount,
