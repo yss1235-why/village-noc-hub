@@ -57,17 +57,21 @@ export const handler = async (event, context) => {
       ORDER BY v.name ASC
     `;
 
-    // Log the access for audit purposes
-    await sql`
-      INSERT INTO audit_logs (
-        user_id, action, resource_type, details, ip_address, created_at
-      ) VALUES (
-        ${authResult.user.userId}, 'VIEW_VILLAGES', 'villages',
-        ${JSON.stringify({ villageCount: villages.length })},
-        ${event.headers['x-forwarded-for'] || 'unknown'},
-        NOW()
-      )
-    `;
+  // Log the access for audit purposes
+    try {
+      await sql`
+        INSERT INTO audit_logs (
+          user_id, action, resource_type, details, ip_address, created_at
+        ) VALUES (
+          ${authResult.user.userId}, 'VIEW_VILLAGES', 'villages',
+          ${JSON.stringify({ villageCount: villages.length })},
+          ${event.headers['x-forwarded-for'] || 'unknown'},
+          NOW()
+        )
+      `;
+    } catch (auditError) {
+      console.log('Audit logging skipped:', auditError.message);
+    }
 
     return {
       statusCode: 200,
