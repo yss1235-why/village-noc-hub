@@ -11,6 +11,7 @@ import Apply from "./pages/Apply";
 import Status from "./pages/Status";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
+import UserDashboard from "./pages/UserDashboard";
 import NotFound from "./pages/NotFound";
 import SuperAdminLogin from "./pages/SuperAdminLogin";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
@@ -37,7 +38,8 @@ const App = () => (
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           
-           <Route path="/admin" element={<AdminLogin />} />
+           <Route path="/dashboard" element={<UserDashboard />} />
+          <Route path="/admin" element={<AdminLogin />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/super-admin" element={<SuperAdminLogin />} />
           <Route path="/super-admin/dashboard" element={<SuperAdminDashboard />} />
