@@ -33,18 +33,18 @@ export const handler = async (event, context) => {
 
   try {
    // Get users - start simple like working applications function
-    const users = await sql`
+   const users = await sql`
       SELECT 
         id,
         email,
         role,
         is_approved,
         created_at,
-        COALESCE(name, 'N/A') as name,
+        COALESCE(full_name, 'N/A') as name,
         COALESCE(point_balance, 0) as point_balance,
-        COALESCE(is_active, true) as is_active
+        true as is_active
       FROM users
-      WHERE role IN ('user', 'applicant', 'village_admin')
+      WHERE role IN ('user', 'applicant')
       ORDER BY created_at DESC
       LIMIT 1000
     `;
@@ -56,10 +56,9 @@ export const handler = async (event, context) => {
         COUNT(CASE WHEN u.is_approved = true THEN 1 END) as approved_users,
         COUNT(CASE WHEN u.is_approved = false THEN 1 END) as pending_users,
         COUNT(CASE WHEN u.role = 'village_admin' THEN 1 END) as village_admins,
-        COUNT(CASE WHEN u.role = 'user' OR u.role = 'applicant' THEN 1 END) as regular_users,
-        COUNT(CASE WHEN u.last_login >= NOW() - INTERVAL '30 days' THEN 1 END) as active_users
+        0 as active_users
       FROM users u
-      WHERE u.role IN ('user', 'applicant', 'village_admin')
+      WHERE u.role IN ('user', 'applicant')
     `;
 
     // Log the access for audit purposes
