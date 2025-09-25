@@ -54,7 +54,7 @@ export const handler = async (event, context) => {
         v.state,
         u.name as applicant_user_name,
         u.point_balance
-      FROM applications a
+     FROM noc_applications a
       JOIN villages v ON a.village_id = v.id
       LEFT JOIN users u ON a.user_id = u.id
       WHERE v.status = 'approved'
