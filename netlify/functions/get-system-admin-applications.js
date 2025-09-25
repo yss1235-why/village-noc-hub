@@ -76,19 +76,23 @@ export const handler = async (event, context) => {
     `;
 
     // Log the access for audit purposes
-    await sql`
-      INSERT INTO audit_logs (
-        user_id, action, resource_type, details, ip_address, created_at
-      ) VALUES (
-        ${authResult.user.userId}, 'VIEW_APPLICATIONS', 'applications',
-        ${JSON.stringify({ 
-          applicationCount: applications.length,
-          stats: stats[0]
-        })},
-        ${event.headers['x-forwarded-for'] || 'unknown'},
-        NOW()
-      )
-    `;
+   try {
+      await sql`
+        INSERT INTO audit_logs (
+          user_id, action, resource_type, details, ip_address, created_at
+        ) VALUES (
+          ${authResult.user.userId}, 'VIEW_APPLICATIONS', 'applications',
+          ${JSON.stringify({ 
+            applicationCount: applications.length,
+            stats: stats[0] || {}
+          })},
+          ${event.headers['x-forwarded-for'] || 'unknown'},
+          NOW()
+        )
+      `;
+    } catch (auditError) {
+      console.log('Audit logging skipped:', auditError.message);
+    }
 
     return {
       statusCode: 200,
