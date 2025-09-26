@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { ArrowLeft, Shield, Eye, EyeOff } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-
+import { useAuth } from "@/contexts/AuthContext";
 const SystemAdminLogin = () => {
   const [credentials, setCredentials] = useState({
     email: "",
@@ -15,8 +15,9 @@ const SystemAdminLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
-  const navigate = useNavigate();
-  const { toast } = useToast();
+ const navigate = useNavigate();
+const { toast } = useToast();
+const { login } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,23 +36,26 @@ const SystemAdminLogin = () => {
       });
 
       const result = await response.json();
+if (response.ok && result.success) {
+  const loginResult = await login({
+    login: credentials.email,
+    password: credentials.password
+  }, 'system_admin');
 
-      if (response.ok && result.success) {
-        // Store authentication data
-        sessionStorage.setItem('auth-token', result.token);
-        sessionStorage.setItem('userInfo', JSON.stringify({
-          userId: result.user.id,
-          name: result.user.name,
-          email: result.user.email,
-          role: result.user.role
-        }));
-
-        toast({
-          title: "Login Successful",
-          description: "Welcome to the system administration dashboard.",
-        });
-        navigate("/system-admin/dashboard");
-      } else {
+  if (loginResult.success) {
+    toast({
+      title: "Login Successful",
+      description: "Welcome to the system administration dashboard.",
+    });
+    navigate("/system-admin/dashboard");
+  } else {
+    toast({
+      title: "Login Failed",
+      description: loginResult.error || "Authentication failed.",
+      variant: "destructive",
+    });
+  }
+} else {
         toast({
           title: "Login Failed",
           description: result.error || "Invalid system administrator credentials.",
