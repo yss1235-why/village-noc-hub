@@ -68,6 +68,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 const login = async (credentials: { login: string; password: string }) => {
     try {
+      console.log('Attempting login with:', credentials.login); // Debug log
+      
       const response = await fetch('/.netlify/functions/login-user', {
         method: 'POST',
         headers: {
@@ -76,7 +78,10 @@ const login = async (credentials: { login: string; password: string }) => {
         body: JSON.stringify(credentials),
       });
 
+      console.log('Response status:', response.status); // Debug log
+      
       const data = await response.json();
+      console.log('Response data:', data); // Debug log
 
       if (data.success) {
         setUser(data.user);
@@ -85,32 +90,14 @@ const login = async (credentials: { login: string; password: string }) => {
         localStorage.setItem('user-data', JSON.stringify(data.user));
         sessionStorage.setItem('auth-token', data.token);
         sessionStorage.setItem('userInfo', JSON.stringify(data.user));
+        console.log('Login successful, user set:', data.user); // Debug log
         return { success: true };
       } else {
+        console.log('Login failed:', data.error); // Debug log
         return { success: false, error: data.error || 'Login failed' };
       }
     } catch (error) {
-      return { success: false, error: 'Network error. Please try again.' };
-    }
-  };
-  const register = async (userData: any) => {
-    try {
-      const response = await fetch('/.netlify/functions/register-user', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(userData),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        return { success: true };
-      } else {
-        return { success: false, error: data.error || 'Registration failed' };
-      }
-    } catch (error) {
+      console.error('Login network error:', error); // Debug log
       return { success: false, error: 'Network error. Please try again.' };
     }
   };
