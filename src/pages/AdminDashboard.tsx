@@ -139,7 +139,7 @@ const AdminDashboard = () => {
     setIsChangingPassword(true);
 
    try {
-      const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
+     const token = localStorage.getItem('auth-token');
       const response = await fetch('/.netlify/functions/change-village-admin-password', {
         method: 'POST',
         headers: {
@@ -187,7 +187,7 @@ const AdminDashboard = () => {
  const loadVillageInfo = async () => {
     setIsLoadingVillageInfo(true);
     try {
-      const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
+      const token = localStorage.getItem('auth-token');
       const response = await fetch(`/.netlify/functions/update-village-info?villageId=${user?.villageId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -224,7 +224,7 @@ const AdminDashboard = () => {
     setIsUpdatingVillage(true);
 
    try {
-      const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
+      const token = localStorage.getItem('auth-token');
       const response = await fetch('/.netlify/functions/update-village-info', {
         method: 'PUT',
         headers: {
@@ -304,7 +304,7 @@ Headman/Chairman
 const loadDocuments = async () => {
     setIsLoadingDocuments(true);
     try {
-      const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
+      const token = localStorage.getItem('auth-token');
       const response = await fetch(`/.netlify/functions/get-village-documents?villageId=${user?.villageId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -380,7 +380,7 @@ const loadDocuments = async () => {
           try {
             const base64String = reader.result as string;
             
-        const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
+        const token = localStorage.getItem('auth-token');
             const response = await fetch(`/.netlify/functions/upload-village-document?villageId=${user?.villageId}&documentType=${documentType}`, {
               method: 'POST',
               headers: {
@@ -457,7 +457,7 @@ const handleUpdateTemplate = async () => {
   setIsUpdatingTemplate(true);
   
 try {
-    const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
+    const token = localStorage.getItem('auth-token');
     const response = await fetch('/.netlify/functions/update-certificate-template', {
         method: 'POST',
         headers: {
@@ -499,7 +499,7 @@ try {
     
     setIsLoadingPointBalance(true);
     try {
-      const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
+      const token = localStorage.getItem('auth-token');
       const response = await fetch(`/.netlify/functions/get-admin-point-balance?adminId=${user.id}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -522,7 +522,7 @@ try {
 
   const loadProfileInfo = async () => {
     try {
-      const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
+      const token = localStorage.getItem('auth-token');
       const response = await fetch(`/.netlify/functions/get-admin-profile?villageId=${user?.villageId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -571,7 +571,7 @@ try {
     setIsUpdatingProfile(true);
 
    try {
-      const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
+      const token = localStorage.getItem('auth-token');
       const response = await fetch('/.netlify/functions/update-admin-profile', {
         method: 'POST',
         headers: {
@@ -642,7 +642,7 @@ try {
     
     setIsLoadingApplications(true);
     try {
-      const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
+      const token = localStorage.getItem('auth-token');
       const response = await fetch(`/.netlify/functions/get-village-applications?villageId=${user.villageId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -695,7 +695,7 @@ const handleApproveFromModal = async () => {
     
     setIsProcessingAction(true);
    try {
-      const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
+      const token = localStorage.getItem('auth-token');
       const response = await fetch('/.netlify/functions/update-application-status', {
         method: 'PUT',
         headers: {
@@ -754,7 +754,7 @@ const handleApproveFromModal = async () => {
     
     setIsProcessingAction(true);
    try {
-      const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
+      const token = localStorage.getItem('auth-token');
       const response = await fetch('/.netlify/functions/update-application-status', {
         method: 'PUT',
         headers: {
@@ -979,7 +979,7 @@ const handleApproveFromModal = async () => {
   onClick={async () => {
     setIsLoadingApplicationDetails(true);
     try {
-   const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
+   const token = localStorage.getItem('auth-token');
       const response = await fetch(`/.netlify/functions/get-application-details?applicationId=${app.id}`, {
         headers: {
           'Content-Type': 'application/json',
