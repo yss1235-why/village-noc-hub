@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ArrowLeft, FileText, Upload, X, AlertTriangle, ChevronsUpDown, Check,Plus, LogOut } from "lucide-react";
+import { User, FileText, Upload, X, AlertTriangle, ChevronsUpDown, Check,Plus, LogOut } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
@@ -404,10 +404,10 @@ if (showSuccess) {
   <div className="container mx-auto px-4">
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-4">
-        <Link to="/">
+       <Link to="/userDashboard">
           <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary-foreground/10">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Home
+            <User className="h-4 w-4 mr-2" />
+            Dashboard
           </Button>
         </Link>
         <div className="flex items-center gap-2">
