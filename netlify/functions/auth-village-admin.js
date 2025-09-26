@@ -83,15 +83,15 @@ export const handler = async (event, context) => {
           VALUES (${email}, ${hashedPassword}, 'village_admin', ${villageData.id}, true)
           RETURNING id, email
         `;
-// Generate JWT token
-        const tokenPayload = {
-          id: user[0].id,
-          email: user[0].email,
-          role: 'village_admin',
-          villageId: villageData.id,
-          villageName: villageData.name,
-          sessionId: crypto.randomUUID()
-        };
+      // Generate JWT token
+          const tokenPayload = {
+            id: user[0].id,
+            email: user[0].email,
+            role: 'village_admin',
+            villageId: villageData.id,
+            villageName: villageData.name,
+            sessionId: crypto.randomUUID()
+          };
 
         const token = generateToken(tokenPayload);
 
@@ -148,14 +148,14 @@ export const handler = async (event, context) => {
       };
     }
 // Generate JWT token
-    const tokenPayload = {
-      userId: user[0].id,
-      email: user[0].email,
-      role: 'village_admin',
-      villageId: villageData.id,
-      villageName: villageData.name,
-      sessionId: crypto.randomUUID()
-    };
+        const tokenPayload = {
+          id: newUser[0].id,
+          email: newUser[0].email,
+          role: 'village_admin',
+          villageId: villageData.id,
+          villageName: villageData.name,
+          sessionId: crypto.randomUUID()
+        };
 
     const token = generateToken(tokenPayload);
 
