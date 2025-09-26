@@ -95,25 +95,28 @@ export const handler = async (event, context) => {
       'Path=/'
     ];
 
-    return {
-      statusCode: 200,
-      headers: {
-        ...headers,
-        'Set-Cookie': cookieOptions.join('; ')
-      },
-      body: JSON.stringify({
-        success: true,
-       user: {
-          id: adminData.id,
-          name: adminData.name,
-          email: adminData.email,
-          role: 'admin',
-          permissions: adminData.permissions
-        },
-        token: token,
-        message: 'System administrator login successful'
-      })
-    };
+   return {
+  statusCode: 200,
+  headers: {
+    ...headers,
+    'Set-Cookie': cookieOptions.join('; ')
+  },
+  body: JSON.stringify({
+    success: true,
+    user: {
+      id: adminData.id,
+      username: adminData.email,
+      email: adminData.email,
+      fullName: adminData.name || adminData.email,
+      role: 'admin',
+      pointBalance: 0,
+      isApproved: true,
+      permissions: adminData.permissions
+    },
+    token: token,
+    message: 'System administrator login successful'
+  })
+};
 
   } catch (error) {
     console.error('System admin auth error:', error);
