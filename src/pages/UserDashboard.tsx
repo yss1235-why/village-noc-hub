@@ -6,7 +6,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LogOut, FileText, Search, Download, Plus, Clock, CheckCircle, XCircle, User, AlertCircle } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { LogOut, FileText, Search, Download, Plus, Clock, CheckCircle, XCircle, User, AlertCircle, History, Filter, Calendar, TrendingUp, TrendingDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/contexts/AuthContext';
@@ -23,6 +24,16 @@ const UserDashboard = () => {
   const [searchApplicationNumber, setSearchApplicationNumber] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [searchResult, setSearchResult] = useState(null);
+ 
+
+// Point transactions state
+const [pointTransactions, setPointTransactions] = useState([]);
+const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
+const [transactionFilters, setTransactionFilters] = useState({
+  type: '',
+  startDate: '',
+  endDate: ''
+});
 
  
 
@@ -34,11 +45,12 @@ const UserDashboard = () => {
     }
     
     // Auto-load data when authenticated
-    loadUserApplications();
+loadUserApplications();
+loadPointTransactions();
    
   }, [isAuthenticated, user, navigate]);
   
- const loadUserApplications = async () => {
+const loadUserApplications = async () => {
     if (!user?.id) return;
     
     setIsLoadingUserApplications(true);
@@ -74,6 +86,47 @@ const UserDashboard = () => {
     }
   };
 
+const loadPointTransactions = async () => {
+  if (!user?.id) return;
+  
+  setIsLoadingTransactions(true);
+  try {
+    const token = localStorage.getItem('auth-token');
+    const params = new URLSearchParams();
+    
+    if (transactionFilters.type) params.append('type', transactionFilters.type);
+    if (transactionFilters.startDate) params.append('startDate', transactionFilters.startDate);
+    if (transactionFilters.endDate) params.append('endDate', transactionFilters.endDate);
+    
+    const response = await fetch(`/.netlify/functions/get-point-transactions?${params.toString()}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const result = await response.json();
+    if (response.ok) {
+      setPointTransactions(result.transactions || []);
+    } else {
+      console.error('Failed to load transactions:', result.error);
+      toast({
+        title: "Error",
+        description: "Failed to load point transactions.",
+        variant: "destructive",
+      });
+    }
+  } catch (error) {
+    console.error('Failed to load transactions:', error);
+    toast({
+      title: "Error",
+      description: "Failed to connect to server.",
+      variant: "destructive",
+    });
+  } finally {
+    setIsLoadingTransactions(false);
+  }
+};
 
 
   const handleSearchApplication = async (e: React.FormEvent) => {
@@ -171,6 +224,48 @@ const UserDashboard = () => {
       navigate("/");
     }
   };
+  const exportTransactions = (format = 'csv') => {
+  if (pointTransactions.length === 0) {
+    toast({
+      title: "No Data",
+      description: "No transactions available to export.",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  const headers = ['Date', 'Type', 'Amount', 'Previous Balance', 'New Balance', 'Reason', 'Application Number'];
+  const data = pointTransactions.map(transaction => [
+    new Date(transaction.created_at).toLocaleString(),
+    transaction.type,
+    transaction.amount,
+    transaction.previous_balance,
+    transaction.new_balance,
+    transaction.reason,
+    transaction.application_number || 'N/A'
+  ]);
+
+  if (format === 'csv') {
+    const csvContent = [headers, ...data]
+      .map(row => row.map(field => `"${field}"`).join(','))
+      .join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `point-transactions-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  }
+
+  toast({
+    title: "Export Complete",
+    description: `Transactions exported successfully as ${format.toUpperCase()}.`,
+  });
+};
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -299,17 +394,13 @@ const UserDashboard = () => {
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="my-applications" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="my-applications">
-                  My Applications ({userApplications.length})
-                </TabsTrigger>
-                <TabsTrigger value="search-applications">
-                  Search Applications
-                </TabsTrigger>
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="applications">My Applications</TabsTrigger>
+                <TabsTrigger value="search">Search Applications</TabsTrigger>
+                <TabsTrigger value="transactions">Point History</TabsTrigger>
               </TabsList>
-
               {/* My Applications Tab */}
-              <TabsContent value="my-applications" className="space-y-4">
+            <TabsContent value="applications" className="space-y-4">
                 <div className="flex justify-between items-center">
                   <h3 className="text-lg font-medium">Your Applications</h3>
                   <Button 
@@ -380,8 +471,156 @@ const UserDashboard = () => {
                 )}
               </TabsContent>
 
+<TabsContent value="transactions">
+  <Card>
+    <CardHeader>
+      <div className="flex items-center justify-between">
+        <div>
+          <CardTitle className="flex items-center gap-2">
+            <History className="h-5 w-5" />
+            Point Transaction History
+          </CardTitle>
+          <CardDescription>
+            View your complete point transaction history with filters and export options
+          </CardDescription>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => exportTransactions('csv')}
+            disabled={pointTransactions.length === 0}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export CSV
+          </Button>
+        </div>
+      </div>
+    </CardHeader>
+    <CardContent>
+      {/* Filters */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div>
+          <Label htmlFor="transactionType">Transaction Type</Label>
+          <Select 
+            value={transactionFilters.type} 
+            onValueChange={(value) => setTransactionFilters(prev => ({ ...prev, type: value }))}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="All Types" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">All Types</SelectItem>
+              <SelectItem value="ADD">Credits</SelectItem>
+              <SelectItem value="DEDUCT">Debits</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div>
+          <Label htmlFor="startDate">Start Date</Label>
+          <Input
+            type="date"
+            value={transactionFilters.startDate}
+            onChange={(e) => setTransactionFilters(prev => ({ ...prev, startDate: e.target.value }))}
+          />
+        </div>
+        
+        <div>
+          <Label htmlFor="endDate">End Date</Label>
+          <Input
+            type="date"
+            value={transactionFilters.endDate}
+            onChange={(e) => setTransactionFilters(prev => ({ ...prev, endDate: e.target.value }))}
+          />
+        </div>
+        
+        <div className="flex items-end gap-2">
+          <Button onClick={loadPointTransactions} disabled={isLoadingTransactions}>
+            <Filter className="h-4 w-4 mr-2" />
+            Apply Filters
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={() => {
+              setTransactionFilters({ type: '', startDate: '', endDate: '' });
+              loadPointTransactions();
+            }}
+          >
+            Clear
+          </Button>
+        </div>
+      </div>
+
+      {/* Transaction Table */}
+      {isLoadingTransactions ? (
+        <div className="flex justify-center items-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      ) : pointTransactions.length > 0 ? (
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Date & Time</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>Balance After</TableHead>
+                <TableHead>Reason</TableHead>
+                <TableHead>Reference</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {pointTransactions.map((transaction) => (
+                <TableRow key={transaction.id}>
+                  <TableCell className="font-mono text-sm">
+                    {new Date(transaction.created_at).toLocaleString()}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      {transaction.type === 'ADD' ? (
+                        <>
+                          <TrendingUp className="h-4 w-4 text-green-600" />
+                          <Badge className="bg-green-100 text-green-800">Credit</Badge>
+                        </>
+                      ) : (
+                        <>
+                          <TrendingDown className="h-4 w-4 text-red-600" />
+                          <Badge className="bg-red-100 text-red-800">Debit</Badge>
+                        </>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className={`font-semibold ${transaction.type === 'ADD' ? 'text-green-600' : 'text-red-600'}`}>
+                    {transaction.type === 'ADD' ? '+' : ''}{transaction.amount}
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    {transaction.new_balance}
+                  </TableCell>
+                  <TableCell>{transaction.reason}</TableCell>
+                  <TableCell className="font-mono text-sm">
+                    {transaction.application_number || 'System'}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      ) : (
+        <div className="text-center py-8">
+          <History className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">No Transactions Found</h3>
+          <p className="text-muted-foreground">
+            No point transactions match your current filters.
+          </p>
+        </div>
+      )}
+    </CardContent>
+  </Card>
+</TabsContent>
+
               {/* Search Applications Tab */}
-              <TabsContent value="search-applications" className="space-y-4">
+          <TabsContent value="search" className="space-y-4">
                 <div>
                   <h3 className="text-lg font-medium mb-4">Search Application by Number</h3>
                   <p className="text-sm text-muted-foreground mb-6">
