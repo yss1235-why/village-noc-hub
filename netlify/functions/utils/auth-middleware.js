@@ -1,17 +1,19 @@
 import { verifyToken } from './jwt.js';
 
 export const authenticateUser = (event) => {
-  // Try to get token from cookie first, then from Authorization header
-  const cookies = event.headers.cookie || '';
-  const authTokenMatch = cookies.match(/auth-token=([^;]+)/);
-  let token = authTokenMatch ? authTokenMatch[1] : null;
+  // Prioritize Authorization header to match frontend implementation
+  const authHeader = event.headers.authorization;
+  let token = null;
   
-  // Fallback to Authorization header
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.substring(7);
+  }
+  
+  // Fallback to cookie if Authorization header not present
   if (!token) {
-    const authHeader = event.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      token = authHeader.substring(7);
-    }
+    const cookies = event.headers.cookie || '';
+    const authTokenMatch = cookies.match(/auth-token=([^;]+)/);
+    token = authTokenMatch ? authTokenMatch[1] : null;
   }
   
   if (!token) {
