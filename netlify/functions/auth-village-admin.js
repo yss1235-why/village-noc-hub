@@ -66,27 +66,26 @@ export const handler = async (event, context) => {
       };
     }
 
-    // Check if user exists in users table
-    const user = await sql`
-      SELECT id, email, password_hash
-      FROM users 
-      WHERE village_id = ${villageData.id} AND role = 'village_admin'
-    `;
-
+             // Check if user exists in users table
+          const user = await sql`
+            SELECT id, email, password_hash, full_name, point_balance
+            FROM users 
+            WHERE village_id = ${villageData.id} AND role = 'village_admin'
+          `;
     if (user.length === 0) {
       // For new villages, check default password (admin123)
       if (password === 'admin123') {
         // Create user record with default password
         const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = await sql`
-          INSERT INTO users (email, password_hash, role, village_id, is_approved)
-          VALUES (${email}, ${hashedPassword}, 'village_admin', ${villageData.id}, true)
-          RETURNING id, email
-        `;
-      // Generate JWT token
+          const newUser = await sql`
+            INSERT INTO users (email, password_hash, role, village_id, is_approved, full_name, point_balance)
+            VALUES (${email}, ${hashedPassword}, 'village_admin', ${villageData.id}, true, ${email}, 0)
+            RETURNING id, email, full_name, point_balance
+          `;
+     // Generate JWT token
           const tokenPayload = {
-            id: user[0].id,
-            email: user[0].email,
+            id: newUser[0].id,
+            email: newUser[0].email,
             role: 'village_admin',
             villageId: villageData.id,
             villageName: villageData.name,
@@ -112,22 +111,28 @@ export const handler = async (event, context) => {
             'Set-Cookie': cookieOptions.join('; ')
           },
           body: JSON.stringify({
-            success: true,
-            user: {
-              id: newUser[0].id,
-              email: newUser[0].email,
-              role: 'village_admin'
-            },
-            village: {
-              id: villageData.id,
-              name: villageData.name,
-              district: villageData.district,
-              state: villageData.state
-            },
-            token: token,
-            message: 'Please change your password after login',
-            requirePasswordChange: true
-          })
+  success: true,
+  user: {
+    id: newUser[0].id,
+    username: newUser[0].email,
+    email: newUser[0].email,
+    fullName: newUser[0].full_name || newUser[0].email,
+    role: 'village_admin',
+    pointBalance: newUser[0].point_balance || 0,
+    isApproved: true,
+    villageId: villageData.id,
+    villageName: villageData.name
+  },
+  village: {
+    id: villageData.id,
+    name: villageData.name,
+    district: villageData.district,
+    state: villageData.state
+  },
+  token: token,
+  message: 'Please change your password after login',
+  requirePasswordChange: true
+})
         };
       } else {
         return {
@@ -147,15 +152,15 @@ export const handler = async (event, context) => {
         body: JSON.stringify({ error: 'Invalid email or password' })
       };
     }
-// Generate JWT token
-        const tokenPayload = {
-          id: newUser[0].id,
-          email: newUser[0].email,
-          role: 'village_admin',
-          villageId: villageData.id,
-          villageName: villageData.name,
-          sessionId: crypto.randomUUID()
-        };
+        // Generate JWT token
+            const tokenPayload = {
+              id: user[0].id,
+              email: user[0].email,
+              role: 'village_admin',
+              villageId: villageData.id,
+              villageName: villageData.name,
+              sessionId: crypto.randomUUID()
+            };
 
     const token = generateToken(tokenPayload);
 
@@ -176,20 +181,26 @@ export const handler = async (event, context) => {
         'Set-Cookie': cookieOptions.join('; ')
       },
       body: JSON.stringify({
-        success: true,
-        user: {
-          id: user[0].id,
-          email: user[0].email,
-          role: 'village_admin'
-        },
-        village: {
-          id: villageData.id,
-          name: villageData.name,
-          district: villageData.district,
-          state: villageData.state
-        },
-        token: token
-      })
+  success: true,
+  user: {
+    id: user[0].id,
+    username: user[0].email,
+    email: user[0].email,
+    fullName: user[0].full_name || user[0].email,
+    role: 'village_admin',
+    pointBalance: user[0].point_balance || 0,
+    isApproved: true,
+    villageId: villageData.id,
+    villageName: villageData.name
+  },
+  village: {
+    id: villageData.id,
+    name: villageData.name,
+    district: villageData.district,
+    state: villageData.state
+  },
+  token: token
+})
     };
 
   } catch (error) {
