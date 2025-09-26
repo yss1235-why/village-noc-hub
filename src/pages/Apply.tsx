@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ArrowLeft, FileText, Upload, X, AlertTriangle, ChevronsUpDown, Check } from "lucide-react";
+import { ArrowLeft, FileText, Upload, X, AlertTriangle, ChevronsUpDown, Check,Plus, LogOut } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
@@ -15,6 +15,7 @@ import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import ApplicationSuccess from "@/components/ApplicationSuccess";
 import { useNavigate } from "react-router-dom";
+
 
 const Apply = () => {
   const { toast } = useToast();
@@ -388,22 +389,50 @@ if (showSuccess) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/30">
       {/* Header */}
-      <header className="bg-primary text-primary-foreground py-4 shadow-lg">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center gap-4">
-            <Link to="/">
-              <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary-foreground/10">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Home
-              </Button>
-            </Link>
-            <div className="flex items-center gap-2">
-              <FileText className="h-6 w-6" />
-              <h1 className="text-xl font-bold">NOC Application</h1>
-            </div>
-          </div>
+     <header className="bg-primary text-primary-foreground py-4 shadow-lg">
+  <div className="container mx-auto px-4">
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-4">
+        <Link to="/">
+          <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary-foreground/10">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Home
+          </Button>
+        </Link>
+        <div className="flex items-center gap-2">
+          <FileText className="h-6 w-6" />
+          <h1 className="text-xl font-bold">NOC Application</h1>
         </div>
-      </header>
+      </div>
+      {user && (
+        <div className="flex items-center gap-4">
+          <div className="text-right">
+            <p className="text-sm font-medium">{user.fullName || user.username}</p>
+            <p className="text-xs text-primary-foreground/70">{user.email}</p>
+          </div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={async () => {
+              const result = await logout();
+              if (result.success) {
+                toast({
+                  title: "Logged Out",
+                  description: "You have been successfully logged out.",
+                });
+                navigate("/");
+              }
+            }}
+            className="text-primary-foreground hover:bg-primary-foreground/10"
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Logout
+          </Button>
+        </div>
+      )}
+    </div>
+  </div>
+</header>
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
