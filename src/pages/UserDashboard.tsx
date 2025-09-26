@@ -9,21 +9,12 @@ import { Label } from "@/components/ui/label";
 import { LogOut, FileText, Search, Download, Plus, Clock, CheckCircle, XCircle, User, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from '@/contexts/AuthContext';
 
 const UserDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-
-  // Get logged-in user info
-  const [userInfo, setUserInfo] = useState(() => {
-    const stored = sessionStorage.getItem('userInfo');
-    return stored ? JSON.parse(stored) : null;
-  });
-
-  const [authToken, setAuthToken] = useState(() => {
-    return sessionStorage.getItem('auth-token');
-  });
-
+  const { user, isAuthenticated, logout } = useAuth();
   // User applications state
   const [userApplications, setUserApplications] = useState([]);
   const [isLoadingUserApplications, setIsLoadingUserApplications] = useState(true);
@@ -37,20 +28,27 @@ const UserDashboard = () => {
   const [userPointBalance, setUserPointBalance] = useState(0);
   const [isLoadingPointBalance, setIsLoadingPointBalance] = useState(false);
 
-  // Redirect if not logged in
+  // Redirect if not authenticated and auto-load data
   useEffect(() => {
-    if (!userInfo || !authToken) {
+    if (!isAuthenticated || !user) {
       navigate('/login');
+      return;
     }
-  }, [userInfo, authToken, navigate]);
-  const loadUserApplications = async () => {
-    if (!userInfo?.userId) return;
+    
+    // Auto-load data when authenticated
+    loadUserApplications();
+    loadUserPointBalance();
+  }, [isAuthenticated, user, navigate]);
+  
+ const loadUserApplications = async () => {
+    if (!user?.id) return;
     
     setIsLoadingUserApplications(true);
     try {
-      const response = await fetch(`/.netlify/functions/get-user-applications?userId=${userInfo.userId}`, {
+     const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
+      const response = await fetch(`/.netlify/functions/get-user-applications?userId=${user.id}`, {
         headers: {
-          'Authorization': `Bearer ${authToken}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });
@@ -78,14 +76,15 @@ const UserDashboard = () => {
     }
   };
 
-  const loadUserPointBalance = async () => {
-    if (!userInfo?.userId) return;
+ const loadUserPointBalance = async () => {
+    if (!user?.id) return;
     
     setIsLoadingPointBalance(true);
     try {
-      const response = await fetch(`/.netlify/functions/get-user-point-balance?userId=${userInfo.userId}`, {
+     const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
+      const response = await fetch(`/.netlify/functions/get-user-point-balance?userId=${user.id}`, {
         headers: {
-          'Authorization': `Bearer ${authToken}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });
@@ -120,8 +119,8 @@ const UserDashboard = () => {
     
     try {
       const response = await fetch(`/.netlify/functions/search-application?applicationNumber=${searchApplicationNumber.trim()}`, {
-        headers: {
-          'Authorization': `Bearer ${authToken}`,
+       headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token')}`,
           'Content-Type': 'application/json',
         },
       });
@@ -151,8 +150,8 @@ const UserDashboard = () => {
   const handleDownloadCertificate = async (applicationId: string, applicationNumber: string) => {
     try {
       const response = await fetch(`/.netlify/functions/download-certificate?applicationId=${applicationId}`, {
-        headers: {
-          'Authorization': `Bearer ${authToken}`,
+       headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token')}`,
         },
       });
 
@@ -189,25 +188,14 @@ const UserDashboard = () => {
   };
 
   const handleLogout = async () => {
-    sessionStorage.removeItem('auth-token');
-    sessionStorage.removeItem('userInfo');
-    
-    try {
-      await fetch('/.netlify/functions/logout', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${authToken}`
-        }
+    const result = await logout();
+    if (result.success) {
+      toast({
+        title: "Logged Out",
+        description: "You have been successfully logged out.",
       });
-    } catch (error) {
-      console.log('Logout endpoint call failed:', error);
+      navigate("/");
     }
-    
-    toast({
-      title: "Logged Out",
-      description: "You have been successfully logged out.",
-    });
-    navigate("/");
   };
 
   const getStatusBadge = (status: string) => {
@@ -235,14 +223,14 @@ const UserDashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-xl font-bold">User Dashboard</h1>
-              <p className="text-sm text-primary-foreground/80">
-                Welcome, {userInfo?.name || userInfo?.username || 'User'}
+             <p className="text-sm text-primary-foreground/80">
+                Welcome, {user?.fullName || user?.username || 'User'}
               </p>
             </div>
             <div className="flex items-center gap-4">
-              <div className="text-right">
-                <p className="text-sm font-medium">{userInfo?.name || userInfo?.username}</p>
-                <p className="text-xs text-primary-foreground/70">{userInfo?.email}</p>
+             <div className="text-right">
+                <p className="text-sm font-medium">{user?.fullName || user?.username}</p>
+                <p className="text-xs text-primary-foreground/70">{user?.email}</p>
               </div>
               <Button 
                 variant="ghost" 
