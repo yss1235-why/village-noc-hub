@@ -43,10 +43,10 @@ export const handler = async (event, context) => {
         const { neon } = await import('@neondatabase/serverless');
         const sql = neon(process.env.NETLIFY_DATABASE_URL);
         
-        const user = await sql`
+       const user = await sql`
           SELECT is_approved, point_balance 
           FROM users 
-          WHERE id = ${authResult.user.id || authResult.user.userId}
+          WHERE id = ${authResult.user.id}
         `;
         
         if (user.length > 0) {
@@ -65,17 +65,17 @@ export const handler = async (event, context) => {
       headers,
       body: JSON.stringify({
         success: true,
-        user: {
-          id: authResult.user.id || authResult.user.userId,
-          username: authResult.user.username,
-          email: authResult.user.email,
-          fullName: authResult.user.fullName || authResult.user.name,
-          role: authResult.user.role,
-          pointBalance: currentPointBalance,
-          isApproved: currentApprovalStatus,
-          villageId: authResult.user.villageId,
-          villageName: authResult.user.villageName
-        }
+       user: {
+              id: authResult.user.id,
+              username: authResult.user.username,
+              email: authResult.user.email,
+              fullName: authResult.user.fullName || authResult.user.name,
+              role: authResult.user.role,
+              pointBalance: currentPointBalance,
+              isApproved: currentApprovalStatus,
+              villageId: authResult.user.villageId,
+              villageName: authResult.user.villageName
+            }
       })
     };
   } catch (error) {
