@@ -34,7 +34,7 @@ export const handler = async (event, context) => {
       };
     }
 
-    // For applicant users, get current approval status from database
+   // For applicant users, get current approval status from database
     let currentApprovalStatus = authResult.user.isApproved !== false;
     let currentPointBalance = authResult.user.pointBalance || 0;
     
