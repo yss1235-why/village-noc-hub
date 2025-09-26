@@ -1,6 +1,8 @@
 import { neon } from '@neondatabase/serverless';
 import crypto from 'crypto';
 import { requireMinimumPoints } from './utils/auth-middleware.js';
+import sharp from 'sharp';
+import pdf2pic from 'pdf2pic';
 
 // SECURITY: CORS origin validation
 const getAllowedOrigin = (event) => {
@@ -34,8 +36,6 @@ const getAllowedOrigin = (event) => {
 };
 
 // SECURITY: Secure file processing with image conversion
-const sharp = require('sharp');
-const pdf2pic = require('pdf2pic');
 
 const secureFileProcessing = async (base64Data) => {
   try {
@@ -106,7 +106,7 @@ export const handler = async (event, context) => {
   const sql = neon(process.env.NETLIFY_DATABASE_URL);
   const headers = {
     'Access-Control-Allow-Origin': getAllowedOrigin(event),
-    'Access-Control-Allow-Headers': 'Content-Type',
+   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE',
     'Access-Control-Allow-Credentials': 'true',
     'Vary': 'Origin'
@@ -168,7 +168,7 @@ export const handler = async (event, context) => {
 
    if (event.httpMethod === 'POST') {
       // Check authentication and points BEFORE processing
-      const authResult = requireMinimumPoints(event, 15);
+     const authResult = await requireMinimumPoints(event, 15);
       if (!authResult.isValid) {
         return {
           statusCode: authResult.statusCode,
@@ -360,7 +360,7 @@ if (event.httpMethod === 'GET') {
               };
      } else {
         // Get user's own applications - requires authentication
-        const authResult = requireMinimumPoints(event, 0); // Just need to be authenticated
+        const authResult = await requireMinimumPoints(event, 0); // Just need to be authenticated
         if (!authResult.isValid) {
           return {
             statusCode: authResult.statusCode,
