@@ -12,35 +12,27 @@ import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useAuth } from '@/contexts/AuthContext';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-
- // Get logged-in village info
-  const [villageInfo, setVillageInfo] = useState(() => {
-    const stored = sessionStorage.getItem('userInfo');
-    return stored ? JSON.parse(stored) : null;
-  });
-
-  const [authToken, setAuthToken] = useState(() => {
-    return sessionStorage.getItem('auth-token');
-  });
+ const { user, isAuthenticated, logout } = useAuth();
 
   // Village admin point balance state
   const [adminPointBalance, setAdminPointBalance] = useState(0);
   const [isLoadingPointBalance, setIsLoadingPointBalance] = useState(false);
 
- // Redirect if not logged in
+// Redirect if not authenticated as village admin and auto-load data
   useEffect(() => {
-    if (!villageInfo || !authToken) {
+    if (!isAuthenticated || !user || user.role !== 'village_admin') {
       navigate('/admin');
     } else {
-    loadApplications();
+      loadApplications();
       loadProfileInfo();
       loadAdminPointBalance();
     }
-  }, [villageInfo, authToken, navigate]);
+  }, [isAuthenticated, user, navigate]);
 
   // Password change state
   const [showChangePassword, setShowChangePassword] = useState(false);
@@ -146,17 +138,18 @@ const AdminDashboard = () => {
 
     setIsChangingPassword(true);
 
-    try {
-   const response = await fetch('/.netlify/functions/change-village-admin-password', {
+   try {
+      const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
+      const response = await fetch('/.netlify/functions/change-village-admin-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           currentPassword: passwordForm.currentPassword,
           newPassword: passwordForm.newPassword,
-          villageId: villageInfo?.villageId
+          villageId: user?.villageId
         })
       });
 
@@ -191,12 +184,13 @@ const AdminDashboard = () => {
     }
   };
 
-  const loadVillageInfo = async () => {
+ const loadVillageInfo = async () => {
     setIsLoadingVillageInfo(true);
     try {
-   const response = await fetch(`/.netlify/functions/update-village-info?villageId=${villageInfo?.villageId}`, {
+      const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
+      const response = await fetch(`/.netlify/functions/update-village-info?villageId=${user?.villageId}`, {
         headers: {
-          'Authorization': `Bearer ${authToken}`
+          'Authorization': `Bearer ${token}`
         }
       });
       const result = await response.json();
@@ -229,15 +223,16 @@ const AdminDashboard = () => {
     e.preventDefault();
     setIsUpdatingVillage(true);
 
-    try {
+   try {
+      const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
       const response = await fetch('/.netlify/functions/update-village-info', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          villageId: villageInfo?.villageId,
+          villageId: user?.villageId,
           villageName: villageForm.villageName,
           district: villageForm.district,
           state: villageForm.state,
@@ -249,7 +244,6 @@ const AdminDashboard = () => {
           adminEmail: villageForm.adminEmail
         })
       });
-
       const result = await response.json();
 
       if (response.ok) {
@@ -310,9 +304,10 @@ Headman/Chairman
 const loadDocuments = async () => {
     setIsLoadingDocuments(true);
     try {
-     const response = await fetch(`/.netlify/functions/get-village-documents?villageId=${villageInfo?.villageId}`, {
+      const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
+      const response = await fetch(`/.netlify/functions/get-village-documents?villageId=${user?.villageId}`, {
         headers: {
-          'Authorization': `Bearer ${authToken}`
+          'Authorization': `Bearer ${token}`
         }
       });
       const result = await response.json();
@@ -385,16 +380,17 @@ const loadDocuments = async () => {
           try {
             const base64String = reader.result as string;
             
-         const response = await fetch(`/.netlify/functions/upload-village-document?villageId=${villageInfo?.villageId}&documentType=${documentType}`, {
+        const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
+            const response = await fetch(`/.netlify/functions/upload-village-document?villageId=${user?.villageId}&documentType=${documentType}`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authToken}`
+                'Authorization': `Bearer ${token}`
               },
               body: JSON.stringify({
                 document: base64String,
                 documentType,
-                villageId: villageInfo?.villageId
+                villageId: user?.villageId
               })
             });
 
@@ -460,19 +456,19 @@ const handleUpdateTemplate = async () => {
 
   setIsUpdatingTemplate(true);
   
-  try {
-  const response = await fetch('/.netlify/functions/update-certificate-template', {
+try {
+    const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
+    const response = await fetch('/.netlify/functions/update-certificate-template', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          villageId: villageInfo?.villageId,
+          villageId: user?.villageId,
           template: certificateTemplate
         })
       });
-
       const result = await response.json();
 
       if (response.ok) {
@@ -498,15 +494,15 @@ const handleUpdateTemplate = async () => {
     }
   };
 
-  const loadAdminPointBalance = async () => {
-    if (!villageInfo?.villageAdminId && !villageInfo?.userId) return;
+ const loadAdminPointBalance = async () => {
+    if (!user?.id) return;
     
     setIsLoadingPointBalance(true);
     try {
-      const adminId = villageInfo.villageAdminId || villageInfo.userId;
-      const response = await fetch(`/.netlify/functions/get-admin-point-balance?adminId=${adminId}`, {
+      const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
+      const response = await fetch(`/.netlify/functions/get-admin-point-balance?adminId=${user.id}`, {
         headers: {
-          'Authorization': `Bearer ${authToken}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });
@@ -526,9 +522,10 @@ const handleUpdateTemplate = async () => {
 
   const loadProfileInfo = async () => {
     try {
-     const response = await fetch(`/.netlify/functions/get-admin-profile?villageId=${villageInfo?.villageId}`, {
+      const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
+      const response = await fetch(`/.netlify/functions/get-admin-profile?villageId=${user?.villageId}`, {
         headers: {
-          'Authorization': `Bearer ${authToken}`
+          'Authorization': `Bearer ${token}`
         }
       });
       const result = await response.json();
@@ -573,15 +570,16 @@ const handleUpdateTemplate = async () => {
 
     setIsUpdatingProfile(true);
 
-    try {
-     const response = await fetch('/.netlify/functions/update-admin-profile', {
+   try {
+      const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
+      const response = await fetch('/.netlify/functions/update-admin-profile', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          villageId: villageInfo?.villageId,
+          villageId: user?.villageId,
           adminName: profileForm.adminName,
           email: profileForm.email,
           phone: profileForm.phone,
@@ -598,12 +596,7 @@ const handleUpdateTemplate = async () => {
           description: "Your profile has been updated successfully.",
         });
         
-       // Update sessionStorage if email changed
-        if (villageInfo.email !== profileForm.email) {
-          const updatedVillageInfo = { ...villageInfo, email: profileForm.email };
-          sessionStorage.setItem('userInfo', JSON.stringify(updatedVillageInfo));
-          setVillageInfo(updatedVillageInfo);
-        }
+        // Profile updated successfully - AuthContext will handle user data updates
         
         setShowProfileManager(false);
         setProfileForm(prev => ({
@@ -625,44 +618,45 @@ const handleUpdateTemplate = async () => {
         description: "Failed to update profile. Please try again.",
         variant: "destructive",
       });
-    } finally {
+   } finally {
       setIsUpdatingProfile(false);
     }
   };
- const [applications, setApplications] = useState([]);
-  const [isLoadingApplications, setIsLoadingApplications] = useState(true);
-const handleLogout = async () => {
-    // Clear tokens from storage
-    sessionStorage.removeItem('auth-token');
-    sessionStorage.removeItem('userInfo');
-    
-    // Call logout endpoint to invalidate server-side session
-    try {
-      await fetch('/.netlify/functions/logout', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${authToken}`
-        }
-      });
-    } catch (error) {
-      console.log('Logout endpoint call failed:', error);
-    }
-    
-    toast({
-      title: "Logged Out",
-      description: "You have been successfully logged out.",
-    });
-    navigate("/");
-  };
 
+  // Application state
+  const [applications, setApplications] = useState([]);
+  const [isLoadingApplications, setIsLoadingApplications] = useState(true);
+  const [applications, setApplications] = useState([]);
+  const [isLoadingApplications, setIsLoadingApplications] = useState(true);
+
+  const handleLogout = async () => {
+    const result = await logout();
+    if (result.success) {
+      toast({
+        title: "Logged Out",
+        description: "You have been successfully logged out.",
+      });
+      navigate("/");
+    }
+  };
+    const result = await logout();
+    if (result.success) {
+      toast({
+        title: "Logged Out",
+        description: "You have been successfully logged out.",
+      });
+      navigate("/");
+    }
+  };
   const loadApplications = async () => {
-    if (!villageInfo?.villageId) return;
+    if (!user?.villageId) return;
     
     setIsLoadingApplications(true);
     try {
-     const response = await fetch(`/.netlify/functions/get-village-applications?villageId=${villageInfo.villageId}`, {
+      const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
+      const response = await fetch(`/.netlify/functions/get-village-applications?villageId=${user.villageId}`, {
         headers: {
-          'Authorization': `Bearer ${authToken}`
+          'Authorization': `Bearer ${token}`
         }
       });
       const result = await response.json();
@@ -711,12 +705,13 @@ const handleApproveFromModal = async () => {
     if (!selectedApplication) return;
     
     setIsProcessingAction(true);
-    try {
-     const response = await fetch('/.netlify/functions/update-application-status', {
+   try {
+      const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
+      const response = await fetch('/.netlify/functions/update-application-status', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           applicationId: selectedApplication.id,
@@ -769,12 +764,13 @@ const handleApproveFromModal = async () => {
     }
     
     setIsProcessingAction(true);
-    try {
-  const response = await fetch('/.netlify/functions/update-application-status', {
+   try {
+      const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
+      const response = await fetch('/.netlify/functions/update-application-status', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           applicationId: selectedApplication.id,
@@ -826,8 +822,8 @@ const handleApproveFromModal = async () => {
           <div className="flex items-center justify-between">
            <div>
               <h1 className="text-xl font-bold">Admin Dashboard</h1>
-              <p className="text-sm text-primary-foreground/80">
-                {villageInfo?.villageName || 'Village'} - Certificate Management
+             <p className="text-sm text-primary-foreground/80">
+                {user?.villageName || 'Village'} - Certificate Management
               </p>
             </div>
             <div className="flex gap-2">
@@ -994,12 +990,13 @@ const handleApproveFromModal = async () => {
   onClick={async () => {
     setIsLoadingApplicationDetails(true);
     try {
-    const response = await fetch(`/.netlify/functions/get-application-details?applicationId=${app.id}`, {
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${authToken}`
-  }
-});
+   const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
+      const response = await fetch(`/.netlify/functions/get-application-details?applicationId=${app.id}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
       const result = await response.json();
       if (response.ok) {
         setSelectedApplication(result.application);
