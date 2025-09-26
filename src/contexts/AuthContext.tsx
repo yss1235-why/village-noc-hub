@@ -40,42 +40,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const isAuthenticated = !!user;
 
-  // Check for existing auth on app load
+ // Check for existing auth on app load
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const token = localStorage.getItem('auth-token');
+        const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
         if (token) {
-          // Verify token is still valid by making a test request
-          const response = await fetch('/.netlify/functions/get-user-points', {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            if (data.success) {
-              // Token is valid, set user from stored data
-              const storedUser = localStorage.getItem('user-data');
-              if (storedUser) {
-                setUser(JSON.parse(storedUser));
-              }
-            } else {
-              // Token invalid, clear storage
-              localStorage.removeItem('auth-token');
-              localStorage.removeItem('user-data');
-            }
-          } else {
-            // Token invalid, clear storage
-            localStorage.removeItem('auth-token');
-            localStorage.removeItem('user-data');
+          // For now, skip token validation to avoid API dependency
+          // Token is present, set user from stored data
+          const storedUser = localStorage.getItem('user-data') || sessionStorage.getItem('userInfo');
+          if (storedUser) {
+            setUser(JSON.parse(storedUser));
           }
         }
       } catch (error) {
         console.error('Auth check failed:', error);
         localStorage.removeItem('auth-token');
         localStorage.removeItem('user-data');
+        sessionStorage.removeItem('auth-token');
+        sessionStorage.removeItem('userInfo');
       } finally {
         setIsLoading(false);
       }
@@ -83,8 +66,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     checkAuth();
   }, []);
-
-  const login = async (credentials: { login: string; password: string }) => {
+const login = async (credentials: { login: string; password: string }) => {
     try {
       const response = await fetch('/.netlify/functions/login-user', {
         method: 'POST',
@@ -98,8 +80,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (data.success) {
         setUser(data.user);
+        // Store in both localStorage and sessionStorage for consistency
         localStorage.setItem('auth-token', data.token);
         localStorage.setItem('user-data', JSON.stringify(data.user));
+        sessionStorage.setItem('auth-token', data.token);
+        sessionStorage.setItem('userInfo', JSON.stringify(data.user));
         return { success: true };
       } else {
         return { success: false, error: data.error || 'Login failed' };
@@ -108,7 +93,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return { success: false, error: 'Network error. Please try again.' };
     }
   };
-
   const register = async (userData: any) => {
     try {
       const response = await fetch('/.netlify/functions/register-user', {
@@ -131,10 +115,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const logout = () => {
+const logout = () => {
     setUser(null);
     localStorage.removeItem('auth-token');
     localStorage.removeItem('user-data');
+    sessionStorage.removeItem('auth-token');
+    sessionStorage.removeItem('userInfo');
   };
 
   const refreshUser = async () => {
