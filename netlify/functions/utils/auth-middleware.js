@@ -195,7 +195,7 @@ export const requireApprovedUser = async (event) => {
   
   // For applicant role, check current approval status from database
   if (authResult.user.role === 'applicant') {
-    const currentUserData = await getCurrentUserData(authResult.user.id || authResult.user.userId);
+    const currentUserData = await getCurrentUserData(authResult.user.id);
     
     if (!currentUserData || !currentUserData.is_approved) {
       return {
