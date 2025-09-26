@@ -19,53 +19,33 @@ const SystemAdminLogin = () => {
 const { toast } = useToast();
 const { login } = useAuth();
 
-  const handleLogin = async (e: React.FormEvent) => {
+ const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      const response = await fetch('/.netlify/functions/auth-system-admin', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: credentials.email,
-          password: credentials.password
-        })
-      });
+      const loginResult = await login({
+        login: credentials.email,
+        password: credentials.password
+      }, 'system_admin');
 
-      const result = await response.json();
-if (response.ok && result.success) {
-  const loginResult = await login({
-    login: credentials.email,
-    password: credentials.password
-  }, 'system_admin');
-
-  if (loginResult.success) {
-    toast({
-      title: "Login Successful",
-      description: "Welcome to the system administration dashboard.",
-    });
-    navigate("/system-admin/dashboard");
-  } else {
-    toast({
-      title: "Login Failed",
-      description: loginResult.error || "Authentication failed.",
-      variant: "destructive",
-    });
-  }
-} else {
+      if (loginResult.success) {
+        toast({
+          title: "Login Successful",
+          description: "Welcome to the system administration dashboard.",
+        });
+        navigate("/system-admin/dashboard");
+      } else {
         toast({
           title: "Login Failed",
-          description: result.error || "Invalid system administrator credentials.",
+          description: loginResult.error || "Invalid email or password.",
           variant: "destructive",
         });
       }
     } catch (error) {
       toast({
         title: "Login Failed",
-        description: "Connection error. Please try again.",
+        description: "Unable to connect to server. Please try again.",
         variant: "destructive",
       });
     } finally {
