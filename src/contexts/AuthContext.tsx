@@ -74,7 +74,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           } catch (validationError) {
             console.warn('Token validation failed, falling back to stored data:', validationError);
             // Fallback to stored user data for offline functionality
-            const storedUser = localStorage.getItem('user-data') || sessionStorage.getItem('userInfo');
+           const storedUser = localStorage.getItem('user-data');
             if (storedUser) {
               try {
                 const userData = JSON.parse(storedUser);
@@ -96,12 +96,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       } catch (error) {
         console.error('Auth check failed:', error);
-        // Clear all authentication artifacts
-        localStorage.removeItem('auth-token');
-        localStorage.removeItem('user-data');
-        sessionStorage.removeItem('auth-token');
-        sessionStorage.removeItem('userInfo');
-        setUser(null);
+       // Clear authentication artifacts from primary storage only
+          localStorage.removeItem('auth-token');
+          localStorage.removeItem('user-data');
+          setUser(null);
       } finally {
         setIsLoading(false);
       }
@@ -145,11 +143,9 @@ const login = async (credentials: { login: string; password: string }, loginType
 
         setUser(standardizedUser);
         
-        // Consistent storage approach - use localStorage as primary, sessionStorage as backup
-        localStorage.setItem('auth-token', data.token);
-        localStorage.setItem('user-data', JSON.stringify(standardizedUser));
-        sessionStorage.setItem('auth-token', data.token);
-        sessionStorage.setItem('userInfo', JSON.stringify(standardizedUser));
+       // Single storage approach - use localStorage only
+            localStorage.setItem('auth-token', data.token);
+            localStorage.setItem('user-data', JSON.stringify(standardizedUser));
         
         return { success: true, user: standardizedUser };
       } else {
@@ -162,18 +158,17 @@ const login = async (credentials: { login: string; password: string }, loginType
   };
 const logout = async () => {
     // Get token before clearing state
-    const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
+   const token = localStorage.getItem('auth-token');
     
     // Clear user state immediately to prevent any UI inconsistencies
     setUser(null);
     
-    // Comprehensive cleanup of all authentication artifacts
-    const authKeys = ['auth-token', 'user-data', 'userInfo'];
-    authKeys.forEach(key => {
-      localStorage.removeItem(key);
-      sessionStorage.removeItem(key);
-    });
-    
+    // Cleanup of authentication artifacts from primary storage
+        const authKeys = ['auth-token', 'user-data'];
+        authKeys.forEach(key => {
+          localStorage.removeItem(key);
+        });
+            
     // Clear any other potentially sensitive cached data
     const sensitiveKeys = ['userApplications', 'adminData', 'villageData', 'userPoints'];
     sensitiveKeys.forEach(key => {
