@@ -20,7 +20,7 @@ import { useNavigate } from "react-router-dom";
 const Apply = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { isAuthenticated, user, isLoading, refreshUser } = useAuth();
+ const { isAuthenticated, user, isLoading, refreshUser, logout } = useAuth();
   const [showSuccess, setShowSuccess] = useState(false);
   const [submittedAppNumber, setSubmittedAppNumber] = useState('');
 
@@ -273,6 +273,17 @@ const handleCheckStatus = (applicationNumber: string) => {
 
 const handleBackToHome = () => {
   navigate('/');
+};
+
+const handleLogout = async () => {
+  const result = await logout();
+  if (result.success) {
+    toast({
+      title: "Logged Out",
+      description: "You have been successfully logged out.",
+    });
+    navigate("/");
+  }
 };
 
 // Show loading while checking authentication
