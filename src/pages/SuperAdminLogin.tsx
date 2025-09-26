@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { ArrowLeft, Crown, Eye, EyeOff } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 const SuperAdminLogin = () => {
   const [credentials, setCredentials] = useState({
@@ -15,50 +16,43 @@ const SuperAdminLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
-  const navigate = useNavigate();
-  const { toast } = useToast();
+ const navigate = useNavigate();
+const { toast } = useToast();
+const { login } = useAuth();
 
  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
+  e.preventDefault();
+  setIsLoading(true);
 
-    try {
-      const response = await fetch('/.netlify/functions/auth-super-admin', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: credentials.username,
-          password: credentials.password
-        })
+  try {
+    const loginResult = await login({
+      login: credentials.username,
+      password: credentials.password
+    }, 'super_admin');
+
+    if (loginResult.success) {
+      toast({
+        title: "Login Successful",
+        description: "Welcome to the super admin dashboard.",
       });
-
-      const result = await response.json();
-
-      if (response.ok && result.success) {
-        toast({
-          title: "Login Successful",
-          description: "Welcome to the super admin dashboard.",
-        });
-        navigate("/super-admin/dashboard");
-      } else {
-        toast({
-          title: "Login Failed",
-          description: result.error || "Invalid super admin credentials.",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
+      navigate("/super-admin/dashboard");
+    } else {
       toast({
         title: "Login Failed",
-        description: "Connection error. Please try again.",
+        description: loginResult.error || "Invalid super admin credentials.",
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
-  };
+  } catch (error) {
+    toast({
+      title: "Login Failed",
+      description: "Connection error. Please try again.",
+      variant: "destructive",
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/30">
