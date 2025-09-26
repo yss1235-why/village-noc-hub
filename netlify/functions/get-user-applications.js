@@ -22,8 +22,8 @@ export const handler = async (event, context) => {
     };
   }
 
-  try {
-    const authResult = requireApprovedUser(event);
+try {
+    const authResult = await requireApprovedUser(event);
     if (!authResult.isValid) {
       return {
         statusCode: authResult.statusCode,
