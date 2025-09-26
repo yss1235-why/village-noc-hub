@@ -168,27 +168,16 @@ const logout = async () => {
           localStorage.removeItem(key);
         });
             
-    // Clear any other potentially sensitive cached data
+ // Clear any other potentially sensitive cached data from primary storage only
     const sensitiveKeys = ['userApplications', 'adminData', 'villageData', 'userPoints'];
     sensitiveKeys.forEach(key => {
       localStorage.removeItem(key);
-      sessionStorage.removeItem(key);
     });
     
-    // Call backend logout endpoint to invalidate server-side session
+    // Token invalidation is handled by removing it from storage
+    // Backend tokens are stateless JWTs that expire naturally
     if (token) {
-      try {
-        await fetch('/.netlify/functions/logout', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-      } catch (error) {
-        console.warn('Backend logout failed, but local logout completed:', error);
-        // Local logout is more critical than backend logout
-      }
+      console.log('Local logout completed successfully');
     }
     
     return { success: true };
