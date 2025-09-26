@@ -618,7 +618,7 @@ try {
         description: "Failed to update profile. Please try again.",
         variant: "destructive",
       });
-   } finally {
+  } finally {
       setIsUpdatingProfile(false);
     }
   };
@@ -626,19 +626,8 @@ try {
   // Application state
   const [applications, setApplications] = useState([]);
   const [isLoadingApplications, setIsLoadingApplications] = useState(true);
-  const [applications, setApplications] = useState([]);
-  const [isLoadingApplications, setIsLoadingApplications] = useState(true);
 
   const handleLogout = async () => {
-    const result = await logout();
-    if (result.success) {
-      toast({
-        title: "Logged Out",
-        description: "You have been successfully logged out.",
-      });
-      navigate("/");
-    }
-  };
     const result = await logout();
     if (result.success) {
       toast({
