@@ -8,8 +8,9 @@ interface User {
   role: string;
   pointBalance: number;
   isApproved: boolean;
+  villageId?: string;
+  villageName?: string;
 }
-
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
@@ -76,12 +77,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
            const storedUser = localStorage.getItem('user-data');
             if (storedUser) {
               try {
-                const userData = JSON.parse(storedUser);
+                const rawUserData = JSON.parse(storedUser);
                 // Basic token structure validation
                 const tokenParts = token.split('.');
                 if (tokenParts.length === 3) {
-                  // JWT structure is valid, use stored data
-                  setUser(userData);
+                  // Apply standardized user object format to stored data
+                  const standardizedUser = {
+                    id: rawUserData.id,
+                    username: rawUserData.username || rawUserData.email,
+                    email: rawUserData.email,
+                    fullName: rawUserData.fullName || rawUserData.name || rawUserData.email,
+                    role: rawUserData.role,
+                    pointBalance: rawUserData.pointBalance || 0,
+                    isApproved: rawUserData.isApproved !== false,
+                    villageId: rawUserData.villageId,
+                    villageName: rawUserData.villageName
+                  };
+                  setUser(standardizedUser);
+                  // Sync standardized data back to storage
+                  localStorage.setItem('user-data', JSON.stringify(standardizedUser));
                 } else {
                   throw new Error('Invalid token structure');
                 }
@@ -188,21 +202,31 @@ const logout = async () => {
       const token = localStorage.getItem('auth-token');
       if (!token) return;
 
-      const response = await fetch('/.netlify/functions/get-user-points', {
+      const response = await fetch('/.netlify/functions/validate-token', {
+        method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
 
       if (response.ok) {
         const data = await response.json();
-        if (data.success && user) {
-          const updatedUser = {
-            ...user,
-            pointBalance: data.user.currentBalance || 0
+        if (data.success) {
+          // Complete overwrite with standardized user object from backend
+          const standardizedUser = {
+            id: data.user.id,
+            username: data.user.username || data.user.email,
+            email: data.user.email,
+            fullName: data.user.fullName || data.user.name || data.user.email,
+            role: data.user.role,
+            pointBalance: data.user.pointBalance || 0,
+            isApproved: data.user.isApproved !== false,
+            villageId: data.user.villageId,
+            villageName: data.user.villageName
           };
-          setUser(updatedUser);
-          localStorage.setItem('user-data', JSON.stringify(updatedUser));
+          setUser(standardizedUser);
+          localStorage.setItem('user-data', JSON.stringify(standardizedUser));
         }
       }
     } catch (error) {
@@ -210,7 +234,7 @@ const logout = async () => {
     }
   };
 
- const validateToken = async (): Promise<boolean> => {
+const validateToken = async (): Promise<boolean> => {
     try {
       const token = localStorage.getItem('auth-token');
       if (!token) return false;
@@ -225,7 +249,23 @@ const logout = async () => {
 
       if (response.ok) {
         const data = await response.json();
-        return data.success === true;
+        if (data.success) {
+          // Synchronize user data with backend during validation
+          const standardizedUser = {
+            id: data.user.id,
+            username: data.user.username || data.user.email,
+            email: data.user.email,
+            fullName: data.user.fullName || data.user.name || data.user.email,
+            role: data.user.role,
+            pointBalance: data.user.pointBalance || 0,
+            isApproved: data.user.isApproved !== false,
+            villageId: data.user.villageId,
+            villageName: data.user.villageName
+          };
+          setUser(standardizedUser);
+          localStorage.setItem('user-data', JSON.stringify(standardizedUser));
+          return true;
+        }
       }
       return false;
     } catch (error) {
@@ -233,7 +273,6 @@ const logout = async () => {
       return false;
     }
   };
-
   const register = async (userData: any) => {
     try {
       const response = await fetch('/.netlify/functions/register-user', {
