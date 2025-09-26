@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { ArrowLeft, Shield, Eye, EyeOff } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 const AdminLogin = () => {
   const [credentials, setCredentials] = useState({
@@ -17,59 +18,27 @@ const AdminLogin = () => {
   
   const navigate = useNavigate();
   const { toast } = useToast();
-
+  const { login } = useAuth();
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      const response = await fetch('/.netlify/functions/auth-village-admin', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: credentials.email,
-          password: credentials.password
-        })
-      });
+      const loginResult = await login({
+        login: credentials.email,
+        password: credentials.password
+      }, 'admin');
 
-      const result = await response.json();
-
-      if (response.ok && result.success) {
+      if (loginResult.success) {
         toast({
           title: "Login Successful",
-          description: `Welcome to ${result.village.name} admin dashboard.`,
+          description: "Welcome to the village admin dashboard.",
         });
-        // Store JWT token securely (HTTP-only cookie is preferred, but store token as fallback)
-        if (result.token) {
-          // Store token in sessionStorage for API calls
-          sessionStorage.setItem('auth-token', result.token);
-        }
-
-        // Store minimal user info (non-sensitive data only)
-        sessionStorage.setItem('userInfo', JSON.stringify({
-          id: result.user.id,
-          email: result.user.email,
-          role: result.user.role,
-          villageId: result.village.id,
-          villageName: result.village.name
-        }));
-        // Check if password change is required
-        if (result.requirePasswordChange) {
-          toast({
-            title: "Password Change Required",
-            description: "You must change your default password before proceeding.",
-            variant: "default",
-          });
-          // You could navigate to a password change page here
-          // For now, navigate to dashboard where they can change it
-        }
         navigate("/admin/dashboard");
       } else {
         toast({
           title: "Login Failed",
-          description: result.error || "Invalid email or password.",
+          description: loginResult.error || "Invalid email or password.",
           variant: "destructive",
         });
       }
@@ -83,7 +52,6 @@ const AdminLogin = () => {
       setIsLoading(false);
     }
   };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/30">
       {/* Header */}
