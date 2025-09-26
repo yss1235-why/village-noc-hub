@@ -62,9 +62,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               if (data.success) {
                 // Token is valid, set user from validated data
                 setUser(data.user);
-                // Sync storage with validated user data
-                localStorage.setItem('user-data', JSON.stringify(data.user));
-                sessionStorage.setItem('userInfo', JSON.stringify(data.user));
+               // Sync storage with validated user data
+                  localStorage.setItem('user-data', JSON.stringify(data.user));
               } else {
                 throw new Error('Token validation failed');
               }
@@ -224,7 +223,7 @@ const logout = async () => {
 
  const validateToken = async (): Promise<boolean> => {
     try {
-      const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
+      const token = localStorage.getItem('auth-token');
       if (!token) return false;
 
       const response = await fetch('/.netlify/functions/validate-token', {
