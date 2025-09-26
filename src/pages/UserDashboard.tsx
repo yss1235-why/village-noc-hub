@@ -30,7 +30,7 @@ const UserDashboard = () => {
 const [pointTransactions, setPointTransactions] = useState([]);
 const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
 const [transactionFilters, setTransactionFilters] = useState({
-  type: '',
+  type: 'all',
   startDate: '',
   endDate: ''
 });
@@ -94,7 +94,7 @@ const loadPointTransactions = async () => {
     const token = localStorage.getItem('auth-token');
     const params = new URLSearchParams();
     
-    if (transactionFilters.type) params.append('type', transactionFilters.type);
+   if (transactionFilters.type && transactionFilters.type !== 'all') params.append('type', transactionFilters.type);
     if (transactionFilters.startDate) params.append('startDate', transactionFilters.startDate);
     if (transactionFilters.endDate) params.append('endDate', transactionFilters.endDate);
     
@@ -509,8 +509,8 @@ const loadPointTransactions = async () => {
             <SelectTrigger>
               <SelectValue placeholder="All Types" />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">All Types</SelectItem>
+           <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
               <SelectItem value="ADD">Credits</SelectItem>
               <SelectItem value="DEDUCT">Debits</SelectItem>
             </SelectContent>
@@ -542,8 +542,8 @@ const loadPointTransactions = async () => {
           </Button>
           <Button 
             variant="outline" 
-            onClick={() => {
-              setTransactionFilters({ type: '', startDate: '', endDate: '' });
+           onClick={() => {
+              setTransactionFilters({ type: 'all', startDate: '', endDate: '' });
               loadPointTransactions();
             }}
           >
