@@ -45,7 +45,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
+        const token = localStorage.getItem('auth-token');
         if (token) {
           // Enhanced token validation with backend verification
           try {
