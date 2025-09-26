@@ -14,10 +14,11 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (credentials: { login: string; password: string }) => Promise<{ success: boolean; error?: string }>;
+  login: (credentials: { login: string; password: string }, loginType?: 'user' | 'admin' | 'super_admin' | 'system_admin') => Promise<{ success: boolean; error?: string; user?: User }>;
   register: (userData: any) => Promise<{ success: boolean; error?: string }>;
-  logout: () => void;
+  logout: () => Promise<{ success: boolean }>;
   refreshUser: () => Promise<void>;
+  validateToken: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -40,25 +41,67 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const isAuthenticated = !!user;
 
- // Check for existing auth on app load
+// Check for existing auth on app load with enhanced token validation
   useEffect(() => {
     const checkAuth = async () => {
       try {
         const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
         if (token) {
-          // For now, skip token validation to avoid API dependency
-          // Token is present, set user from stored data
-          const storedUser = localStorage.getItem('user-data') || sessionStorage.getItem('userInfo');
-          if (storedUser) {
-            setUser(JSON.parse(storedUser));
+          // Enhanced token validation with backend verification
+          try {
+            const response = await fetch('/.netlify/functions/validate-token', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              }
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              if (data.success) {
+                // Token is valid, set user from validated data
+                setUser(data.user);
+                // Sync storage with validated user data
+                localStorage.setItem('user-data', JSON.stringify(data.user));
+                sessionStorage.setItem('userInfo', JSON.stringify(data.user));
+              } else {
+                throw new Error('Token validation failed');
+              }
+            } else {
+              throw new Error('Token validation request failed');
+            }
+          } catch (validationError) {
+            console.warn('Token validation failed, falling back to stored data:', validationError);
+            // Fallback to stored user data for offline functionality
+            const storedUser = localStorage.getItem('user-data') || sessionStorage.getItem('userInfo');
+            if (storedUser) {
+              try {
+                const userData = JSON.parse(storedUser);
+                // Basic token structure validation
+                const tokenParts = token.split('.');
+                if (tokenParts.length === 3) {
+                  // JWT structure is valid, use stored data
+                  setUser(userData);
+                } else {
+                  throw new Error('Invalid token structure');
+                }
+              } catch (parseError) {
+                throw new Error('Stored user data corrupted');
+              }
+            } else {
+              throw new Error('No valid user data available');
+            }
           }
         }
       } catch (error) {
         console.error('Auth check failed:', error);
+        // Clear all authentication artifacts
         localStorage.removeItem('auth-token');
         localStorage.removeItem('user-data');
         sessionStorage.removeItem('auth-token');
         sessionStorage.removeItem('userInfo');
+        setUser(null);
       } finally {
         setIsLoading(false);
       }
@@ -66,9 +109,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     checkAuth();
   }, []);
-const login = async (credentials: { login: string; password: string }) => {
+const login = async (credentials: { login: string; password: string }, loginType: 'user' | 'admin' | 'super_admin' | 'system_admin' = 'user') => {
     try {
-      const response = await fetch('/.netlify/functions/login-user', {
+      // Determine the correct endpoint based on login type
+      const endpoints = {
+        user: '/.netlify/functions/login-user',
+        admin: '/.netlify/functions/auth-village-admin', 
+        super_admin: '/.netlify/functions/auth-super-admin',
+        system_admin: '/.netlify/functions/auth-system-admin'
+      };
+
+      const response = await fetch(endpoints[loginType], {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -79,67 +130,74 @@ const login = async (credentials: { login: string; password: string }) => {
       const data = await response.json();
 
       if (data.success) {
-        setUser(data.user);
-        // Store in both localStorage and sessionStorage for consistency
+        // Standardized user object creation
+        const standardizedUser = {
+          id: data.user.id,
+          username: data.user.username || data.user.email,
+          email: data.user.email,
+          fullName: data.user.fullName || data.user.name || data.user.email,
+          role: data.user.role,
+          pointBalance: data.user.pointBalance || 0,
+          isApproved: data.user.isApproved !== false, // Default to true for admin roles
+          villageId: data.user.villageId || data.village?.id,
+          villageName: data.user.villageName || data.village?.name
+        };
+
+        setUser(standardizedUser);
+        
+        // Consistent storage approach - use localStorage as primary, sessionStorage as backup
         localStorage.setItem('auth-token', data.token);
-        localStorage.setItem('user-data', JSON.stringify(data.user));
+        localStorage.setItem('user-data', JSON.stringify(standardizedUser));
         sessionStorage.setItem('auth-token', data.token);
-        sessionStorage.setItem('userInfo', JSON.stringify(data.user));
-        return { success: true };
+        sessionStorage.setItem('userInfo', JSON.stringify(standardizedUser));
+        
+        return { success: true, user: standardizedUser };
       } else {
         return { success: false, error: data.error || 'Login failed' };
       }
     } catch (error) {
+      console.error('Login error:', error);
       return { success: false, error: 'Network error. Please try again.' };
     }
   };
-  const register = async (userData: any) => {
-    try {
-      const response = await fetch('/.netlify/functions/register-user', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(userData),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        return { success: true };
-      } else {
-        return { success: false, error: data.error || 'Registration failed' };
-      }
-    } catch (error) {
-      return { success: false, error: 'Network error. Please try again.' };
-    }
-  };
-
-const logout = () => {
-    // Clear user state immediately
+const logout = async () => {
+    // Get token before clearing state
+    const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
+    
+    // Clear user state immediately to prevent any UI inconsistencies
     setUser(null);
     
-    // Clear all authentication data from both storages
-    localStorage.removeItem('auth-token');
-    localStorage.removeItem('user-data');
-    sessionStorage.removeItem('auth-token');
-    sessionStorage.removeItem('userInfo');
+    // Comprehensive cleanup of all authentication artifacts
+    const authKeys = ['auth-token', 'user-data', 'userInfo'];
+    authKeys.forEach(key => {
+      localStorage.removeItem(key);
+      sessionStorage.removeItem(key);
+    });
     
-    // Clear any other cached data that might contain sensitive information
-    sessionStorage.clear();
+    // Clear any other potentially sensitive cached data
+    const sensitiveKeys = ['userApplications', 'adminData', 'villageData', 'userPoints'];
+    sensitiveKeys.forEach(key => {
+      localStorage.removeItem(key);
+      sessionStorage.removeItem(key);
+    });
     
-    // Optional: Call backend logout endpoint to invalidate server-side session
-    const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
+    // Call backend logout endpoint to invalidate server-side session
     if (token) {
-      fetch('/.netlify/functions/logout', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      }).catch(() => {
-        // Ignore logout endpoint errors - local logout is more important
-      });
+      try {
+        await fetch('/.netlify/functions/logout', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+      } catch (error) {
+        console.warn('Backend logout failed, but local logout completed:', error);
+        // Local logout is more critical than backend logout
+      }
     }
+    
+    return { success: true };
   };
 
   const refreshUser = async () => {
@@ -169,7 +227,52 @@ const logout = () => {
     }
   };
 
-  const value: AuthContextType = {
+ const validateToken = async (): Promise<boolean> => {
+    try {
+      const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
+      if (!token) return false;
+
+      const response = await fetch('/.netlify/functions/validate-token', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return data.success === true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Token validation failed:', error);
+      return false;
+    }
+  };
+
+  const register = async (userData: any) => {
+    try {
+      const response = await fetch('/.netlify/functions/register-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userData),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        return { success: true };
+      } else {
+        return { success: false, error: data.error || 'Registration failed' };
+      }
+    } catch (error) {
+      return { success: false, error: 'Network error. Please try again.' };
+    }
+  };
+ const value: AuthContextType = {
     user,
     isAuthenticated,
     isLoading,
@@ -177,6 +280,7 @@ const logout = () => {
     register,
     logout,
     refreshUser,
+    validateToken,
   };
 
   return (
