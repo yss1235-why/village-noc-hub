@@ -85,13 +85,12 @@ export const handler = async (event, context) => {
         `;
 // Generate JWT token
         const tokenPayload = {
-          userId: newUser[0].id,
-          email: newUser[0].email,
+          id: user[0].id,
+          email: user[0].email,
           role: 'village_admin',
           villageId: villageData.id,
           villageName: villageData.name,
-          sessionId: crypto.randomUUID(),
-          isDefaultPassword: true // Flag for password change requirement
+          sessionId: crypto.randomUUID()
         };
 
         const token = generateToken(tokenPayload);
