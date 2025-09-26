@@ -17,18 +17,16 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const location = useLocation();
   const [isValidating, setIsValidating] = useState(true);
 
-  useEffect(() => {
+ useEffect(() => {
     const validateAuth = async () => {
-      // Additional token validation
-      const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
-      const userData = localStorage.getItem('user-data') || sessionStorage.getItem('userInfo');
+      // Standardized token validation using primary storage only
+      const token = localStorage.getItem('auth-token');
+      const userData = localStorage.getItem('user-data');
       
       if (!token || !userData) {
-        // Clear any remaining auth data
+        // Clear authentication artifacts from primary storage
         localStorage.removeItem('auth-token');
         localStorage.removeItem('user-data');
-        sessionStorage.removeItem('auth-token');
-        sessionStorage.removeItem('userInfo');
       }
       
       setIsValidating(false);
