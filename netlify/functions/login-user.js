@@ -87,8 +87,18 @@ export const handler = async (event, context) => {
 
     const token = generateToken(tokenPayload);
 
-   // Prepare successful response
-    const successResponse = {
+    // Log successful login
+    await sql`
+      INSERT INTO admin_audit_log (admin_id, action, details, ip_address)
+      VALUES (
+        ${userData.id}, 
+        'USER_LOGIN', 
+        ${JSON.stringify({ username: userData.username, role: userData.role })},
+        ${event.headers['x-forwarded-for'] || 'unknown'}
+      )
+    `;
+
+    return {
       statusCode: 200,
       headers: {
         ...headers,
@@ -110,23 +120,6 @@ export const handler = async (event, context) => {
       })
     };
 
-    // Log successful login (non-blocking)
-    try {
-      await sql`
-        INSERT INTO admin_audit_log (admin_id, action, details, ip_address)
-        VALUES (
-          ${userData.id}, 
-          'USER_LOGIN', 
-          ${JSON.stringify({ username: userData.username, role: userData.role })},
-          ${event.headers['x-forwarded-for'] || 'unknown'}
-        )
-      `;
-    } catch (auditError) {
-      console.error('Audit log insertion failed:', auditError);
-      // Continue with login success despite audit log failure
-    }
-
-    return successResponse;
   } catch (error) {
     console.error('Login error:', error);
     return {
