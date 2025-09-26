@@ -37,7 +37,7 @@ export const handler = async (event, context) => {
 
   try {
    const { userId, amount, reason } = JSON.parse(event.body);
-    const adminId = authResult.user.userId || authResult.user.id;
+    const adminId = authResult.user.id;
 
     if (!userId || !amount || !reason) {
       return {
