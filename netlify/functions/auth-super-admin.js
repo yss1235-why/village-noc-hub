@@ -44,19 +44,23 @@ try {
       sessionId: crypto.randomUUID()
     };
     const token = generateToken(tokenPayload);
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({ 
-        success: true, 
-        user: { 
-          id: user[0].id, 
-          role: user[0].role,
-          email: user[0].email 
-        },
-        token: token
-      })
-    };
+   return {
+  statusCode: 200,
+  headers,
+  body: JSON.stringify({ 
+    success: true, 
+    user: { 
+      id: user[0].id,
+      username: user[0].email,
+      email: user[0].email,
+      fullName: 'Super Administrator',
+      role: user[0].role,
+      pointBalance: 0,
+      isApproved: true
+    },
+    token: token
+  })
+};
   } else {
     return {
       statusCode: 401,
@@ -80,18 +84,22 @@ try {
   const token = generateToken(tokenPayload);
 
   return {
-    statusCode: 200,
-    headers,
-    body: JSON.stringify({ 
-      success: true, 
-      user: { 
-        id: 'super-admin-1', 
-        role: 'super_admin',
-        email: 'superadmin@noc.com' 
-      },
-      token: token
-    })
-  };
+  statusCode: 200,
+  headers,
+  body: JSON.stringify({ 
+    success: true, 
+    user: { 
+      id: 'super-admin-1',
+      username: 'superadmin@noc.com',
+      email: 'superadmin@noc.com',
+      fullName: 'Super Administrator',
+      role: 'super_admin',
+      pointBalance: 0,
+      isApproved: true
+    },
+    token: token
+  })
+};
 }
     // Alternative: Database lookup (commented out for now)
     /*
