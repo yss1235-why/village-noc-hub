@@ -167,26 +167,83 @@ export const requirePermission = (event, requiredPermission) => {
   
   return authResult;
 };
-export const requireApprovedUser = (event) => {
-  const authResult = authenticateUser(event);
-  
-  if (!authResult.isValid) {
-    return authResult;
-  }
-  
-  if (authResult.user.role === 'applicant' && !authResult.user.isApproved) {
+export const requireApprovedUser = async (event) => {
+  // Use validate-token to get current user data (including updated approval status)
+  try {
+    // Get the token from the request
+    const cookies = event.headers.cookie || '';
+    const authTokenMatch = cookies.match(/auth-token=([^;]+)/);
+    let token = authTokenMatch ? authTokenMatch[1] : null;
+    
+    if (!token) {
+      const authHeader = event.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.substring(7);
+      }
+    }
+    
+    if (!token) {
+      return {
+        isValid: false,
+        error: 'No authentication token provided',
+        statusCode: 401
+      };
+    }
+
+    // Call validate-token internally to get current user data
+    const validateResponse = await fetch(`${process.env.URL || 'https://iramm.netlify.app'}/.netlify/functions/validate-token`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!validateResponse.ok) {
+      return {
+        isValid: false,
+        error: 'Token validation failed',
+        statusCode: 401
+      };
+    }
+
+    const validateData = await validateResponse.json();
+    
+    if (!validateData.success) {
+      return {
+        isValid: false,
+        error: validateData.error || 'Token validation failed',
+        statusCode: 401
+      };
+    }
+
+    const currentUser = validateData.user;
+
+    // Check approval status using current data from validate-token
+    if (currentUser.role === 'applicant' && !currentUser.isApproved) {
+      return {
+        isValid: false,
+        error: 'Account pending approval',
+        statusCode: 403
+      };
+    }
+
+    return {
+      isValid: true,
+      user: currentUser
+    };
+
+  } catch (error) {
+    console.error('Error in requireApprovedUser:', error);
     return {
       isValid: false,
-      error: 'Account pending approval',
-      statusCode: 403
+      error: 'Authentication failed',
+      statusCode: 500
     };
   }
-  
-  return authResult;
 };
-
-export const requireMinimumPoints = (event, minimumPoints = 15) => {
-  const authResult = requireApprovedUser(event);
+export const requireMinimumPoints = async (event, minimumPoints = 15) => {
+  const authResult = await requireApprovedUser(event);
   
   if (!authResult.isValid) {
     return authResult;
@@ -202,7 +259,6 @@ export const requireMinimumPoints = (event, minimumPoints = 15) => {
   
   return authResult;
 };
-
 // Existing functions remain the same
 export const authenticateAdmin = (event) => {
   return authenticateUser(event);
