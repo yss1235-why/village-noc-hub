@@ -63,13 +63,13 @@ export const handler = async (event, context) => {
     }
 
    // Generate JWT token using the proper utility
-    const tokenPayload = {
-      userId: adminData.id,
-      email: adminData.email,
-      role: 'admin',
-      name: adminData.name,
-      permissions: adminData.permissions
-    };
+   const tokenPayload = {
+    id: adminData.id,
+    email: adminData.email,
+    role: 'admin',
+    name: adminData.name,
+    permissions: adminData.permissions
+  };
 
     const token = generateToken(tokenPayload);
 
