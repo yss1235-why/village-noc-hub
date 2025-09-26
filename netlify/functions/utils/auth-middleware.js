@@ -167,60 +167,37 @@ export const requirePermission = (event, requiredPermission) => {
   
   return authResult;
 };
-export const requireApprovedUser = async (event) => {
-  // Use validate-token to get current user data (including updated approval status)
+// Shared function to get current user data from database
+const getCurrentUserData = async (userId) => {
   try {
-    // Get the token from the request
-    const cookies = event.headers.cookie || '';
-    const authTokenMatch = cookies.match(/auth-token=([^;]+)/);
-    let token = authTokenMatch ? authTokenMatch[1] : null;
+    const { neon } = await import('@neondatabase/serverless');
+    const sql = neon(process.env.NETLIFY_DATABASE_URL);
     
-    if (!token) {
-      const authHeader = event.headers.authorization;
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        token = authHeader.substring(7);
-      }
-    }
+    const user = await sql`
+      SELECT is_approved, point_balance 
+      FROM users 
+      WHERE id = ${userId}
+    `;
     
-    if (!token) {
-      return {
-        isValid: false,
-        error: 'No authentication token provided',
-        statusCode: 401
-      };
-    }
+    return user.length > 0 ? user[0] : null;
+  } catch (error) {
+    console.error('Error fetching current user data:', error);
+    return null;
+  }
+};
 
-    // Call validate-token internally to get current user data
-    const validateResponse = await fetch(`${process.env.URL || 'https://iramm.netlify.app'}/.netlify/functions/validate-token`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    if (!validateResponse.ok) {
-      return {
-        isValid: false,
-        error: 'Token validation failed',
-        statusCode: 401
-      };
-    }
-
-    const validateData = await validateResponse.json();
+export const requireApprovedUser = async (event) => {
+  const authResult = authenticateUser(event);
+  
+  if (!authResult.isValid) {
+    return authResult;
+  }
+  
+  // For applicant role, check current approval status from database
+  if (authResult.user.role === 'applicant') {
+    const currentUserData = await getCurrentUserData(authResult.user.id || authResult.user.userId);
     
-    if (!validateData.success) {
-      return {
-        isValid: false,
-        error: validateData.error || 'Token validation failed',
-        statusCode: 401
-      };
-    }
-
-    const currentUser = validateData.user;
-
-    // Check approval status using current data from validate-token
-    if (currentUser.role === 'applicant' && !currentUser.isApproved) {
+    if (!currentUserData || !currentUserData.is_approved) {
       return {
         isValid: false,
         error: 'Account pending approval',
@@ -230,17 +207,15 @@ export const requireApprovedUser = async (event) => {
 
     return {
       isValid: true,
-      user: currentUser
-    };
-
-  } catch (error) {
-    console.error('Error in requireApprovedUser:', error);
-    return {
-      isValid: false,
-      error: 'Authentication failed',
-      statusCode: 500
+      user: {
+        ...authResult.user,
+        isApproved: currentUserData.is_approved,
+        pointBalance: currentUserData.point_balance || 0
+      }
     };
   }
+  
+  return authResult;
 };
 export const requireMinimumPoints = async (event, minimumPoints = 15) => {
   const authResult = await requireApprovedUser(event);
