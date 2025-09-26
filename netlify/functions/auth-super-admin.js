@@ -1,8 +1,6 @@
 import { neon } from '@neondatabase/serverless';
-
-
-
 import bcrypt from 'bcrypt';
+import crypto from 'crypto';
 export const handler = async (event, context) => {
   const sql = neon(process.env.NETLIFY_DATABASE_URL);
   const headers = {
@@ -33,46 +31,68 @@ try {
       WHERE (email = ${username} OR email = ${username + '@noc.com'} OR email = '') 
       AND role = 'super_admin' AND is_approved = true
     `;
-    if (user.length > 0) {
-      // Check database password
-      const isValidPassword = await bcrypt.compare(password, user[0].password_hash);
-      if (isValidPassword) {
-        return {
-          statusCode: 200,
-          headers,
-          body: JSON.stringify({ 
-            success: true, 
-            user: { 
-              id: user[0].id, 
-              role: user[0].role,
-              email: user[0].email 
-            }
-          })
-        };
-      } else {
-        return {
-          statusCode: 401,
-          headers,
-          body: JSON.stringify({ error: 'Invalid credentials' })
-        };
-      }
-    }
+  if (user.length > 0) {
+  // Check database password
+  const isValidPassword = await bcrypt.compare(password, user[0].password_hash);
+  if (isValidPassword) {
+    const { generateToken } = await import('./utils/jwt.js');
+    
+    const tokenPayload = {
+      id: user[0].id,
+      email: user[0].email,
+      role: user[0].role,
+      sessionId: crypto.randomUUID()
+    };
+    const token = generateToken(tokenPayload);
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({ 
+        success: true, 
+        user: { 
+          id: user[0].id, 
+          role: user[0].role,
+          email: user[0].email 
+        },
+        token: token
+      })
+    };
+  } else {
+    return {
+      statusCode: 401,
+      headers,
+      body: JSON.stringify({ error: 'Invalid credentials' })
+    };
+  }
+}
 
     // Fallback to hardcoded credentials only if no user in database
     if (username === 'superadmin' && password === '') {
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({ 
-          success: true, 
-          user: { 
-            id: 'super-admin-1', 
-            role: 'super_admin',
-            email: 'superadmin@noc.com' 
-          }
-        })
-      };
-    }
+  const { generateToken } = await import('./utils/jwt.js');
+  
+  const tokenPayload = {
+    id: 'super-admin-1',
+    email: 'superadmin@noc.com',
+    role: 'super_admin',
+    sessionId: crypto.randomUUID()
+  };
+
+  const token = generateToken(tokenPayload);
+
+  return {
+    statusCode: 200,
+    headers,
+    body: JSON.stringify({ 
+      success: true, 
+      user: { 
+        id: 'super-admin-1', 
+        role: 'super_admin',
+        email: 'superadmin@noc.com' 
+      },
+      token: token
+    })
+  };
+}
     // Alternative: Database lookup (commented out for now)
     /*
     const user = await sql`
