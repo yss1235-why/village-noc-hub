@@ -10,20 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { LogOut, CheckCircle, XCircle, Clock, Shield, Building, Users, Settings, Eye, AlertCircle, BarChart, MessageCircle, FileText, Search, UserCheck, Download } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from '@/contexts/AuthContext';
 
 const SystemAdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-
-  // Authentication state
-  const [authToken, setAuthToken] = useState(() => {
-    return sessionStorage.getItem('auth-token');
-  });
-  
-  const [adminInfo, setAdminInfo] = useState(() => {
-    const stored = sessionStorage.getItem('userInfo');
-    return stored ? JSON.parse(stored) : null;
-  });
+  const { user, isAuthenticated, logout } = useAuth();
 
   // Core data state
   const [villages, setVillages] = useState([]);
@@ -70,14 +62,14 @@ const SystemAdminDashboard = () => {
     document: null,
     title: ""
   });
-  // Redirect if not authenticated as admin
+ // Redirect if not authenticated as admin
   useEffect(() => {
-    if (!adminInfo || !authToken || adminInfo.role !== 'admin') {
+    if (!isAuthenticated || !user || user.role !== 'admin') {
       navigate('/system-admin');
     } else {
       initializeDashboard();
     }
-  }, [adminInfo, authToken, navigate]);
+  }, [isAuthenticated, user, navigate]);
 
   const initializeDashboard = async () => {
     setIsLoadingData(true);
@@ -89,11 +81,12 @@ const SystemAdminDashboard = () => {
     setIsLoadingData(false);
   };
 
-  const loadVillages = async () => {
+ const loadVillages = async () => {
     try {
+      const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
       const response = await fetch('/.netlify/functions/get-system-admin-villages', {
         headers: {
-          'Authorization': `Bearer ${authToken}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });
@@ -117,11 +110,12 @@ const SystemAdminDashboard = () => {
     }
   };
 
-  const loadApplications = async () => {
+ const loadApplications = async () => {
     try {
+      const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
       const response = await fetch('/.netlify/functions/get-system-admin-applications', {
         headers: {
-          'Authorization': `Bearer ${authToken}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });
@@ -145,11 +139,12 @@ const SystemAdminDashboard = () => {
     }
   };
 
-  const loadUsers = async () => {
+ const loadUsers = async () => {
     try {
+      const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
       const response = await fetch('/.netlify/functions/get-system-admin-users', {
         headers: {
-          'Authorization': `Bearer ${authToken}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });
@@ -176,9 +171,10 @@ const SystemAdminDashboard = () => {
   const handleReviewUser = async (userId: string) => {
     setIsLoadingUserDetails(true);
     try {
+      const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
       const response = await fetch(`/.netlify/functions/get-user-details?userId=${userId}`, {
         headers: {
-          'Authorization': `Bearer ${authToken}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });
@@ -209,10 +205,11 @@ const SystemAdminDashboard = () => {
     
     setIsProcessingUserAction(true);
     try {
+     const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
       const response = await fetch('/.netlify/functions/approve-user', {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${authToken}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ userId: selectedUser.id, action: 'approve' })
@@ -252,10 +249,11 @@ const SystemAdminDashboard = () => {
 
  const handleDisableUser = async (userId, reason) => {
     try {
+     const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
       const response = await fetch('/.netlify/functions/disable-user', {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${authToken}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ userId, reason })
@@ -296,15 +294,15 @@ const SystemAdminDashboard = () => {
 
   const handleDeleteUser = async (userId) => {
     try {
+     const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
       const response = await fetch('/.netlify/functions/delete-user', {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${authToken}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ userId })
       });
-
       const result = await response.json();
       if (response.ok) {
         setUsers(prev => prev.filter(user => user.id !== userId));
@@ -342,10 +340,11 @@ const SystemAdminDashboard = () => {
     
     setIsProcessingUserAction(true);
     try {
+     const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
       const response = await fetch('/.netlify/functions/approve-user', {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${authToken}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
@@ -396,17 +395,18 @@ const SystemAdminDashboard = () => {
 
     try {
       const endpoint = pointsForm.action === 'add' ? 'add-points' : 'deduct-points';
+    const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
       const response = await fetch(`/.netlify/functions/${endpoint}`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${authToken}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           userId: pointsForm.userId,
           amount: parseInt(pointsForm.amount),
           reason: pointsForm.reason,
-          adminId: adminInfo.userId
+          adminId: user.id
         })
       });
 
@@ -435,26 +435,15 @@ const SystemAdminDashboard = () => {
     }
   };
 
-  const handleLogout = async () => {
-    sessionStorage.removeItem('auth-token');
-    sessionStorage.removeItem('userInfo');
-    
-    try {
-      await fetch('/.netlify/functions/logout', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${authToken}`
-        }
+ const handleLogout = async () => {
+    const result = await logout();
+    if (result.success) {
+      toast({
+        title: "Logged Out",
+        description: "You have been successfully logged out.",
       });
-    } catch (error) {
-      console.log('Logout endpoint call failed:', error);
+      navigate("/");
     }
-    
-    toast({
-      title: "Logged Out",
-      description: "You have been successfully logged out.",
-    });
-    navigate("/");
   };
 
   const getStatusBadge = (status: string) => {
@@ -499,8 +488,8 @@ const SystemAdminDashboard = () => {
             </div>
             <div className="flex items-center gap-4">
               <div className="text-right">
-                <p className="text-sm font-medium">{adminInfo?.name || 'System Admin'}</p>
-                <p className="text-xs text-purple-200">{adminInfo?.email}</p>
+                <p className="text-sm font-medium">{user?.fullName || user?.username || 'System Admin'}</p>
+                <p className="text-xs text-purple-200">{user?.email}</p>
               </div>
               <Button 
                 variant="ghost" 
