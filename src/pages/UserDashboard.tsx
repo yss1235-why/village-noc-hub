@@ -43,7 +43,7 @@ const UserDashboard = () => {
     
     setIsLoadingUserApplications(true);
     try {
-     const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
+     const token = localStorage.getItem('auth-token');
       const response = await fetch(`/.netlify/functions/get-user-applications?userId=${user.id}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -93,10 +93,10 @@ const UserDashboard = () => {
     
     try {
       const response = await fetch(`/.netlify/functions/search-application?applicationNumber=${searchApplicationNumber.trim()}`, {
-       headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token')}`,
-          'Content-Type': 'application/json',
-        },
+      headers: {
+            'Authorization': `Bearer ${localStorage.getItem('auth-token')}`,
+            'Content-Type': 'application/json',
+          },
       });
 
       const result = await response.json();
@@ -125,7 +125,7 @@ const UserDashboard = () => {
     try {
       const response = await fetch(`/.netlify/functions/download-certificate?applicationId=${applicationId}`, {
        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token')}`,
+          'Authorization': `Bearer ${localStorage.getItem('auth-token')}`,
         },
       });
 
