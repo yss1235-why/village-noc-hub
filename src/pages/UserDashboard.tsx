@@ -24,9 +24,7 @@ const UserDashboard = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [searchResult, setSearchResult] = useState(null);
 
-  // User point balance
-  const [userPointBalance, setUserPointBalance] = useState(0);
-  const [isLoadingPointBalance, setIsLoadingPointBalance] = useState(false);
+ 
 
   // Redirect if not authenticated and auto-load data
   useEffect(() => {
@@ -37,7 +35,7 @@ const UserDashboard = () => {
     
     // Auto-load data when authenticated
     loadUserApplications();
-    loadUserPointBalance();
+   
   }, [isAuthenticated, user, navigate]);
   
  const loadUserApplications = async () => {
@@ -76,31 +74,7 @@ const UserDashboard = () => {
     }
   };
 
- const loadUserPointBalance = async () => {
-    if (!user?.id) return;
-    
-    setIsLoadingPointBalance(true);
-    try {
-     const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
-      const response = await fetch(`/.netlify/functions/get-user-point-balance?userId=${user.id}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
 
-      const result = await response.json();
-      if (response.ok) {
-        setUserPointBalance(result.pointBalance || 0);
-      } else {
-        console.error('Failed to load point balance:', result.error);
-      }
-    } catch (error) {
-      console.error('Error loading point balance:', error);
-    } finally {
-      setIsLoadingPointBalance(false);
-    }
-  };
 
   const handleSearchApplication = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -268,9 +242,9 @@ const UserDashboard = () => {
               <User className="h-4 w-4 text-blue-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-600">
-                {isLoadingPointBalance ? "..." : userPointBalance}
-              </div>
+             <div className="text-2xl font-bold text-blue-600">
+              {user?.pointBalance || 0}
+            </div>
               <p className="text-xs text-muted-foreground">
                 Available points for applications
               </p>
