@@ -116,11 +116,30 @@ const login = async (credentials: { login: string; password: string }) => {
   };
 
 const logout = () => {
+    // Clear user state immediately
     setUser(null);
+    
+    // Clear all authentication data from both storages
     localStorage.removeItem('auth-token');
     localStorage.removeItem('user-data');
     sessionStorage.removeItem('auth-token');
     sessionStorage.removeItem('userInfo');
+    
+    // Clear any other cached data that might contain sensitive information
+    sessionStorage.clear();
+    
+    // Optional: Call backend logout endpoint to invalidate server-side session
+    const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
+    if (token) {
+      fetch('/.netlify/functions/logout', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      }).catch(() => {
+        // Ignore logout endpoint errors - local logout is more important
+      });
+    }
   };
 
   const refreshUser = async () => {
