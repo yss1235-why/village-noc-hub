@@ -83,7 +83,7 @@ const SystemAdminDashboard = () => {
 
  const loadVillages = async () => {
     try {
-      const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
+      const token = localStorage.getItem('auth-token');
       const response = await fetch('/.netlify/functions/get-system-admin-villages', {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -112,7 +112,7 @@ const SystemAdminDashboard = () => {
 
  const loadApplications = async () => {
     try {
-      const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
+      const token = localStorage.getItem('auth-token');
       const response = await fetch('/.netlify/functions/get-system-admin-applications', {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -141,7 +141,7 @@ const SystemAdminDashboard = () => {
 
  const loadUsers = async () => {
     try {
-      const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
+      const token = localStorage.getItem('auth-token');
       const response = await fetch('/.netlify/functions/get-system-admin-users', {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -171,7 +171,7 @@ const SystemAdminDashboard = () => {
   const handleReviewUser = async (userId: string) => {
     setIsLoadingUserDetails(true);
     try {
-      const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
+      const token = localStorage.getItem('auth-token');
       const response = await fetch(`/.netlify/functions/get-user-details?userId=${userId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -205,7 +205,7 @@ const SystemAdminDashboard = () => {
     
     setIsProcessingUserAction(true);
     try {
-     const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
+     const token = localStorage.getItem('auth-token');
       const response = await fetch('/.netlify/functions/approve-user', {
         method: 'PUT',
         headers: {
@@ -249,7 +249,7 @@ const SystemAdminDashboard = () => {
 
  const handleDisableUser = async (userId, reason) => {
     try {
-     const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
+     const token = localStorage.getItem('auth-token');
       const response = await fetch('/.netlify/functions/disable-user', {
         method: 'PUT',
         headers: {
@@ -294,7 +294,7 @@ const SystemAdminDashboard = () => {
 
   const handleDeleteUser = async (userId) => {
     try {
-     const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
+     const token = localStorage.getItem('auth-token');
       const response = await fetch('/.netlify/functions/delete-user', {
         method: 'DELETE',
         headers: {
@@ -340,7 +340,7 @@ const SystemAdminDashboard = () => {
     
     setIsProcessingUserAction(true);
     try {
-     const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
+     const token = localStorage.getItem('auth-token');
       const response = await fetch('/.netlify/functions/approve-user', {
         method: 'PUT',
         headers: {
@@ -395,7 +395,7 @@ const SystemAdminDashboard = () => {
 
     try {
       const endpoint = pointsForm.action === 'add' ? 'add-points' : 'deduct-points';
-    const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
+    const token = localStorage.getItem('auth-token');
       const response = await fetch(`/.netlify/functions/${endpoint}`, {
         method: 'POST',
         headers: {
