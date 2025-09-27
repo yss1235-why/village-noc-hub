@@ -119,7 +119,8 @@ export const handler = async (event, context) => {
         adminId,
         timestamp: Date.now()
       };
-      const signature = crypto.createHmac('sha512', config.VOUCHER_SIGNING_KEY)
+     // Store signature in description for later verification (temporary solution)
+const descriptionWithSignature = `Voucher Code: ${voucherCode} | Signature: ${signature}${administrativeNotes ? ' | Notes: ' + administrativeNotes : ''}`;
         .update(JSON.stringify(signatureData))
         .digest('hex');
 
