@@ -1,6 +1,7 @@
 import { neon } from '@neondatabase/serverless';
 import crypto from 'crypto';
 import { requireRole } from './utils/auth-middleware.js';
+import { validateVoucherConfig, checkRateLimit } from './utils/voucher-config.js';
 
 export const handler = async (event, context) => {
   const sql = neon(process.env.NETLIFY_DATABASE_URL);
@@ -23,7 +24,10 @@ export const handler = async (event, context) => {
     };
   }
 
-  try {
+ try {
+    // Validate environment configuration
+    const config = validateVoucherConfig();
+    
     // Verify admin privileges (super_admin or admin only)
     const authResult = requireRole(event, 'admin');
     if (!authResult.isValid || !['admin', 'super_admin'].includes(authResult.user.role)) {
@@ -34,8 +38,30 @@ export const handler = async (event, context) => {
       };
     }
 
-    const adminId = authResult.user.id;
+   const adminId = authResult.user.id;
     const adminRole = authResult.user.role;
+    
+    // Rate limiting check
+    const rateLimitResult = checkRateLimit(
+      `voucher_gen_${adminId}`, 
+      parseInt(config.VOUCHER_RATE_LIMIT_MAX),
+      parseInt(config.VOUCHER_RATE_LIMIT_WINDOW)
+    );
+    
+    if (!rateLimitResult.allowed) {
+      return {
+        statusCode: 429,
+        headers: {
+          ...headers,
+          'X-RateLimit-Remaining': '0',
+          'X-RateLimit-Reset': rateLimitResult.resetTime.toString()
+        },
+        body: JSON.stringify({ 
+          error: 'Rate limit exceeded. Please try again later.',
+          resetTime: rateLimitResult.resetTime
+        })
+      };
+    }
     
     const { targetUserId, pointValue, administrativeNotes } = JSON.parse(event.body);
 
@@ -85,7 +111,7 @@ export const handler = async (event, context) => {
         .substring(0, 8);
       const voucherCode = `VCH${timestamp.substring(-8)}${userBinding}${randomBytes.toString('hex').substring(0, 8)}`.toUpperCase();
 
-      // Create cryptographic signature (simple version without environment key for now)
+     // Create cryptographic signature with HMAC
       const signatureData = {
         voucherCode,
         targetUserId,
@@ -93,7 +119,7 @@ export const handler = async (event, context) => {
         adminId,
         timestamp: Date.now()
       };
-      const signature = crypto.createHash('sha256')
+      const signature = crypto.createHmac('sha512', config.VOUCHER_SIGNING_KEY)
         .update(JSON.stringify(signatureData))
         .digest('hex');
 
@@ -139,9 +165,12 @@ export const handler = async (event, context) => {
 
       await sql`COMMIT`;
 
-      return {
+     return {
         statusCode: 201,
-        headers,
+        headers: {
+          ...headers,
+          'X-RateLimit-Remaining': rateLimitResult.remaining.toString()
+        },
         body: JSON.stringify({
           success: true,
           voucher: {
