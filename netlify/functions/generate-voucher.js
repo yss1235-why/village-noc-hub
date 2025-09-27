@@ -130,13 +130,13 @@ const descriptionWithSignature = `Voucher Code: ${voucherCode} | Signature: ${si
 
       // Insert voucher record (using simplified schema for now)
       const voucherResult = await sql`
-        INSERT INTO point_transactions (
+       INSERT INTO point_transactions (
           user_id, transaction_type, amount, description,
           reference_id, created_by, ip_address
         )
         VALUES (
           ${targetUserId}, 'voucher_generated', ${pointValue},
-          ${'Voucher Code: ' + voucherCode + (administrativeNotes ? ' | Notes: ' + administrativeNotes : '')},
+          ${descriptionWithSignature},  // Use the description with signature
           ${voucherCode}, ${adminId},
           ${event.headers['x-forwarded-for'] || 'unknown'}::inet
         )
