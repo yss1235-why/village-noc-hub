@@ -1,6 +1,7 @@
 import { neon } from '@neondatabase/serverless';
 import crypto from 'crypto';
 import { requireRole } from './utils/auth-middleware.js';
+import { validateVoucherConfig, checkRateLimit } from './utils/voucher-config.js';
 
 export const handler = async (event, context) => {
   const sql = neon(process.env.NETLIFY_DATABASE_URL);
@@ -23,7 +24,10 @@ export const handler = async (event, context) => {
     };
   }
 
-  try {
+ try {
+    // Validate environment configuration
+    const config = validateVoucherConfig();
+    
     // Verify user authentication and role
     const authResult = requireRole(event, 'user');
     if (!authResult.isValid || !['user', 'applicant'].includes(authResult.user.role)) {
@@ -34,11 +38,32 @@ export const handler = async (event, context) => {
       };
     }
 
-    const userId = authResult.user.id;
+  const userId = authResult.user.id;
     const userRole = authResult.user.role;
     
+    // Rate limiting check for redemption attempts
+    const rateLimitResult = checkRateLimit(
+      `voucher_redeem_${userId}`, 
+      10, // Allow more redemption attempts than generation
+      parseInt(config.VOUCHER_RATE_LIMIT_WINDOW)
+    );
+    
+    if (!rateLimitResult.allowed) {
+      return {
+        statusCode: 429,
+        headers: {
+          ...headers,
+          'X-RateLimit-Remaining': '0',
+          'X-RateLimit-Reset': rateLimitResult.resetTime.toString()
+        },
+        body: JSON.stringify({ 
+          error: 'Too many redemption attempts. Please try again later.',
+          resetTime: rateLimitResult.resetTime
+        })
+      };
+    }
+    
     const { voucherCode } = JSON.parse(event.body);
-
     if (!voucherCode) {
       return {
         statusCode: 400,
@@ -99,9 +124,48 @@ export const handler = async (event, context) => {
         };
       }
 
-      const voucherData = existingVoucher[0];
+     const voucherData = existingVoucher[0];
       const pointValue = voucherData.amount;
 
+      // Verify cryptographic signature
+      const signatureData = {
+        voucherCode: voucherData.reference_id,
+        targetUserId: voucherData.user_id,
+        pointValue: voucherData.amount,
+        adminId: voucherData.created_by,
+        timestamp: new Date(voucherData.created_at).getTime()
+      };
+      
+      const expectedSignature = crypto.createHmac('sha512', config.VOUCHER_SIGNING_KEY)
+        .update(JSON.stringify(signatureData))
+        .digest('hex');
+
+     // Extract signature from description field
+      const descriptionParts = voucherData.description.split(' | ');
+      const signaturePart = descriptionParts.find(part => part.startsWith('Signature: '));
+      const storedSignature = signaturePart ? signaturePart.replace('Signature: ', '') : null;
+
+      // Verify signature authenticity
+      if (expectedSignature !== storedSignature) {
+        await sql`ROLLBACK`;
+        
+        // Log security event for signature verification failure
+        await sql`
+          INSERT INTO security_logs (user_id, action, details, ip_address, user_agent)
+          VALUES (
+            ${userId}, 'VOUCHER_SIGNATURE_FAILURE',
+            ${JSON.stringify({ voucherCode: voucherCode.substring(0, 8) + '...' })},
+            ${event.headers['x-forwarded-for'] || 'unknown'}::inet,
+            ${event.headers['user-agent'] || 'unknown'}
+          )
+        `;
+        
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: 'Voucher authenticity verification failed' })
+        };
+      }
       // Get current user balance
       const userBalance = await sql`
         SELECT point_balance FROM users WHERE id = ${userId}
@@ -157,7 +221,10 @@ export const handler = async (event, context) => {
 
       return {
         statusCode: 200,
-        headers,
+        headers: {
+          ...headers,
+          'X-RateLimit-Remaining': rateLimitResult.remaining.toString()
+        },
         body: JSON.stringify({
           success: true,
           message: 'Voucher redeemed successfully',
