@@ -115,12 +115,13 @@ export const handler = async (event, context) => {
       const voucherCode = `VCH${timestamp.substring(-8)}${userBinding}${randomBytes.toString('hex').substring(0, 8)}`.toUpperCase();
 
    // Create cryptographic signature with HMAC
+      const signatureTimestamp = Date.now();
       const signatureData = {
         voucherCode,
         targetUserId,
         pointValue,
         adminId,
-        timestamp: Date.now()
+        timestamp: signatureTimestamp
       };
       const signature = crypto.createHmac('sha512', config.VOUCHER_SIGNING_KEY)
         .update(JSON.stringify(signatureData))
@@ -134,11 +135,11 @@ export const handler = async (event, context) => {
       const voucherResult = await sql`
         INSERT INTO vouchers (
           voucher_code, target_user_id, point_value, monetary_value,
-          generated_by, expires_at, cryptographic_signature, administrative_notes
+          generated_by, expires_at, cryptographic_signature, signature_timestamp, administrative_notes
         )
         VALUES (
           ${voucherCode}, ${targetUserId}, ${pointValue}, ${pointValue},
-          ${adminId}, ${expirationDate}, ${signature}, ${administrativeNotes || ''}
+          ${adminId}, ${expirationDate}, ${signature}, ${signatureTimestamp}, ${administrativeNotes || ''}
         )
         RETURNING id, generated_at
       `;
