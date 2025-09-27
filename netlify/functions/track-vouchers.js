@@ -1,6 +1,5 @@
 import { neon } from '@neondatabase/serverless';
 import { requireRole } from './utils/auth-middleware.js';
-import { checkRateLimit } from './utils/voucher-config.js';
 
 export const handler = async (event, context) => {
   const sql = neon(process.env.NETLIFY_DATABASE_URL);
@@ -36,22 +35,7 @@ export const handler = async (event, context) => {
 
   const adminId = authResult.user.id;
     
-    // Rate limiting check
-    const rateLimitResult = checkRateLimit(`voucher_track_${adminId}`, 20, 3600000);
-    if (!rateLimitResult.allowed) {
-      return {
-        statusCode: 429,
-        headers: {
-          ...headers,
-          'X-RateLimit-Remaining': '0',
-          'X-RateLimit-Reset': rateLimitResult.resetTime.toString()
-        },
-        body: JSON.stringify({ 
-          error: 'Rate limit exceeded for voucher tracking.',
-          resetTime: rateLimitResult.resetTime
-        })
-      };
-    }
+    
     const { status, searchTerm, dateFrom, dateTo, limit = 50 } = event.queryStringParameters || {};
 
     // Get voucher data from dedicated vouchers table using template literals
@@ -118,9 +102,8 @@ export const handler = async (event, context) => {
 
    return {
       statusCode: 200,
-      headers: {
-        ...headers,
-        'X-RateLimit-Remaining': rateLimitResult.remaining.toString()
+     headers: {
+        ...headers
       },
       body: JSON.stringify({
         success: true,
