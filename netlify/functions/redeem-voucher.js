@@ -1,7 +1,7 @@
 import { neon } from '@neondatabase/serverless';
 import crypto from 'crypto';
 import { requireRole } from './utils/auth-middleware.js';
-import { validateVoucherConfig, checkRateLimit } from './utils/voucher-config.js';
+import { validateVoucherConfig } from './utils/voucher-config.js';
 
 export const handler = async (event, context) => {
   const sql = neon(process.env.NETLIFY_DATABASE_URL);
@@ -41,27 +41,7 @@ export const handler = async (event, context) => {
   const userId = authResult.user.id;
     const userRole = authResult.user.role;
     
-   // Rate limiting check for redemption attempts
-    const rateLimitResult = checkRateLimit(
-      `voucher_redeem_${userId}`, 
-      10, // Allow more redemption attempts than generation
-      3600000 // 1 hour window for redemption attempts
-    );
-    
-    if (!rateLimitResult.allowed) {
-      return {
-        statusCode: 429,
-        headers: {
-          ...headers,
-          'X-RateLimit-Remaining': '0',
-          'X-RateLimit-Reset': rateLimitResult.resetTime.toString()
-        },
-        body: JSON.stringify({ 
-          error: 'Too many redemption attempts. Please try again later.',
-          resetTime: rateLimitResult.resetTime
-        })
-      };
-    }
+  
     
     const { voucherCode } = JSON.parse(event.body);
     if (!voucherCode) {
@@ -194,19 +174,7 @@ export const handler = async (event, context) => {
         WHERE admin_id = ${voucherData.generated_by}
       `;
 
-      // Create point transaction record for tracking
-      await sql`
-        INSERT INTO point_transactions (
-          user_id, transaction_type, amount, description,
-          reference_id, created_by, ip_address
-        )
-        VALUES (
-          ${userId}, 'voucher_redeemed', ${pointValue},
-          ${'Voucher redemption: ' + voucherCode},
-          ${voucherCode.toUpperCase()}, ${userId},
-          ${event.headers['x-forwarded-for'] || 'unknown'}::inet
-        )
-      `;
+    
 
       // Update user point balance
       await sql`
@@ -241,9 +209,8 @@ export const handler = async (event, context) => {
 
       return {
         statusCode: 200,
-       headers: {
+      headers: {
           ...headers,
-          'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
           'X-Voucher-Redeemed': 'true'
         },
         body: JSON.stringify({
