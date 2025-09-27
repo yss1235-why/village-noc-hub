@@ -22,6 +22,8 @@ import SystemAdminLogin from "./pages/SystemAdminLogin";
 import VillageRegistration from './pages/VillageRegistration';
 import Terms from './pages/Terms';
 import Verify from "./pages/Verify";
+import VoucherManagement from './components/admin/VoucherManagement';
+import VoucherRedemption from './components/user/VoucherRedemption';
 
 const queryClient = new QueryClient();
 
@@ -94,9 +96,21 @@ const App = () => (
               </ProtectedRoute>
             } />
 
-            <Route path="/super-admin/dashboard" element={
+           <Route path="/super-admin/dashboard" element={
               <ProtectedRoute requiredRole="super_admin">
                 <SuperAdminDashboard />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/admin/vouchers" element={
+              <ProtectedRoute requiredRole={['admin', 'super_admin']}>
+                <VoucherManagement />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/user/vouchers" element={
+              <ProtectedRoute requiredRole={['user', 'applicant']}>
+                <VoucherRedemption />
               </ProtectedRoute>
             } />
 
