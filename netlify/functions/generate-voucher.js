@@ -111,7 +111,7 @@ export const handler = async (event, context) => {
         .substring(0, 8);
       const voucherCode = `VCH${timestamp.substring(-8)}${userBinding}${randomBytes.toString('hex').substring(0, 8)}`.toUpperCase();
 
-     // Create cryptographic signature with HMAC
+   // Create cryptographic signature with HMAC
       const signatureData = {
         voucherCode,
         targetUserId,
@@ -119,10 +119,12 @@ export const handler = async (event, context) => {
         adminId,
         timestamp: Date.now()
       };
-     // Store signature in description for later verification (temporary solution)
-const descriptionWithSignature = `Voucher Code: ${voucherCode} | Signature: ${signature}${administrativeNotes ? ' | Notes: ' + administrativeNotes : ''}`;
+      const signature = crypto.createHmac('sha512', config.VOUCHER_SIGNING_KEY)
         .update(JSON.stringify(signatureData))
         .digest('hex');
+
+      // Store signature in description for later verification (temporary solution)
+      const descriptionWithSignature = `Voucher Code: ${voucherCode} | Signature: ${signature}${administrativeNotes ? ' | Notes: ' + administrativeNotes : ''}`;
 
       // Set expiration date (30 days from generation)
       const expirationDate = new Date();
