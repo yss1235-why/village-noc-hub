@@ -131,23 +131,27 @@ if (hasApprovalFilter) {
   villageName: user.villageName
 }));
 
-   // Log search activity for audit purposes
-await sql`
-  INSERT INTO admin_audit_log (
-    user_id, action, resource_type, details, ip_address, user_agent
-  )
-  VALUES (
-    ${authResult.user.id}, 'USER_SEARCH', 'users',
-    ${JSON.stringify({
-      searchQuery: searchQuery.substring(0, 50), // Limit logged query length
-      roles: allowedRoles,
-      resultCount: formattedUsers.length,
-      searcherRole: authResult.user.role
-    })},
-    ${event.headers['x-forwarded-for'] || 'unknown'}::inet,
-    ${event.headers['user-agent'] || 'unknown'}
-  )
-`;
+  // Log search activity for audit purposes
+   try {
+     await sql`
+       INSERT INTO audit_logs (
+         user_id, action, resource_type, details, ip_address, created_at
+       )
+       VALUES (
+         ${authResult.user.userId || authResult.user.id}, 'USER_SEARCH', 'users',
+         ${JSON.stringify({
+           searchQuery: searchQuery.substring(0, 50),
+           roles: allowedRoles,
+           resultCount: formattedUsers.length,
+           searcherRole: authResult.user.role
+         })},
+         ${event.headers['x-forwarded-for'] || 'unknown'},
+         NOW()
+       )
+     `;
+   } catch (auditError) {
+     console.log('Audit logging failed but search succeeded:', auditError.message);
+   }
 
     return {
       statusCode: 200,
