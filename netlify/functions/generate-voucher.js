@@ -41,24 +41,33 @@ export const handler = async (event, context) => {
    const adminId = authResult.user.id;
     const adminRole = authResult.user.role;
     
-    // Rate limiting check
-    const rateLimitResult = checkRateLimit(
-      `voucher_gen_${adminId}`, 
-      parseInt(config.VOUCHER_RATE_LIMIT_MAX),
-      parseInt(config.VOUCHER_RATE_LIMIT_WINDOW)
-    );
-    
-    if (!rateLimitResult.allowed) {
+   // Check current quota (active unredeemed vouchers)
+    const activeVouchers = await sql`
+      SELECT COUNT(*) as active_count
+      FROM point_transactions pt
+      LEFT JOIN point_transactions redeemed ON redeemed.reference_id = pt.reference_id 
+        AND redeemed.transaction_type = 'voucher_redeemed'
+      WHERE pt.transaction_type = 'voucher_generated'
+      AND pt.created_by = ${adminId}
+      AND redeemed.id IS NULL
+      AND pt.created_at >= NOW() - INTERVAL '30 days'
+    `;
+
+    const currentActiveCount = parseInt(activeVouchers[0].active_count) || 0;
+    const maxActiveVouchers = parseInt(config.VOUCHER_RATE_LIMIT_MAX); // Reuse this env var
+
+    if (currentActiveCount >= maxActiveVouchers) {
       return {
         statusCode: 429,
         headers: {
           ...headers,
-          'X-RateLimit-Remaining': '0',
-          'X-RateLimit-Reset': rateLimitResult.resetTime.toString()
+          'X-Active-Vouchers': currentActiveCount.toString(),
+          'X-Max-Vouchers': maxActiveVouchers.toString()
         },
         body: JSON.stringify({ 
-          error: 'Rate limit exceeded. Please try again later.',
-          resetTime: rateLimitResult.resetTime
+          error: `Quota exceeded. You have ${currentActiveCount} active unredeemed vouchers. Maximum allowed: ${maxActiveVouchers}`,
+          activeVouchers: currentActiveCount,
+          maxVouchers: maxActiveVouchers
         })
       };
     }
@@ -170,9 +179,10 @@ export const handler = async (event, context) => {
 
      return {
         statusCode: 201,
-        headers: {
+       headers: {
           ...headers,
-          'X-RateLimit-Remaining': rateLimitResult.remaining.toString()
+          'X-Active-Vouchers': (currentActiveCount + 1).toString(),
+          'X-Remaining-Quota': (maxActiveVouchers - currentActiveCount - 1).toString()
         },
         body: JSON.stringify({
           success: true,
