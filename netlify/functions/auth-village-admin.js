@@ -28,21 +28,21 @@ export const handler = async (event, context) => {
   }
 
   try {
-    const { email, password } = JSON.parse(event.body);
+    const { login, password } = JSON.parse(event.body);
 
-    if (!email || !password) {
+    if (!login || !password) {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ error: 'Email and password are required' })
+        body: JSON.stringify({ error: 'Login and password are required' })
       };
     }
 
-    // Find village by admin email
+   // Find village by admin email
     const village = await sql`
       SELECT v.id, v.name, v.district, v.state, v.admin_email, v.status
       FROM villages v
-      WHERE v.admin_email = ${email}
+      WHERE v.admin_email = ${login}
     `;
 
     if (village.length === 0) {
@@ -75,11 +75,11 @@ export const handler = async (event, context) => {
     if (user.length === 0) {
       // For new villages, check default password (admin123)
       if (password === 'admin123') {
-        // Create user record with default password
+       // Create user record with default password
         const hashedPassword = await bcrypt.hash(password, 10);
           const newUser = await sql`
             INSERT INTO users (email, password_hash, role, village_id, is_approved, full_name, point_balance)
-            VALUES (${email}, ${hashedPassword}, 'village_admin', ${villageData.id}, true, ${email}, 0)
+            VALUES (${login}, ${hashedPassword}, 'village_admin', ${villageData.id}, true, ${login}, 0)
             RETURNING id, email, full_name, point_balance
           `;
      // Generate JWT token
