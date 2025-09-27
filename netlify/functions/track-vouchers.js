@@ -38,52 +38,272 @@ export const handler = async (event, context) => {
     
     const { status, searchTerm, dateFrom, dateTo, limit = 50 } = event.queryStringParameters || {};
 
-   // Build WHERE conditions for filtering
-    let whereConditions = [`v.generated_by = ${adminId}`];
-    
-    if (status && ['active', 'redeemed', 'expired', 'cancelled'].includes(status)) {
-      whereConditions.push(`v.status = '${status}'`);
-    }
-    
-    if (searchTerm) {
-      const searchPattern = `%${searchTerm}%`;
-      whereConditions.push(`(v.voucher_code ILIKE '${searchPattern}' OR u.username ILIKE '${searchPattern}' OR u.email ILIKE '${searchPattern}' OR u.full_name ILIKE '${searchPattern}')`);
-    }
-    
-    if (dateFrom) {
-      whereConditions.push(`v.generated_at >= '${dateFrom}'`);
-    }
-    
-    if (dateTo) {
-      whereConditions.push(`v.generated_at <= '${dateTo}'`);
-    }
+ // Build parameterized query based on filter combinations
+let vouchers;
+const limitValue = parseInt(limit);
 
-    // Execute single template literal query with constructed WHERE clause
-    const vouchers = await sql`
-      SELECT 
-        v.id,
-        v.voucher_code,
-        v.point_value,
-        v.monetary_value,
-        v.status,
-        v.generated_at,
-        v.redeemed_at,
-        v.expires_at,
-        v.administrative_notes,
-        u.username as target_username,
-        u.email as target_email,
-        u.full_name as target_full_name,
-        u.role as target_role,
-        admin.username as generated_by_username,
-        admin.role as generated_by_role
-      FROM vouchers v
-      JOIN users u ON v.target_user_id = u.id
-      JOIN users admin ON v.generated_by = admin.id
-      WHERE ${sql.raw(whereConditions.join(' AND '))}
-      ORDER BY v.generated_at DESC 
-      LIMIT ${parseInt(limit)}
-    `;
+// Determine which filters are active
+const hasStatus = status && ['active', 'redeemed', 'expired', 'cancelled'].includes(status);
+const hasSearch = searchTerm && searchTerm.trim().length > 0;
+const hasDateFrom = dateFrom;
+const hasDateTo = dateTo;
 
+if (hasStatus && hasSearch && hasDateFrom && hasDateTo) {
+  const searchPattern = `%${searchTerm}%`;
+  vouchers = await sql`
+    SELECT 
+      v.id, v.voucher_code, v.point_value, v.monetary_value, v.status,
+      v.generated_at, v.redeemed_at, v.expires_at, v.administrative_notes,
+      u.username as target_username, u.email as target_email, 
+      u.full_name as target_full_name, u.role as target_role,
+      admin.username as generated_by_username, admin.role as generated_by_role
+    FROM vouchers v
+    JOIN users u ON v.target_user_id = u.id
+    JOIN users admin ON v.generated_by = admin.id
+    WHERE v.generated_by = ${adminId} AND v.status = ${status}
+      AND (v.voucher_code ILIKE ${searchPattern} OR u.username ILIKE ${searchPattern} 
+           OR u.email ILIKE ${searchPattern} OR u.full_name ILIKE ${searchPattern})
+      AND v.generated_at >= ${dateFrom} AND v.generated_at <= ${dateTo}
+    ORDER BY v.generated_at DESC LIMIT ${limitValue}
+  `;
+} else if (hasStatus && hasSearch && hasDateFrom) {
+  const searchPattern = `%${searchTerm}%`;
+  vouchers = await sql`
+    SELECT 
+      v.id, v.voucher_code, v.point_value, v.monetary_value, v.status,
+      v.generated_at, v.redeemed_at, v.expires_at, v.administrative_notes,
+      u.username as target_username, u.email as target_email, 
+      u.full_name as target_full_name, u.role as target_role,
+      admin.username as generated_by_username, admin.role as generated_by_role
+    FROM vouchers v
+    JOIN users u ON v.target_user_id = u.id
+    JOIN users admin ON v.generated_by = admin.id
+    WHERE v.generated_by = ${adminId} AND v.status = ${status}
+      AND (v.voucher_code ILIKE ${searchPattern} OR u.username ILIKE ${searchPattern} 
+           OR u.email ILIKE ${searchPattern} OR u.full_name ILIKE ${searchPattern})
+      AND v.generated_at >= ${dateFrom}
+    ORDER BY v.generated_at DESC LIMIT ${limitValue}
+  `;
+} else if (hasStatus && hasSearch && hasDateTo) {
+  const searchPattern = `%${searchTerm}%`;
+  vouchers = await sql`
+    SELECT 
+      v.id, v.voucher_code, v.point_value, v.monetary_value, v.status,
+      v.generated_at, v.redeemed_at, v.expires_at, v.administrative_notes,
+      u.username as target_username, u.email as target_email, 
+      u.full_name as target_full_name, u.role as target_role,
+      admin.username as generated_by_username, admin.role as generated_by_role
+    FROM vouchers v
+    JOIN users u ON v.target_user_id = u.id
+    JOIN users admin ON v.generated_by = admin.id
+    WHERE v.generated_by = ${adminId} AND v.status = ${status}
+      AND (v.voucher_code ILIKE ${searchPattern} OR u.username ILIKE ${searchPattern} 
+           OR u.email ILIKE ${searchPattern} OR u.full_name ILIKE ${searchPattern})
+      AND v.generated_at <= ${dateTo}
+    ORDER BY v.generated_at DESC LIMIT ${limitValue}
+  `;
+} else if (hasStatus && hasSearch) {
+  const searchPattern = `%${searchTerm}%`;
+  vouchers = await sql`
+    SELECT 
+      v.id, v.voucher_code, v.point_value, v.monetary_value, v.status,
+      v.generated_at, v.redeemed_at, v.expires_at, v.administrative_notes,
+      u.username as target_username, u.email as target_email, 
+      u.full_name as target_full_name, u.role as target_role,
+      admin.username as generated_by_username, admin.role as generated_by_role
+    FROM vouchers v
+    JOIN users u ON v.target_user_id = u.id
+    JOIN users admin ON v.generated_by = admin.id
+    WHERE v.generated_by = ${adminId} AND v.status = ${status}
+      AND (v.voucher_code ILIKE ${searchPattern} OR u.username ILIKE ${searchPattern} 
+           OR u.email ILIKE ${searchPattern} OR u.full_name ILIKE ${searchPattern})
+    ORDER BY v.generated_at DESC LIMIT ${limitValue}
+  `;
+} else if (hasStatus && hasDateFrom && hasDateTo) {
+  vouchers = await sql`
+    SELECT 
+      v.id, v.voucher_code, v.point_value, v.monetary_value, v.status,
+      v.generated_at, v.redeemed_at, v.expires_at, v.administrative_notes,
+      u.username as target_username, u.email as target_email, 
+      u.full_name as target_full_name, u.role as target_role,
+      admin.username as generated_by_username, admin.role as generated_by_role
+    FROM vouchers v
+    JOIN users u ON v.target_user_id = u.id
+    JOIN users admin ON v.generated_by = admin.id
+    WHERE v.generated_by = ${adminId} AND v.status = ${status}
+      AND v.generated_at >= ${dateFrom} AND v.generated_at <= ${dateTo}
+    ORDER BY v.generated_at DESC LIMIT ${limitValue}
+  `;
+} else if (hasStatus && hasDateFrom) {
+  vouchers = await sql`
+    SELECT 
+      v.id, v.voucher_code, v.point_value, v.monetary_value, v.status,
+      v.generated_at, v.redeemed_at, v.expires_at, v.administrative_notes,
+      u.username as target_username, u.email as target_email, 
+      u.full_name as target_full_name, u.role as target_role,
+      admin.username as generated_by_username, admin.role as generated_by_role
+    FROM vouchers v
+    JOIN users u ON v.target_user_id = u.id
+    JOIN users admin ON v.generated_by = admin.id
+    WHERE v.generated_by = ${adminId} AND v.status = ${status} AND v.generated_at >= ${dateFrom}
+    ORDER BY v.generated_at DESC LIMIT ${limitValue}
+  `;
+} else if (hasStatus && hasDateTo) {
+  vouchers = await sql`
+    SELECT 
+      v.id, v.voucher_code, v.point_value, v.monetary_value, v.status,
+      v.generated_at, v.redeemed_at, v.expires_at, v.administrative_notes,
+      u.username as target_username, u.email as target_email, 
+      u.full_name as target_full_name, u.role as target_role,
+      admin.username as generated_by_username, admin.role as generated_by_role
+    FROM vouchers v
+    JOIN users u ON v.target_user_id = u.id
+    JOIN users admin ON v.generated_by = admin.id
+    WHERE v.generated_by = ${adminId} AND v.status = ${status} AND v.generated_at <= ${dateTo}
+    ORDER BY v.generated_at DESC LIMIT ${limitValue}
+  `;
+} else if (hasStatus) {
+  vouchers = await sql`
+    SELECT 
+      v.id, v.voucher_code, v.point_value, v.monetary_value, v.status,
+      v.generated_at, v.redeemed_at, v.expires_at, v.administrative_notes,
+      u.username as target_username, u.email as target_email, 
+      u.full_name as target_full_name, u.role as target_role,
+      admin.username as generated_by_username, admin.role as generated_by_role
+    FROM vouchers v
+    JOIN users u ON v.target_user_id = u.id
+    JOIN users admin ON v.generated_by = admin.id
+    WHERE v.generated_by = ${adminId} AND v.status = ${status}
+    ORDER BY v.generated_at DESC LIMIT ${limitValue}
+  `;
+} else if (hasSearch && hasDateFrom && hasDateTo) {
+  const searchPattern = `%${searchTerm}%`;
+  vouchers = await sql`
+    SELECT 
+      v.id, v.voucher_code, v.point_value, v.monetary_value, v.status,
+      v.generated_at, v.redeemed_at, v.expires_at, v.administrative_notes,
+      u.username as target_username, u.email as target_email, 
+      u.full_name as target_full_name, u.role as target_role,
+      admin.username as generated_by_username, admin.role as generated_by_role
+    FROM vouchers v
+    JOIN users u ON v.target_user_id = u.id
+    JOIN users admin ON v.generated_by = admin.id
+    WHERE v.generated_by = ${adminId}
+      AND (v.voucher_code ILIKE ${searchPattern} OR u.username ILIKE ${searchPattern} 
+           OR u.email ILIKE ${searchPattern} OR u.full_name ILIKE ${searchPattern})
+      AND v.generated_at >= ${dateFrom} AND v.generated_at <= ${dateTo}
+    ORDER BY v.generated_at DESC LIMIT ${limitValue}
+  `;
+} else if (hasSearch && hasDateFrom) {
+  const searchPattern = `%${searchTerm}%`;
+  vouchers = await sql`
+    SELECT 
+      v.id, v.voucher_code, v.point_value, v.monetary_value, v.status,
+      v.generated_at, v.redeemed_at, v.expires_at, v.administrative_notes,
+      u.username as target_username, u.email as target_email, 
+      u.full_name as target_full_name, u.role as target_role,
+      admin.username as generated_by_username, admin.role as generated_by_role
+    FROM vouchers v
+    JOIN users u ON v.target_user_id = u.id
+    JOIN users admin ON v.generated_by = admin.id
+    WHERE v.generated_by = ${adminId}
+      AND (v.voucher_code ILIKE ${searchPattern} OR u.username ILIKE ${searchPattern} 
+           OR u.email ILIKE ${searchPattern} OR u.full_name ILIKE ${searchPattern})
+      AND v.generated_at >= ${dateFrom}
+    ORDER BY v.generated_at DESC LIMIT ${limitValue}
+  `;
+} else if (hasSearch && hasDateTo) {
+  const searchPattern = `%${searchTerm}%`;
+  vouchers = await sql`
+    SELECT 
+      v.id, v.voucher_code, v.point_value, v.monetary_value, v.status,
+      v.generated_at, v.redeemed_at, v.expires_at, v.administrative_notes,
+      u.username as target_username, u.email as target_email, 
+      u.full_name as target_full_name, u.role as target_role,
+      admin.username as generated_by_username, admin.role as generated_by_role
+    FROM vouchers v
+    JOIN users u ON v.target_user_id = u.id
+    JOIN users admin ON v.generated_by = admin.id
+    WHERE v.generated_by = ${adminId}
+      AND (v.voucher_code ILIKE ${searchPattern} OR u.username ILIKE ${searchPattern} 
+           OR u.email ILIKE ${searchPattern} OR u.full_name ILIKE ${searchPattern})
+      AND v.generated_at <= ${dateTo}
+    ORDER BY v.generated_at DESC LIMIT ${limitValue}
+  `;
+} else if (hasSearch) {
+  const searchPattern = `%${searchTerm}%`;
+  vouchers = await sql`
+    SELECT 
+      v.id, v.voucher_code, v.point_value, v.monetary_value, v.status,
+      v.generated_at, v.redeemed_at, v.expires_at, v.administrative_notes,
+      u.username as target_username, u.email as target_email, 
+      u.full_name as target_full_name, u.role as target_role,
+      admin.username as generated_by_username, admin.role as generated_by_role
+    FROM vouchers v
+    JOIN users u ON v.target_user_id = u.id
+    JOIN users admin ON v.generated_by = admin.id
+    WHERE v.generated_by = ${adminId}
+      AND (v.voucher_code ILIKE ${searchPattern} OR u.username ILIKE ${searchPattern} 
+           OR u.email ILIKE ${searchPattern} OR u.full_name ILIKE ${searchPattern})
+    ORDER BY v.generated_at DESC LIMIT ${limitValue}
+  `;
+} else if (hasDateFrom && hasDateTo) {
+  vouchers = await sql`
+    SELECT 
+      v.id, v.voucher_code, v.point_value, v.monetary_value, v.status,
+      v.generated_at, v.redeemed_at, v.expires_at, v.administrative_notes,
+      u.username as target_username, u.email as target_email, 
+      u.full_name as target_full_name, u.role as target_role,
+      admin.username as generated_by_username, admin.role as generated_by_role
+    FROM vouchers v
+    JOIN users u ON v.target_user_id = u.id
+    JOIN users admin ON v.generated_by = admin.id
+    WHERE v.generated_by = ${adminId} AND v.generated_at >= ${dateFrom} AND v.generated_at <= ${dateTo}
+    ORDER BY v.generated_at DESC LIMIT ${limitValue}
+  `;
+} else if (hasDateFrom) {
+  vouchers = await sql`
+    SELECT 
+      v.id, v.voucher_code, v.point_value, v.monetary_value, v.status,
+      v.generated_at, v.redeemed_at, v.expires_at, v.administrative_notes,
+      u.username as target_username, u.email as target_email, 
+      u.full_name as target_full_name, u.role as target_role,
+      admin.username as generated_by_username, admin.role as generated_by_role
+    FROM vouchers v
+    JOIN users u ON v.target_user_id = u.id
+    JOIN users admin ON v.generated_by = admin.id
+    WHERE v.generated_by = ${adminId} AND v.generated_at >= ${dateFrom}
+    ORDER BY v.generated_at DESC LIMIT ${limitValue}
+  `;
+} else if (hasDateTo) {
+  vouchers = await sql`
+    SELECT 
+      v.id, v.voucher_code, v.point_value, v.monetary_value, v.status,
+      v.generated_at, v.redeemed_at, v.expires_at, v.administrative_notes,
+      u.username as target_username, u.email as target_email, 
+      u.full_name as target_full_name, u.role as target_role,
+      admin.username as generated_by_username, admin.role as generated_by_role
+    FROM vouchers v
+    JOIN users u ON v.target_user_id = u.id
+    JOIN users admin ON v.generated_by = admin.id
+    WHERE v.generated_by = ${adminId} AND v.generated_at <= ${dateTo}
+    ORDER BY v.generated_at DESC LIMIT ${limitValue}
+  `;
+} else {
+  vouchers = await sql`
+    SELECT 
+      v.id, v.voucher_code, v.point_value, v.monetary_value, v.status,
+      v.generated_at, v.redeemed_at, v.expires_at, v.administrative_notes,
+      u.username as target_username, u.email as target_email, 
+      u.full_name as target_full_name, u.role as target_role,
+      admin.username as generated_by_username, admin.role as generated_by_role
+    FROM vouchers v
+    JOIN users u ON v.target_user_id = u.id
+    JOIN users admin ON v.generated_by = admin.id
+    WHERE v.generated_by = ${adminId}
+    ORDER BY v.generated_at DESC LIMIT ${limitValue}
+  `;
+}
   // Get quota information from admin_voucher_quotas table
     const quotaInfo = await sql`
       SELECT 
