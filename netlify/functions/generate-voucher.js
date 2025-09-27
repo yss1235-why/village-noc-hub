@@ -41,19 +41,14 @@ export const handler = async (event, context) => {
    const adminId = authResult.user.id;
     const adminRole = authResult.user.role;
     
-   // Check current quota (active unredeemed vouchers)
-    const activeVouchers = await sql`
-      SELECT COUNT(*) as active_count
-      FROM point_transactions pt
-      LEFT JOIN point_transactions redeemed ON redeemed.reference_id = pt.reference_id 
-        AND redeemed.transaction_type = 'voucher_redeemed'
-      WHERE pt.transaction_type = 'voucher_generated'
-      AND pt.created_by = ${adminId}
-      AND redeemed.id IS NULL
-      AND pt.created_at >= NOW() - INTERVAL '30 days'
+  // Check current quota using admin_voucher_quotas table
+    const quotaCheck = await sql`
+      SELECT active_voucher_count
+      FROM admin_voucher_quotas
+      WHERE admin_id = ${adminId}
     `;
 
-    const currentActiveCount = parseInt(activeVouchers[0].active_count) || 0;
+    const currentActiveCount = quotaCheck.length > 0 ? quotaCheck[0].active_voucher_count : 0;
     const maxActiveVouchers = parseInt(config.VOUCHER_RATE_LIMIT_MAX); // Reuse this env var
 
     if (currentActiveCount >= maxActiveVouchers) {
@@ -132,26 +127,33 @@ export const handler = async (event, context) => {
         .update(JSON.stringify(signatureData))
         .digest('hex');
 
-      // Store signature in description for later verification (temporary solution)
-      const descriptionWithSignature = `Voucher Code: ${voucherCode} | Signature: ${signature}${administrativeNotes ? ' | Notes: ' + administrativeNotes : ''}`;
-
       // Set expiration date (30 days from generation)
       const expirationDate = new Date();
       expirationDate.setDate(expirationDate.getDate() + 30);
 
-      // Insert voucher record (using simplified schema for now)
+     // Insert voucher record into dedicated vouchers table
       const voucherResult = await sql`
-       INSERT INTO point_transactions (
-          user_id, transaction_type, amount, description,
-          reference_id, created_by, ip_address
+        INSERT INTO vouchers (
+          voucher_code, target_user_id, point_value, monetary_value,
+          generated_by, expires_at, cryptographic_signature, administrative_notes
         )
         VALUES (
-          ${targetUserId}, 'voucher_generated', ${pointValue},
-          ${descriptionWithSignature},  // Use the description with signature
-          ${voucherCode}, ${adminId},
-          ${event.headers['x-forwarded-for'] || 'unknown'}::inet
+          ${voucherCode}, ${targetUserId}, ${pointValue}, ${pointValue},
+          ${adminId}, ${expirationDate}, ${signature}, ${administrativeNotes || ''}
         )
-        RETURNING id, created_at
+        RETURNING id, generated_at
+      `;
+
+      // Update admin quota tracking
+      await sql`
+        INSERT INTO admin_voucher_quotas (admin_id, active_voucher_count, total_generated, last_generation_timestamp)
+        VALUES (${adminId}, 1, 1, NOW())
+        ON CONFLICT (admin_id) 
+        DO UPDATE SET 
+          active_voucher_count = admin_voucher_quotas.active_voucher_count + 1,
+          total_generated = admin_voucher_quotas.total_generated + 1,
+          last_generation_timestamp = NOW(),
+          updated_at = NOW()
       `;
 
       // Create audit log entry
@@ -191,7 +193,7 @@ export const handler = async (event, context) => {
             pointValue,
             targetUser: targetUser[0].username,
             expirationDate: expirationDate.toISOString(),
-            generatedAt: voucherResult[0].created_at
+           generatedAt: voucherResult[0].generated_at
           }
         })
       };
