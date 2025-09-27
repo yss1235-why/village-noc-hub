@@ -83,10 +83,16 @@ const VoucherManagement: React.FC = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setVouchers(data.vouchers);
-        setQuota(data.quota);
+        setVouchers(data.vouchers || []);
+        setQuota(data.quota || { used: 0, total: 5, remaining: 5, totalGenerated: 0 });
+        
+        // Update statistics if available
+        if (data.statistics) {
+          console.log('Voucher Statistics:', data.statistics);
+        }
       } else {
-        throw new Error('Failed to load voucher data');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to load voucher data');
       }
     } catch (error) {
       toast({
@@ -177,10 +183,25 @@ const VoucherManagement: React.FC = () => {
         
         // Reload voucher data
         await loadVoucherData();
-      } else {
+     } else {
+        let errorMessage = result.error || "Failed to generate voucher.";
+        
+        // Handle specific error types
+        if (response.status === 429) {
+          if (result.activeVouchers !== undefined) {
+            errorMessage = `Quota exceeded: ${result.activeVouchers}/${result.maxVouchers} active vouchers. Redeem existing vouchers to generate new ones.`;
+          } else {
+            errorMessage = "Rate limit exceeded. Please try again later.";
+          }
+        } else if (response.status === 404) {
+          errorMessage = "Target user not found or not eligible for vouchers.";
+        } else if (response.status === 403) {
+          errorMessage = "Insufficient privileges to generate vouchers.";
+        }
+        
         toast({
           title: "Generation Failed",
-          description: result.error || "Failed to generate voucher.",
+          description: errorMessage,
           variant: "destructive"
         });
       }
@@ -233,6 +254,20 @@ const VoucherManagement: React.FC = () => {
       case 'cancelled': return 'outline';
       default: return 'default';
     }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'active': return '🟢';
+      case 'redeemed': return '✅';
+      case 'expired': return '⏰';
+      case 'cancelled': return '❌';
+      default: return '❓';
+    }
+  };
+
+  const isVoucherExpired = (expiresAt: string) => {
+    return new Date(expiresAt) < new Date();
   };
 
   return (
@@ -296,9 +331,14 @@ const VoucherManagement: React.FC = () => {
                 style={{ width: `${(quota.used / quota.total) * 100}%` }}
               />
             </div>
-            {quota.used >= 4 && (
+           {quota.used >= 4 && (
               <p className="text-xs text-red-600 mt-1">
-                Approaching quota limit
+                {quota.used === 5 ? 'Quota limit reached' : 'Approaching quota limit'}
+              </p>
+            )}
+            {quota.used === 5 && (
+              <p className="text-xs text-blue-600 mt-1">
+                Redeem existing vouchers to generate new ones
               </p>
             )}
           </CardContent>
