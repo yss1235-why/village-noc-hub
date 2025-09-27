@@ -3,6 +3,11 @@ import crypto from 'crypto';
 import { requireRole } from './utils/auth-middleware.js';
 import { validateVoucherConfig } from './utils/voucher-config.js';
 
+// Helper function for deterministic JSON serialization
+const deterministicStringify = (obj) => {
+  return JSON.stringify(obj, Object.keys(obj).sort());
+};
+
 export const handler = async (event, context) => {
   const sql = neon(process.env.NETLIFY_DATABASE_URL);
   
@@ -127,9 +132,8 @@ export const handler = async (event, context) => {
         timestamp: signatureTimestamp
       };
       const signature = crypto.createHmac('sha512', config.VOUCHER_SIGNING_KEY)
-        .update(JSON.stringify(signatureData))
+        .update(deterministicStringify(signatureData))
         .digest('hex');
-
       // Set expiration date (30 days from generation)
       const expirationDate = new Date();
       expirationDate.setDate(expirationDate.getDate() + 30);
