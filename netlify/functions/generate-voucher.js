@@ -155,26 +155,34 @@ export const handler = async (event, context) => {
           updated_at = NOW()
       `;
 
-      // Create audit log entry
-      await sql`
-        INSERT INTO audit_logs (
-          user_id, action, resource_type, resource_id, details,
-          ip_address, user_agent
-        )
-        VALUES (
-          ${adminId}, 'VOUCHER_GENERATED', 'voucher', ${voucherResult[0].id},
-          ${JSON.stringify({
-            voucherCode: voucherCode,
-            targetUser: targetUser[0].username,
-            pointValue,
-            monetaryValue: pointValue,
-            administrativeNotes: administrativeNotes || '',
-            adminRole: adminRole
-          })},
-          ${event.headers['x-forwarded-for'] || 'unknown'}::inet,
-          ${event.headers['user-agent'] || 'unknown'}
-        )
-      `;
+     // Create audit log entry
+      try {
+        const ipAddress = event.headers['x-forwarded-for'] 
+          ? event.headers['x-forwarded-for'].split(',')[0].trim() 
+          : 'unknown';
+        
+        await sql`
+          INSERT INTO audit_logs (
+            user_id, action, resource_type, resource_id, details,
+            ip_address, created_at
+          )
+          VALUES (
+            ${adminId}, 'VOUCHER_GENERATED', 'voucher', ${voucherResult[0].id},
+            ${JSON.stringify({
+              voucherCode: voucherCode,
+              targetUser: targetUser[0].username,
+              pointValue,
+              monetaryValue: pointValue,
+              administrativeNotes: administrativeNotes || '',
+              adminRole: adminRole
+            })},
+            ${ipAddress},
+            NOW()
+          )
+        `;
+      } catch (auditError) {
+        console.log('Audit logging failed but voucher generation succeeded:', auditError.message);
+      }
 
       await sql`COMMIT`;
 
