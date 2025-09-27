@@ -105,17 +105,20 @@ export const handler = async (event, context) => {
     await sql`BEGIN`;
 
     try {
+     // Generate single unified timestamp for both voucher code and signature
+      const unifiedTimestamp = Date.now();
+      const timestamp = unifiedTimestamp.toString();
+      
       // Generate cryptographically secure voucher code
       const randomBytes = crypto.randomBytes(16);
-      const timestamp = Date.now().toString();
       const userBinding = crypto.createHash('sha256')
         .update(targetUserId + adminId + timestamp)
         .digest('hex')
         .substring(0, 8);
       const voucherCode = `VCH${timestamp.substring(-8)}${userBinding}${randomBytes.toString('hex').substring(0, 8)}`.toUpperCase();
 
-   // Create cryptographic signature with HMAC
-      const signatureTimestamp = Date.now();
+   // Create cryptographic signature with HMAC using the same timestamp
+      const signatureTimestamp = unifiedTimestamp;
       const signatureData = {
         voucherCode,
         targetUserId,
