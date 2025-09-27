@@ -59,54 +59,70 @@ export const handler = async (event, context) => {
       }
     }
 
-    // Build search query with parameterized inputs
-    const searchTerm = `%${searchQuery.toLowerCase()}%`;
-    
-    let query = `
-      SELECT 
-        u.id,
-        u.username,
-        u.email,
-        u.full_name as "fullName",
-        u.name,
-        u.role,
-        u.is_approved as "isApproved",
-        u.point_balance as "pointBalance",
-        v.name as "villageName"
-      FROM users u
-      LEFT JOIN villages v ON u.village_id = v.id
-      WHERE u.role = ANY($1)
-      AND (
-        LOWER(u.username) LIKE $2 OR
-        LOWER(u.email) LIKE $2 OR
-        LOWER(u.full_name) LIKE $2 OR
-        LOWER(u.name) LIKE $2
-      )
-    `;
+    // Build search query with template literal syntax for Neon compatibility
+const searchTerm = `%${searchQuery.toLowerCase()}%`;
+const limitValue = parseInt(limit);
 
-    const queryParams = [allowedRoles, searchTerm];
-    let paramIndex = 3;
+let users;
 
-    // Add approval filter if specified
-    if (approved === 'true') {
-      query += ` AND u.is_approved = $${paramIndex}`;
-      queryParams.push(true);
-      paramIndex++;
-    } else if (approved === 'false') {
-      query += ` AND u.is_approved = $${paramIndex}`;
-      queryParams.push(false);
-      paramIndex++;
-    }
+// Check if approval filter is specified
+const hasApprovalFilter = approved === 'true' || approved === 'false';
+const approvalValue = approved === 'true';
 
-    // Add ordering and limit
-    query += ` ORDER BY 
+if (hasApprovalFilter) {
+  users = await sql`
+    SELECT 
+      u.id,
+      u.username,
+      u.email,
+      u.full_name as "fullName",
+      u.name,
+      u.role,
+      u.is_approved as "isApproved",
+      u.point_balance as "pointBalance",
+      v.name as "villageName"
+    FROM users u
+    LEFT JOIN villages v ON u.village_id = v.id
+    WHERE u.role = ANY(${allowedRoles})
+    AND (
+      LOWER(u.username) LIKE ${searchTerm} OR
+      LOWER(u.email) LIKE ${searchTerm} OR
+      LOWER(u.full_name) LIKE ${searchTerm} OR
+      LOWER(u.name) LIKE ${searchTerm}
+    )
+    AND u.is_approved = ${approvalValue}
+    ORDER BY 
       CASE WHEN u.is_approved THEN 0 ELSE 1 END,
       u.username ASC 
-      LIMIT $${paramIndex}`;
-    queryParams.push(parseInt(limit));
-
-    const users = await sql(query, queryParams);
-
+    LIMIT ${limitValue}
+  `;
+} else {
+  users = await sql`
+    SELECT 
+      u.id,
+      u.username,
+      u.email,
+      u.full_name as "fullName",
+      u.name,
+      u.role,
+      u.is_approved as "isApproved",
+      u.point_balance as "pointBalance",
+      v.name as "villageName"
+    FROM users u
+    LEFT JOIN villages v ON u.village_id = v.id
+    WHERE u.role = ANY(${allowedRoles})
+    AND (
+      LOWER(u.username) LIKE ${searchTerm} OR
+      LOWER(u.email) LIKE ${searchTerm} OR
+      LOWER(u.full_name) LIKE ${searchTerm} OR
+      LOWER(u.name) LIKE ${searchTerm}
+    )
+    ORDER BY 
+      CASE WHEN u.is_approved THEN 0 ELSE 1 END,
+      u.username ASC 
+    LIMIT ${limitValue}
+  `;
+}
     // Format results for frontend consumption
     const formattedUsers = users.map(user => ({
       id: user.id,
