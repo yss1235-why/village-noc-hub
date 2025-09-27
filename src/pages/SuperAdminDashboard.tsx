@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LogOut, CheckCircle, XCircle, Clock, Crown, Building, Users, Settings, Eye, EyeOff, Trash2, AlertCircle, Key } from "lucide-react";
+import { LogOut, CheckCircle, XCircle, Clock, Crown, Building, Users, Settings, Eye, EyeOff, Trash2, AlertCircle, Key, Gift, TrendingUp, BarChart } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
@@ -69,7 +69,7 @@ const [isChangingPassword, setIsChangingPassword] = useState(false);
     autoBlockEnabled: false
   });
 
-  // Audit and analytics state
+ // Audit and analytics state
   const [auditLogs, setAuditLogs] = useState([]);
   const [systemAnalytics, setSystemAnalytics] = useState({
     totalUsers: 0,
@@ -77,6 +77,42 @@ const [isChangingPassword, setIsChangingPassword] = useState(false);
     approvalRate: 0,
     fraudAttempts: 0
   });
+
+  // Voucher management state
+  const [voucherStats, setVoucherStats] = useState({
+    quotaUsed: 0,
+    quotaTotal: 5,
+    totalGenerated: 0,
+    activeVouchers: 0,
+    redeemedVouchers: 0,
+    isLoading: true
+  });
+
+  const loadVoucherStatistics = async () => {
+    try {
+      const response = await fetch('/.netlify/functions/track-vouchers?limit=1', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth-token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setVoucherStats({
+          quotaUsed: data.quota?.used || 0,
+          quotaTotal: data.quota?.total || 5,
+          totalGenerated: data.quota?.totalGenerated || 0,
+          activeVouchers: data.statistics?.active_vouchers || 0,
+          redeemedVouchers: data.statistics?.redeemed_vouchers || 0,
+          isLoading: false
+        });
+      }
+    } catch (error) {
+      console.error('Failed to fetch voucher stats:', error);
+      setVoucherStats(prev => ({ ...prev, isLoading: false }));
+    }
+  };
 
   // Broadcast messaging state
   const [broadcastMessages, setBroadcastMessages] = useState([]);
@@ -313,9 +349,10 @@ const handleRejectVillage = async (villageId: string) => {
     }
   };
 
-  useEffect(() => {
+ useEffect(() => {
     loadVillages();
     loadSystemAdmins();
+    loadVoucherStatistics();
   }, []);
 
   const handleDeleteVillage = (village: any) => {
@@ -577,12 +614,15 @@ const handleRejectVillage = async (villageId: string) => {
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="villages" className="w-full">
-              <TabsList className="grid w-full grid-cols-5">
+                 <TabsList className="grid w-full grid-cols-6">
                 <TabsTrigger value="villages">
                   Villages ({villageRequests.length})
                 </TabsTrigger>
                 <TabsTrigger value="admins">
                   Administrators ({adminUsers.length})
+                </TabsTrigger>
+                <TabsTrigger value="vouchers">
+                  Vouchers
                 </TabsTrigger>
                 <TabsTrigger value="security">
                   Security ({securityAlerts.length})
@@ -746,13 +786,109 @@ const handleRejectVillage = async (villageId: string) => {
             </TabsContent>
 
             {/* Additional tabs content can go here */}
-            <TabsContent value="admins" className="space-y-4">
+           <TabsContent value="admins" className="space-y-4">
               <div className="text-center py-8 text-muted-foreground">
                 <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>Admin management coming soon</p>
               </div>
             </TabsContent>
 
+            <TabsContent value="vouchers" className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-medium">Voucher Management</h3>
+                <Button onClick={() => navigate('/admin/vouchers')}>
+                  <Gift className="h-4 w-4 mr-2" />
+                  Full Voucher Management
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Quota Used</p>
+                        <p className="text-2xl font-bold">{voucherStats.quotaUsed}/{voucherStats.quotaTotal}</p>
+                      </div>
+                      <Gift className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Total Generated</p>
+                        <p className="text-2xl font-bold">{voucherStats.totalGenerated}</p>
+                      </div>
+                      <TrendingUp className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Active</p>
+                        <p className="text-2xl font-bold">{voucherStats.activeVouchers}</p>
+                      </div>
+                      <CheckCircle className="h-8 w-8 text-green-600" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Redeemed</p>
+                        <p className="text-2xl font-bold">{voucherStats.redeemedVouchers}</p>
+                      </div>
+                      <Users className="h-8 w-8 text-blue-600" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Quick Actions</CardTitle>
+                  <CardDescription>
+                    Common voucher management tasks for super administrators
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <Button 
+                      variant="outline" 
+                      className="h-20 flex-col"
+                      onClick={() => navigate('/admin/vouchers')}
+                    >
+                      <Gift className="h-6 w-6 mb-2" />
+                      Generate Voucher
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="h-20 flex-col"
+                      onClick={() => navigate('/admin/vouchers')}
+                    >
+                      <Eye className="h-6 w-6 mb-2" />
+                      Track Vouchers
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="h-20 flex-col"
+                      onClick={() => navigate('/admin/vouchers')}
+                    >
+                      <BarChart className="h-6 w-6 mb-2" />
+                      View Analytics
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
             <TabsContent value="security" className="space-y-4">
               <div className="text-center py-8 text-muted-foreground">
                 <AlertCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
