@@ -22,15 +22,18 @@ export const handler = async (event, context) => {
   }
 
 try {
-    const { username, password } = JSON.parse(event.body);
+    const { login, password } = JSON.parse(event.body);
 
-    if (!username || !password) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ error: 'Email and password are required' })
-      };
-    }
+if (!login || !password) {
+  return {
+    statusCode: 400,
+    headers,
+    body: JSON.stringify({ error: 'Email and password are required' })
+  };
+}
+
+// Use login as username for database query  
+const username = login;
 
     // Database lookup with proper email matching
     const user = await sql`
