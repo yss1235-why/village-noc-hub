@@ -51,7 +51,7 @@ const VoucherRedemption: React.FC = () => {
 
       const result = await response.json();
 
-      if (response.ok) {
+     if (response.ok) {
         setRecentRedemption(result.transaction);
         setVoucherCode('');
         
@@ -63,9 +63,26 @@ const VoucherRedemption: React.FC = () => {
         // Refresh user data to update point balance
         await refreshUser();
       } else {
+        let errorMessage = result.error || "Failed to redeem voucher. Please check the code and try again.";
+        
+        // Handle specific error types
+        if (response.status === 404) {
+          errorMessage = "Invalid voucher code or voucher not assigned to your account.";
+        } else if (response.status === 400) {
+          if (result.status) {
+            errorMessage = `Voucher has already been ${result.status}.`;
+          } else if (result.error?.includes('expired')) {
+            errorMessage = "This voucher has expired and cannot be redeemed.";
+          } else if (result.error?.includes('authenticity')) {
+            errorMessage = "Voucher verification failed. Please contact support.";
+          }
+        } else if (response.status === 429) {
+          errorMessage = "Too many redemption attempts. Please wait and try again.";
+        }
+        
         toast({
           title: "Redemption Failed",
-          description: result.error || "Failed to redeem voucher. Please check the code and try again.",
+          description: errorMessage,
           variant: "destructive"
         });
       }
