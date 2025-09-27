@@ -52,11 +52,10 @@ export const handler = async (event, context) => {
         })
       };
     }
-    
     const { status, searchTerm, dateFrom, dateTo, limit = 50 } = event.queryStringParameters || {};
 
-   // Get voucher data from dedicated vouchers table
-    let voucherQuery = `
+    // Get voucher data from dedicated vouchers table using template literals
+    const vouchers = await sql`
       SELECT 
         v.id,
         v.voucher_code,
@@ -76,46 +75,21 @@ export const handler = async (event, context) => {
       FROM vouchers v
       JOIN users u ON v.target_user_id = u.id
       JOIN users admin ON v.generated_by = admin.id
-      WHERE v.generated_by = $1
+      WHERE v.generated_by = ${adminId}
+        ${status && ['active', 'redeemed', 'expired', 'cancelled'].includes(status) 
+          ? sql`AND v.status = ${status}` : sql``}
+        ${searchTerm 
+          ? sql`AND (
+              v.voucher_code ILIKE ${`%${searchTerm}%`} OR
+              u.username ILIKE ${`%${searchTerm}%`} OR
+              u.email ILIKE ${`%${searchTerm}%`} OR
+              u.full_name ILIKE ${`%${searchTerm}%`}
+            )` : sql``}
+        ${dateFrom ? sql`AND v.generated_at >= ${dateFrom}` : sql``}
+        ${dateTo ? sql`AND v.generated_at <= ${dateTo}` : sql``}
+      ORDER BY v.generated_at DESC 
+      LIMIT ${parseInt(limit)}
     `;
-
-    const params = [adminId];
-    let paramIndex = 2;
-
-   // Apply filters
-    if (status && ['active', 'redeemed', 'expired', 'cancelled'].includes(status)) {
-      voucherQuery += ` AND v.status = $${paramIndex}`;
-      params.push(status);
-      paramIndex++;
-    }
-
-  if (searchTerm) {
-      voucherQuery += ` AND (
-        v.voucher_code ILIKE $${paramIndex} OR
-        u.username ILIKE $${paramIndex} OR
-        u.email ILIKE $${paramIndex} OR
-        u.full_name ILIKE $${paramIndex}
-      )`;
-      params.push(`%${searchTerm}%`);
-      paramIndex++;
-    }
-
-    if (dateFrom) {
-      voucherQuery += ` AND v.generated_at >= $${paramIndex}`;
-      params.push(dateFrom);
-      paramIndex++;
-    }
-
-    if (dateTo) {
-      voucherQuery += ` AND v.generated_at <= $${paramIndex}`;
-      params.push(dateTo);
-      paramIndex++;
-    }
-
-    voucherQuery += ` ORDER BY v.generated_at DESC LIMIT $${paramIndex}`;
-    params.push(parseInt(limit));
-
-    const vouchers = await sql(voucherQuery, params);
 
   // Get quota information from admin_voucher_quotas table
     const quotaInfo = await sql`
