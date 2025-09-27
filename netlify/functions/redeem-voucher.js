@@ -3,6 +3,15 @@ import crypto from 'crypto';
 import { requireRole } from './utils/auth-middleware.js';
 import { validateVoucherConfig } from './utils/voucher-config.js';
 
+// Helper function to extract single IP address from x-forwarded-for header
+const getClientIP = (headers) => {
+  const forwarded = headers['x-forwarded-for'];
+  if (forwarded) {
+    // Take the first IP address from comma-separated list
+    return forwarded.split(',')[0].trim();
+  }
+  return headers['x-real-ip'] || 'unknown';
+};
 export const handler = async (event, context) => {
   const sql = neon(process.env.NETLIFY_DATABASE_URL);
   
@@ -70,11 +79,11 @@ export const handler = async (event, context) => {
         
         // Log security event for invalid voucher attempt
         await sql`
-          INSERT INTO security_logs (user_id, action, details, ip_address, user_agent)
+         INSERT INTO security_logs (user_id, action, details, ip_address, user_agent)
           VALUES (
             ${userId}, 'INVALID_VOUCHER_ATTEMPT',
             ${JSON.stringify({ attemptedCode: voucherCode.substring(0, 8) + '...' })},
-            ${event.headers['x-forwarded-for'] || 'unknown'}::inet,
+            ${getClientIP(event.headers)}::inet,
             ${event.headers['user-agent'] || 'unknown'}
           )
         `;
@@ -136,7 +145,7 @@ export const handler = async (event, context) => {
           VALUES (
             ${userId}, 'VOUCHER_SIGNATURE_FAILURE',
             ${JSON.stringify({ voucherCode: voucherCode.substring(0, 8) + '...' })},
-            ${event.headers['x-forwarded-for'] || 'unknown'}::inet,
+          ${getClientIP(event.headers)}::inet,
             ${event.headers['user-agent'] || 'unknown'}
           )
         `;
@@ -160,7 +169,7 @@ export const handler = async (event, context) => {
         UPDATE vouchers 
         SET status = 'redeemed', 
             redeemed_at = NOW(),
-            redemption_ip = ${event.headers['x-forwarded-for'] || 'unknown'}::inet,
+            redemption_ip = ${getClientIP(event.headers)}::inet,
             redemption_user_agent = ${event.headers['user-agent'] || 'unknown'},
             updated_at = NOW()
         WHERE id = ${voucherData.id}
@@ -200,7 +209,7 @@ export const handler = async (event, context) => {
             redemptionMethod: 'user_interface',
             userRole: userRole
           })},
-          ${event.headers['x-forwarded-for'] || 'unknown'}::inet,
+         ${getClientIP(event.headers)}::inet,
           ${event.headers['user-agent'] || 'unknown'}
         )
       `;
