@@ -55,54 +55,43 @@ export const handler = async (event, context) => {
     
     const { status, searchTerm, dateFrom, dateTo, limit = 50 } = event.queryStringParameters || {};
 
-    // Get voucher data (generated vouchers)
+   // Get voucher data from dedicated vouchers table
     let voucherQuery = `
       SELECT 
-        pt.id,
-        pt.reference_id as voucher_code,
-        pt.amount as point_value,
-        pt.amount as monetary_value,
-        CASE 
-          WHEN redeemed.id IS NOT NULL THEN 'redeemed'
-          WHEN pt.created_at < NOW() - INTERVAL '30 days' THEN 'expired'
-          ELSE 'active'
-        END as status,
-        pt.created_at as generated_at,
-        redeemed.created_at as redeemed_at,
-        pt.created_at + INTERVAL '30 days' as expires_at,
-        pt.description as administrative_notes,
+        v.id,
+        v.voucher_code,
+        v.point_value,
+        v.monetary_value,
+        v.status,
+        v.generated_at,
+        v.redeemed_at,
+        v.expires_at,
+        v.administrative_notes,
         u.username as target_username,
         u.email as target_email,
         u.full_name as target_full_name,
         u.role as target_role,
         admin.username as generated_by_username,
         admin.role as generated_by_role
-      FROM point_transactions pt
-      JOIN users u ON pt.user_id = u.id
-      JOIN users admin ON pt.created_by = admin.id
-      LEFT JOIN point_transactions redeemed ON redeemed.reference_id = pt.reference_id 
-        AND redeemed.transaction_type = 'voucher_redeemed'
-      WHERE pt.transaction_type = 'voucher_generated'
-      AND pt.created_by = $1
+      FROM vouchers v
+      JOIN users u ON v.target_user_id = u.id
+      JOIN users admin ON v.generated_by = admin.id
+      WHERE v.generated_by = $1
     `;
 
     const params = [adminId];
     let paramIndex = 2;
 
-    // Apply filters
-    if (status && ['active', 'redeemed', 'expired'].includes(status)) {
-      if (status === 'redeemed') {
-        voucherQuery += ` AND redeemed.id IS NOT NULL`;
-      } else if (status === 'expired') {
-        voucherQuery += ` AND pt.created_at < NOW() - INTERVAL '30 days' AND redeemed.id IS NULL`;
-      } else if (status === 'active') {
-        voucherQuery += ` AND pt.created_at >= NOW() - INTERVAL '30 days' AND redeemed.id IS NULL`;
-      }
+   // Apply filters
+    if (status && ['active', 'redeemed', 'expired', 'cancelled'].includes(status)) {
+      voucherQuery += ` AND v.status = $${paramIndex}`;
+      params.push(status);
+      paramIndex++;
     }
 
-    if (searchTerm) {
+  if (searchTerm) {
       voucherQuery += ` AND (
-        pt.reference_id ILIKE $${paramIndex} OR
+        v.voucher_code ILIKE $${paramIndex} OR
         u.username ILIKE $${paramIndex} OR
         u.email ILIKE $${paramIndex} OR
         u.full_name ILIKE $${paramIndex}
@@ -112,51 +101,46 @@ export const handler = async (event, context) => {
     }
 
     if (dateFrom) {
-      voucherQuery += ` AND pt.created_at >= $${paramIndex}`;
+      voucherQuery += ` AND v.generated_at >= $${paramIndex}`;
       params.push(dateFrom);
       paramIndex++;
     }
 
     if (dateTo) {
-      voucherQuery += ` AND pt.created_at <= $${paramIndex}`;
+      voucherQuery += ` AND v.generated_at <= $${paramIndex}`;
       params.push(dateTo);
       paramIndex++;
     }
 
-    voucherQuery += ` ORDER BY pt.created_at DESC LIMIT $${paramIndex}`;
+    voucherQuery += ` ORDER BY v.generated_at DESC LIMIT $${paramIndex}`;
     params.push(parseInt(limit));
 
     const vouchers = await sql(voucherQuery, params);
 
-    // Get quota information (simplified)
+  // Get quota information from admin_voucher_quotas table
     const quotaInfo = await sql`
       SELECT 
-        COUNT(*) as total_generated,
-        COUNT(CASE WHEN pt.created_at >= NOW() - INTERVAL '30 days' AND redeemed.id IS NULL THEN 1 END) as active_vouchers
-      FROM point_transactions pt
-      LEFT JOIN point_transactions redeemed ON redeemed.reference_id = pt.reference_id 
-        AND redeemed.transaction_type = 'voucher_redeemed'
-      WHERE pt.transaction_type = 'voucher_generated'
-      AND pt.created_by = ${adminId}
+        active_voucher_count,
+        total_generated,
+        last_generation_timestamp
+      FROM admin_voucher_quotas
+      WHERE admin_id = ${adminId}
     `;
 
-    // Get summary statistics
+    // Get summary statistics from vouchers table
     const summaryStats = await sql`
       SELECT 
         COUNT(*) as total_vouchers,
-        COUNT(CASE WHEN pt.created_at >= NOW() - INTERVAL '30 days' AND redeemed.id IS NULL THEN 1 END) as active_vouchers,
-        COUNT(CASE WHEN redeemed.id IS NOT NULL THEN 1 END) as redeemed_vouchers,
-        COUNT(CASE WHEN pt.created_at < NOW() - INTERVAL '30 days' AND redeemed.id IS NULL THEN 1 END) as expired_vouchers,
-        COALESCE(SUM(CASE WHEN redeemed.id IS NOT NULL THEN pt.amount ELSE 0 END), 0) as total_points_redeemed,
-        COALESCE(SUM(CASE WHEN pt.created_at >= NOW() - INTERVAL '30 days' AND redeemed.id IS NULL THEN pt.amount ELSE 0 END), 0) as pending_point_value
-      FROM point_transactions pt
-      LEFT JOIN point_transactions redeemed ON redeemed.reference_id = pt.reference_id 
-        AND redeemed.transaction_type = 'voucher_redeemed'
-      WHERE pt.transaction_type = 'voucher_generated'
-      AND pt.created_by = ${adminId}
+        COUNT(CASE WHEN status = 'active' THEN 1 END) as active_vouchers,
+        COUNT(CASE WHEN status = 'redeemed' THEN 1 END) as redeemed_vouchers,
+        COUNT(CASE WHEN status = 'expired' THEN 1 END) as expired_vouchers,
+        COALESCE(SUM(CASE WHEN status = 'redeemed' THEN point_value ELSE 0 END), 0) as total_points_redeemed,
+        COALESCE(SUM(CASE WHEN status = 'active' THEN point_value ELSE 0 END), 0) as pending_point_value
+      FROM vouchers
+      WHERE generated_by = ${adminId}
     `;
 
-    const activeVouchersCount = Math.min(quotaInfo[0]?.active_vouchers || 0, 5);
+    const currentQuota = quotaInfo.length > 0 ? quotaInfo[0] : { active_voucher_count: 0, total_generated: 0, last_generation_timestamp: null };
 
    return {
       statusCode: 200,
@@ -185,12 +169,12 @@ export const handler = async (event, context) => {
           generatedByRole: v.generated_by_role,
           administrativeNotes: v.administrative_notes
         })),
-        quota: {
-          used: activeVouchersCount,
+       quota: {
+          used: currentQuota.active_voucher_count,
           total: 5,
-          remaining: Math.max(5 - activeVouchersCount, 0),
-          totalGenerated: quotaInfo[0]?.total_generated || 0,
-          lastGeneration: null
+          remaining: Math.max(5 - currentQuota.active_voucher_count, 0),
+          totalGenerated: currentQuota.total_generated,
+          lastGeneration: currentQuota.last_generation_timestamp
         },
         statistics: summaryStats[0] || {
           total_vouchers: 0,
