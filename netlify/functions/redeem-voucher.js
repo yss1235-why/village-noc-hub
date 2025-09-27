@@ -122,13 +122,13 @@ export const handler = async (event, context) => {
 
       const pointValue = voucherData.point_value;
 
-      // Verify cryptographic signature
+     // Verify cryptographic signature
       const signatureData = {
         voucherCode: voucherData.voucher_code,
         targetUserId: voucherData.target_user_id,
         pointValue: voucherData.point_value,
         adminId: voucherData.generated_by,
-        timestamp: new Date(voucherData.generated_at).getTime()
+        timestamp: voucherData.signature_timestamp
       };
       
       const expectedSignature = crypto.createHmac('sha512', config.VOUCHER_SIGNING_KEY)
