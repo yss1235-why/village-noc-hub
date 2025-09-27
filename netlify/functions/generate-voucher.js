@@ -1,7 +1,7 @@
 import { neon } from '@neondatabase/serverless';
 import crypto from 'crypto';
 import { requireRole } from './utils/auth-middleware.js';
-import { validateVoucherConfig, checkRateLimit } from './utils/voucher-config.js';
+import { validateVoucherConfig } from './utils/voucher-config.js';
 
 export const handler = async (event, context) => {
   const sql = neon(process.env.NETLIFY_DATABASE_URL);
@@ -49,15 +49,14 @@ export const handler = async (event, context) => {
     `;
 
     const currentActiveCount = quotaCheck.length > 0 ? quotaCheck[0].active_voucher_count : 0;
-    const maxActiveVouchers = parseInt(config.VOUCHER_RATE_LIMIT_MAX); // Reuse this env var
-
+     const maxActiveVouchers = 5; // Maximum active vouchers per admin
     if (currentActiveCount >= maxActiveVouchers) {
       return {
         statusCode: 429,
         headers: {
           ...headers,
           'X-Active-Vouchers': currentActiveCount.toString(),
-          'X-Max-Vouchers': maxActiveVouchers.toString()
+          'X-Max-Vouchers': '5'
         },
         body: JSON.stringify({ 
           error: `Quota exceeded. You have ${currentActiveCount} active unredeemed vouchers. Maximum allowed: ${maxActiveVouchers}`,
@@ -181,10 +180,10 @@ export const handler = async (event, context) => {
 
      return {
         statusCode: 201,
-       headers: {
+      headers: {
           ...headers,
           'X-Active-Vouchers': (currentActiveCount + 1).toString(),
-          'X-Remaining-Quota': (maxActiveVouchers - currentActiveCount - 1).toString()
+          'X-Remaining-Quota': (5 - currentActiveCount - 1).toString()
         },
         body: JSON.stringify({
           success: true,
