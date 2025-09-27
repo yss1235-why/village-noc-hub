@@ -24,15 +24,18 @@ export const handler = async (event, context) => {
   }
 
   try {
-    const { email, password } = JSON.parse(event.body);
+    const { login, password } = JSON.parse(event.body);
 
-    if (!email || !password) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ error: 'Email and password are required' })
-      };
-    }
+if (!login || !password) {
+  return {
+    statusCode: 400,
+    headers,
+    body: JSON.stringify({ error: 'Email and password are required' })
+  };
+}
+
+// Use login as email for database query
+const email = login;
 
     // Find system admin user in system_admins table
     const adminResult = await sql`
