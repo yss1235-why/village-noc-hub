@@ -76,7 +76,6 @@ if (hasApprovalFilter) {
       u.username,
       u.email,
       u.full_name as "fullName",
-      u.name,
       u.role,
       u.is_approved as "isApproved",
       u.point_balance as "pointBalance",
@@ -87,8 +86,7 @@ if (hasApprovalFilter) {
     AND (
       LOWER(u.username) LIKE ${searchTerm} OR
       LOWER(u.email) LIKE ${searchTerm} OR
-      LOWER(u.full_name) LIKE ${searchTerm} OR
-      LOWER(u.name) LIKE ${searchTerm}
+      LOWER(u.full_name) LIKE ${searchTerm}
     )
     AND u.is_approved = ${approvalValue}
     ORDER BY 
@@ -103,7 +101,6 @@ if (hasApprovalFilter) {
       u.username,
       u.email,
       u.full_name as "fullName",
-      u.name,
       u.role,
       u.is_approved as "isApproved",
       u.point_balance as "pointBalance",
@@ -114,8 +111,7 @@ if (hasApprovalFilter) {
     AND (
       LOWER(u.username) LIKE ${searchTerm} OR
       LOWER(u.email) LIKE ${searchTerm} OR
-      LOWER(u.full_name) LIKE ${searchTerm} OR
-      LOWER(u.name) LIKE ${searchTerm}
+      LOWER(u.full_name) LIKE ${searchTerm}
     )
     ORDER BY 
       CASE WHEN u.is_approved THEN 0 ELSE 1 END,
@@ -124,16 +120,16 @@ if (hasApprovalFilter) {
   `;
 }
     // Format results for frontend consumption
-    const formattedUsers = users.map(user => ({
-      id: user.id,
-      username: user.username || user.email,
-      email: user.email,
-      fullName: user.fullName || user.name,
-      role: user.role,
-      isApproved: user.isApproved,
-      pointBalance: user.pointBalance || 0,
-      villageName: user.villageName
-    }));
+   const formattedUsers = users.map(user => ({
+  id: user.id,
+  username: user.username || user.email,
+  email: user.email,
+  fullName: user.fullName,
+  role: user.role,
+  isApproved: user.isApproved,
+  pointBalance: user.pointBalance || 0,
+  villageName: user.villageName
+}));
 
     // Log search activity for audit purposes
     await sql`
