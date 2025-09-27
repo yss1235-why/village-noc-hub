@@ -38,7 +38,27 @@ export const handler = async (event, context) => {
     
     const { status, searchTerm, dateFrom, dateTo, limit = 50 } = event.queryStringParameters || {};
 
-    // Get voucher data from dedicated vouchers table using template literals
+   // Build WHERE conditions for filtering
+    let whereConditions = [`v.generated_by = ${adminId}`];
+    
+    if (status && ['active', 'redeemed', 'expired', 'cancelled'].includes(status)) {
+      whereConditions.push(`v.status = '${status}'`);
+    }
+    
+    if (searchTerm) {
+      const searchPattern = `%${searchTerm}%`;
+      whereConditions.push(`(v.voucher_code ILIKE '${searchPattern}' OR u.username ILIKE '${searchPattern}' OR u.email ILIKE '${searchPattern}' OR u.full_name ILIKE '${searchPattern}')`);
+    }
+    
+    if (dateFrom) {
+      whereConditions.push(`v.generated_at >= '${dateFrom}'`);
+    }
+    
+    if (dateTo) {
+      whereConditions.push(`v.generated_at <= '${dateTo}'`);
+    }
+
+    // Execute single template literal query with constructed WHERE clause
     const vouchers = await sql`
       SELECT 
         v.id,
@@ -59,18 +79,7 @@ export const handler = async (event, context) => {
       FROM vouchers v
       JOIN users u ON v.target_user_id = u.id
       JOIN users admin ON v.generated_by = admin.id
-      WHERE v.generated_by = ${adminId}
-        ${status && ['active', 'redeemed', 'expired', 'cancelled'].includes(status) 
-          ? sql`AND v.status = ${status}` : sql``}
-        ${searchTerm 
-          ? sql`AND (
-              v.voucher_code ILIKE ${`%${searchTerm}%`} OR
-              u.username ILIKE ${`%${searchTerm}%`} OR
-              u.email ILIKE ${`%${searchTerm}%`} OR
-              u.full_name ILIKE ${`%${searchTerm}%`}
-            )` : sql``}
-        ${dateFrom ? sql`AND v.generated_at >= ${dateFrom}` : sql``}
-        ${dateTo ? sql`AND v.generated_at <= ${dateTo}` : sql``}
+      WHERE ${sql.raw(whereConditions.join(' AND '))}
       ORDER BY v.generated_at DESC 
       LIMIT ${parseInt(limit)}
     `;
