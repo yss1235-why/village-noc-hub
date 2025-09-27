@@ -85,16 +85,16 @@ export const handler = async (event, context) => {
         )
       `;
 
-      // 4. Add indexes for performance
-      await sql`
-        CREATE INDEX IF NOT EXISTS idx_vouchers_code ON vouchers(voucher_code);
-        CREATE INDEX IF NOT EXISTS idx_vouchers_target_user ON vouchers(target_user_id);
-        CREATE INDEX IF NOT EXISTS idx_vouchers_status ON vouchers(status);
-        CREATE INDEX IF NOT EXISTS idx_vouchers_expires ON vouchers(expires_at);
-        CREATE INDEX IF NOT EXISTS idx_vouchers_generated_by ON vouchers(generated_by);
-        CREATE INDEX IF NOT EXISTS idx_admin_quotas_admin ON admin_voucher_quotas(admin_id);
-        CREATE INDEX IF NOT EXISTS idx_security_logs_user ON security_logs(user_id);
-        CREATE INDEX IF NOT EXISTS idx_security_logs_action ON security_logs(action);
+     
+     // 4. Add indexes for performance
+        await sql`CREATE INDEX IF NOT EXISTS idx_vouchers_code ON vouchers(voucher_code)`;
+        await sql`CREATE INDEX IF NOT EXISTS idx_vouchers_target_user ON vouchers(target_user_id)`;
+        await sql`CREATE INDEX IF NOT EXISTS idx_vouchers_status ON vouchers(status)`;
+        await sql`CREATE INDEX IF NOT EXISTS idx_vouchers_expires ON vouchers(expires_at)`;
+        await sql`CREATE INDEX IF NOT EXISTS idx_vouchers_generated_by ON vouchers(generated_by)`;
+        await sql`CREATE INDEX IF NOT EXISTS idx_admin_quotas_admin ON admin_voucher_quotas(admin_id)`;
+        await sql`CREATE INDEX IF NOT EXISTS idx_security_logs_user ON security_logs(user_id)`;
+        await sql`CREATE INDEX IF NOT EXISTS idx_security_logs_action ON security_logs(action)`;
       `;
 
       // 5. Migrate existing voucher data from point_transactions
