@@ -24,87 +24,17 @@ export const handler = async (event, context) => {
 try {
     const { username, password } = JSON.parse(event.body);
 
-   // First, check if user exists in database (check both email formats)
+    if (!username || !password) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Email and password are required' })
+      };
+    }
+
+    // Database lookup with proper email matching
     const user = await sql`
-      SELECT id, email, password_hash, role 
-      FROM users 
-      WHERE (email = ${username} OR email = ${username + '@noc.com'} OR email = '') 
-      AND role = 'super_admin' AND is_approved = true
-    `;
-  if (user.length > 0) {
-  // Check database password
-  const isValidPassword = await bcrypt.compare(password, user[0].password_hash);
-  if (isValidPassword) {
-    const { generateToken } = await import('./utils/jwt.js');
-    
-    const tokenPayload = {
-      id: user[0].id,
-      email: user[0].email,
-      role: user[0].role,
-      sessionId: crypto.randomUUID()
-    };
-    const token = generateToken(tokenPayload);
-   return {
-  statusCode: 200,
-  headers,
-  body: JSON.stringify({ 
-    success: true, 
-    user: { 
-      id: user[0].id,
-      username: user[0].email,
-      email: user[0].email,
-      fullName: 'Super Administrator',
-      role: user[0].role,
-      pointBalance: 0,
-      isApproved: true
-    },
-    token: token
-  })
-};
-  } else {
-    return {
-      statusCode: 401,
-      headers,
-      body: JSON.stringify({ error: 'Invalid credentials' })
-    };
-  }
-}
-
-    // Fallback to hardcoded credentials only if no user in database
-    if (username === 'superadmin' && password === '') {
-  const { generateToken } = await import('./utils/jwt.js');
-  
-  const tokenPayload = {
-    id: 'super-admin-1',
-    email: 'superadmin@noc.com',
-    role: 'super_admin',
-    sessionId: crypto.randomUUID()
-  };
-
-  const token = generateToken(tokenPayload);
-
-  return {
-  statusCode: 200,
-  headers,
-  body: JSON.stringify({ 
-    success: true, 
-    user: { 
-      id: 'super-admin-1',
-      username: 'superadmin@noc.com',
-      email: 'superadmin@noc.com',
-      fullName: 'Super Administrator',
-      role: 'super_admin',
-      pointBalance: 0,
-      isApproved: true
-    },
-    token: token
-  })
-};
-}
-    // Alternative: Database lookup (commented out for now)
-    /*
-    const user = await sql`
-      SELECT id, email, password_hash, role 
+      SELECT id, email, password_hash, role, full_name
       FROM users 
       WHERE email = ${username} AND role = 'super_admin' AND is_approved = true
     `;
@@ -117,6 +47,7 @@ try {
       };
     }
 
+    // Verify password using bcrypt
     const isValidPassword = await bcrypt.compare(password, user[0].password_hash);
     if (!isValidPassword) {
       return {
@@ -126,26 +57,48 @@ try {
       };
     }
 
+    // Generate JWT token following project security standards
+    const { generateToken } = await import('./utils/jwt.js');
+    
+    const tokenPayload = {
+      id: user[0].id,
+      email: user[0].email,
+      role: user[0].role,
+      sessionId: crypto.randomUUID()
+    };
+
+    const token = generateToken(tokenPayload);
+
+    // Set secure HTTP-only cookie following project standards
+    const cookieOptions = [
+      `auth-token=${token}`,
+      'HttpOnly',
+      'Secure',
+      'SameSite=Strict',
+      `Max-Age=${24 * 60 * 60}`, // 24 hours
+      'Path=/'
+    ];
+
     return {
       statusCode: 200,
-      headers,
-      body: JSON.stringify({ 
-        success: true, 
-        user: { 
-          id: user[0].id, 
+      headers: {
+        ...headers,
+        'Set-Cookie': cookieOptions.join('; ')
+      },
+      body: JSON.stringify({
+        success: true,
+        user: {
+          id: user[0].id,
+          username: user[0].email,
+          email: user[0].email,
+          fullName: user[0].full_name || 'Super Administrator',
           role: user[0].role,
-          email: user[0].email 
-        }
+          pointBalance: 0,
+          isApproved: true
+        },
+        token: token
       })
     };
-    */
-
-    return {
-      statusCode: 401,
-      headers,
-      body: JSON.stringify({ error: 'Invalid credentials' })
-    };
-
   } catch (error) {
     return {
       statusCode: 500,
