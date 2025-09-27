@@ -41,11 +41,11 @@ export const handler = async (event, context) => {
   const userId = authResult.user.id;
     const userRole = authResult.user.role;
     
-    // Rate limiting check for redemption attempts
+   // Rate limiting check for redemption attempts
     const rateLimitResult = checkRateLimit(
       `voucher_redeem_${userId}`, 
       10, // Allow more redemption attempts than generation
-      parseInt(config.VOUCHER_RATE_LIMIT_WINDOW)
+      3600000 // 1 hour window for redemption attempts
     );
     
     if (!rateLimitResult.allowed) {
@@ -75,14 +75,13 @@ export const handler = async (event, context) => {
     await sql`BEGIN`;
 
     try {
-      // Check if voucher exists and hasn't been redeemed
+     // Check if voucher exists in vouchers table
       const existingVoucher = await sql`
-        SELECT pt.*, u.username as target_username
-        FROM point_transactions pt
-        JOIN users u ON pt.user_id = u.id
-        WHERE pt.reference_id = ${voucherCode.toUpperCase()}
-        AND pt.transaction_type = 'voucher_generated'
-        AND pt.user_id = ${userId}
+        SELECT v.*, u.username as target_username
+        FROM vouchers v
+        JOIN users u ON v.target_user_id = u.id
+        WHERE v.voucher_code = ${voucherCode.toUpperCase()}
+        AND v.target_user_id = ${userId}
         FOR UPDATE
       `;
 
@@ -107,46 +106,48 @@ export const handler = async (event, context) => {
         };
       }
 
-      // Check if already redeemed
-      const alreadyRedeemed = await sql`
-        SELECT id FROM point_transactions
-        WHERE reference_id = ${voucherCode.toUpperCase()}
-        AND transaction_type = 'voucher_redeemed'
-        AND user_id = ${userId}
-      `;
+     const voucherData = existingVoucher[0];
 
-      if (alreadyRedeemed.length > 0) {
+      // Check voucher status
+      if (voucherData.status !== 'active') {
         await sql`ROLLBACK`;
         return {
           statusCode: 400,
           headers,
-          body: JSON.stringify({ error: 'Voucher has already been redeemed' })
+          body: JSON.stringify({ 
+            error: `Voucher has already been ${voucherData.status}`,
+            status: voucherData.status
+          })
         };
       }
 
-     const voucherData = existingVoucher[0];
-      const pointValue = voucherData.amount;
+      // Check voucher expiration
+      if (new Date(voucherData.expires_at) < new Date()) {
+        await sql`ROLLBACK`;
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: 'Voucher has expired' })
+        };
+      }
+
+      const pointValue = voucherData.point_value;
 
       // Verify cryptographic signature
       const signatureData = {
-        voucherCode: voucherData.reference_id,
-        targetUserId: voucherData.user_id,
-        pointValue: voucherData.amount,
-        adminId: voucherData.created_by,
-        timestamp: new Date(voucherData.created_at).getTime()
+        voucherCode: voucherData.voucher_code,
+        targetUserId: voucherData.target_user_id,
+        pointValue: voucherData.point_value,
+        adminId: voucherData.generated_by,
+        timestamp: new Date(voucherData.generated_at).getTime()
       };
       
       const expectedSignature = crypto.createHmac('sha512', config.VOUCHER_SIGNING_KEY)
         .update(JSON.stringify(signatureData))
         .digest('hex');
 
-     // Extract signature from description field
-      const descriptionParts = voucherData.description.split(' | ');
-      const signaturePart = descriptionParts.find(part => part.startsWith('Signature: '));
-      const storedSignature = signaturePart ? signaturePart.replace('Signature: ', '') : null;
-
       // Verify signature authenticity
-      if (expectedSignature !== storedSignature) {
+      if (expectedSignature !== voucherData.cryptographic_signature) {
         await sql`ROLLBACK`;
         
         // Log security event for signature verification failure
@@ -174,7 +175,26 @@ export const handler = async (event, context) => {
       const currentBalance = userBalance[0].point_balance || 0;
       const newBalance = currentBalance + pointValue;
 
-      // Create redemption transaction
+     // Update voucher status to redeemed
+      await sql`
+        UPDATE vouchers 
+        SET status = 'redeemed', 
+            redeemed_at = NOW(),
+            redemption_ip = ${event.headers['x-forwarded-for'] || 'unknown'}::inet,
+            redemption_user_agent = ${event.headers['user-agent'] || 'unknown'},
+            updated_at = NOW()
+        WHERE id = ${voucherData.id}
+      `;
+
+      // Update admin quota (decrease active count)
+      await sql`
+        UPDATE admin_voucher_quotas
+        SET active_voucher_count = GREATEST(active_voucher_count - 1, 0),
+            updated_at = NOW()
+        WHERE admin_id = ${voucherData.generated_by}
+      `;
+
+      // Create point transaction record for tracking
       await sql`
         INSERT INTO point_transactions (
           user_id, transaction_type, amount, description,
