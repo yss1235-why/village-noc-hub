@@ -12,6 +12,11 @@ const getClientIP = (headers) => {
   }
   return headers['x-real-ip'] || 'unknown';
 };
+
+// Helper function for deterministic JSON serialization
+const deterministicStringify = (obj) => {
+  return JSON.stringify(obj, Object.keys(obj).sort());
+};
 export const handler = async (event, context) => {
   const sql = neon(process.env.NETLIFY_DATABASE_URL);
   
@@ -132,9 +137,8 @@ export const handler = async (event, context) => {
       };
       
       const expectedSignature = crypto.createHmac('sha512', config.VOUCHER_SIGNING_KEY)
-        .update(JSON.stringify(signatureData))
+        .update(deterministicStringify(signatureData))
         .digest('hex');
-
       // Verify signature authenticity
       if (expectedSignature !== voucherData.cryptographic_signature) {
         await sql`ROLLBACK`;
