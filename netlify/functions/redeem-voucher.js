@@ -221,9 +221,10 @@ export const handler = async (event, context) => {
 
       return {
         statusCode: 200,
-        headers: {
+       headers: {
           ...headers,
-          'X-RateLimit-Remaining': rateLimitResult.remaining.toString()
+          'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+          'X-Voucher-Redeemed': 'true'
         },
         body: JSON.stringify({
           success: true,
