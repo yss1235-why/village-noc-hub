@@ -7,8 +7,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LogOut, CheckCircle, XCircle, Clock, Shield, Building, Users, Settings, Eye, AlertCircle, BarChart, MessageCircle, FileText, Search, UserCheck, Download, Gift, TrendingUp } from "lucide-react";
+import { LogOut, CheckCircle, XCircle, Clock, Shield, Building, Users, Settings, Eye, AlertCircle, BarChart, MessageCircle, FileText, Search, UserCheck, Download, Gift, TrendingUp, Phone, Mail, Save } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/contexts/AuthContext';
@@ -26,7 +27,20 @@ const SystemAdminDashboard = () => {
 
 
   // Messaging state
+ // Messaging state
   const [showMessageModal, setShowMessageModal] = useState(false);
+  
+  // Contact Settings state
+  const [showContactSettings, setShowContactSettings] = useState(false);
+  const [contactInfo, setContactInfo] = useState(null);
+  const [isLoadingContact, setIsLoadingContact] = useState(false);
+  const [isSavingContact, setIsSavingContact] = useState(false);
+  const [contactForm, setContactForm] = useState({
+    whatsapp: '',
+    phone: '',
+    email: '',
+    instructions: ''
+  });
   const [messageForm, setMessageForm] = useState({
     targetType: 'village',
     targetId: '',
@@ -380,7 +394,7 @@ const initializeDashboard = async () => {
   };
   
 
- const handleLogout = async () => {
+const handleLogout = async () => {
     const result = await logout();
     if (result.success) {
       toast({
@@ -390,6 +404,99 @@ const initializeDashboard = async () => {
       navigate("/");
     }
   };
+
+  // Contact Settings Functions
+  const loadContactInfo = async () => {
+    setIsLoadingContact(true);
+    try {
+      const response = await fetch('/.netlify/functions/admin-contact-settings');
+      if (response.ok) {
+        const result = await response.json();
+        setContactInfo(result.contactInfo);
+        setContactForm({
+          whatsapp: result.contactInfo?.admin_whatsapp?.value || '',
+          phone: result.contactInfo?.admin_phone?.value || '',
+          email: result.contactInfo?.admin_email?.value || '',
+          instructions: result.contactInfo?.recharge_instructions?.value || ''
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load contact info:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load contact information",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoadingContact(false);
+    }
+  };
+
+  const handleSaveContactSettings = async (e) => {
+    e.preventDefault();
+    setIsSavingContact(true);
+    
+    try {
+      const token = localStorage.getItem('auth-token');
+      const response = await fetch('/.netlify/functions/admin-contact-settings', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          settings: {
+            admin_whatsapp: {
+              value: contactForm.whatsapp,
+              displayName: 'Admin WhatsApp Number'
+            },
+            admin_phone: {
+              value: contactForm.phone,
+              displayName: 'Admin Phone Number'
+            },
+            admin_email: {
+              value: contactForm.email,
+              displayName: 'Admin Email Address'
+            },
+            recharge_instructions: {
+              value: contactForm.instructions,
+              displayName: 'Recharge Instructions'
+            }
+          }
+        })
+      });
+
+      const result = await response.json();
+      if (response.ok) {
+        toast({
+          title: "Settings Updated",
+          description: "Contact settings have been successfully updated.",
+        });
+        setShowContactSettings(false);
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to update contact settings",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save contact settings. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSavingContact(false);
+    }
+  };
+
+  // Load contact info when modal opens
+  useEffect(() => {
+    if (showContactSettings) {
+      loadContactInfo();
+    }
+  }, [showContactSettings]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -431,11 +538,20 @@ const initializeDashboard = async () => {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4">
               <div className="text-right">
                 <p className="text-sm font-medium">{user?.fullName || user?.username || 'System Admin'}</p>
                 <p className="text-xs text-purple-200">{user?.email}</p>
               </div>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setShowContactSettings(true)}
+                className="text-white hover:bg-white/10"
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Settings
+              </Button>
               <Button 
                 variant="ghost" 
                 size="sm" 
@@ -1103,6 +1219,146 @@ const initializeDashboard = async () => {
                   </Button>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Contact Settings Modal */}
+      {showContactSettings && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+          <Card className="w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  <CardTitle>Contact Settings</CardTitle>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowContactSettings(false)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <CardDescription>
+                Manage contact information displayed to applicants for recharge requests
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoadingContact ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                  <span className="ml-2">Loading contact settings...</span>
+                </div>
+              ) : (
+                <form onSubmit={handleSaveContactSettings} className="space-y-6">
+                  {/* WhatsApp Number */}
+                  <div className="space-y-2">
+                    <Label htmlFor="whatsapp" className="flex items-center gap-2">
+                      <MessageSquare className="h-4 w-4 text-green-600" />
+                      WhatsApp Number
+                    </Label>
+                    <Input
+                      id="whatsapp"
+                      type="tel"
+                      value={contactForm.whatsapp}
+                      onChange={(e) => setContactForm({...contactForm, whatsapp: e.target.value})}
+                      placeholder="+91-XXXXXXXXXX"
+                      className="w-full"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      WhatsApp number for applicants to contact for recharge assistance
+                    </p>
+                  </div>
+
+                  {/* Phone Number */}
+                  <div className="space-y-2">
+                    <Label htmlFor="phone" className="flex items-center gap-2">
+                      <Phone className="h-4 w-4 text-blue-600" />
+                      Phone Number
+                    </Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={contactForm.phone}
+                      onChange={(e) => setContactForm({...contactForm, phone: e.target.value})}
+                      placeholder="+91-XXXXXXXXXX"
+                      className="w-full"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Primary phone number for voice calls
+                    </p>
+                  </div>
+
+                  {/* Email Address */}
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-red-600" />
+                      Email Address
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={contactForm.email}
+                      onChange={(e) => setContactForm({...contactForm, email: e.target.value})}
+                      placeholder="admin@yourdomain.com"
+                      className="w-full"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Email address for formal communication and support
+                    </p>
+                  </div>
+
+                  {/* Recharge Instructions */}
+                  <div className="space-y-2">
+                    <Label htmlFor="instructions" className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-purple-600" />
+                      Recharge Instructions
+                    </Label>
+                    <Textarea
+                      id="instructions"
+                      value={contactForm.instructions}
+                      onChange={(e) => setContactForm({...contactForm, instructions: e.target.value})}
+                      placeholder="Contact admin to recharge your points. Payment methods: UPI, Bank Transfer..."
+                      className="w-full h-24 resize-none"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Instructions shown to applicants about recharge process and payment methods
+                    </p>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-3 pt-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowContactSettings(false)}
+                      className="flex-1"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={isSavingContact}
+                      className="flex-1"
+                    >
+                      {isSavingContact ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="h-4 w-4 mr-2" />
+                          Save Settings
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </form>
+              )}
             </CardContent>
           </Card>
         </div>
