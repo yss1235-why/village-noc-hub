@@ -44,18 +44,19 @@ const [isLoading, setIsLoading] = useState(true);
     });
     
     if (response.ok) {
-      const result = await response.json();
-      const admins = result.admins?.filter(admin => 
-        admin.is_active && 
-        admin.is_approved && 
-        (admin.role === 'system_admin' || admin.role === 'super_admin')
-      ).map(admin => ({
-        id: admin.id,
-        name: admin.name || admin.email,
-        phone: admin.phone || admin.email,
-        whatsapp: admin.phone || admin.email,
-        role: admin.role
-      })) || [];
+  const result = await response.json();
+  const admins = result.admins
+    ?.filter(admin => 
+      admin.role === 'system_admin' || admin.role === 'super_admin'
+    )
+    .map(admin => ({
+      id: admin.id,
+      name: admin.name || admin.email,
+      phone: admin.phone || admin.email,
+      whatsapp: admin.phone || admin.email,
+      role: admin.role
+    })) || [];
+
       
       setAvailableAdmins(admins);
     }
