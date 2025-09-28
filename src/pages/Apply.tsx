@@ -93,6 +93,8 @@ const [formData, setFormData] = useState({
     husbandName: "",
     motherName: "",
     guardianName: "",
+    childName: "",
+    wardName: "",
     address: "",
     houseNumber: "",
     villageId: "",
@@ -113,7 +115,103 @@ const [formData, setFormData] = useState({
 const [villages, setVillages] = useState<any[]>([]);
 const [searchValue, setSearchValue] = useState("");
 const [isVillagesLoading, setIsVillagesLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+// Validation function
+const validateForm = () => {
+  if (!formData.aadhaarFile || !formData.passportFile) {
+    toast({
+      title: "Documents Required",
+      description: "Please upload both Aadhaar card and passport photo.",
+      variant: "destructive",
+    });
+    return false;
+  }
+  
+  if (!formData.termsAccepted) {
+    toast({
+      title: "Terms and Conditions Required",
+      description: "Please accept the Terms and Conditions to proceed.",
+      variant: "destructive",
+    });
+    return false;
+  }
 
+  if (!formData.privacyAccepted) {
+    toast({
+      title: "Privacy Policy Required", 
+      description: "Please accept the Privacy Policy to proceed.",
+      variant: "destructive",
+    });
+    return false;
+  }
+
+  // Validate relation-specific required fields
+  if ((formData.relation === 'Son' || formData.relation === 'Daughter') && !formData.fatherName) {
+    toast({
+      title: "Father's Name Required",
+      description: "Please enter father's name for Son/Daughter relation.",
+      variant: "destructive",
+    });
+    return false;
+  }
+
+  if (formData.relation === 'Wife' && !formData.husbandName) {
+    toast({
+      title: "Husband's Name Required",
+      description: "Please enter husband's name for Wife relation.",
+      variant: "destructive",
+    });
+    return false;
+  }
+
+  if (formData.relation === 'Husband' && !formData.motherName) {
+    toast({
+      title: "Mother's Name Required",
+      description: "Please enter mother's name for Husband relation.",
+      variant: "destructive",
+    });
+    return false;
+  }
+
+  if (formData.relation === 'Father' && !formData.childName) {
+    toast({
+      title: "Child's Name Required",
+      description: "Please enter child's name for Father relation.",
+      variant: "destructive",
+    });
+    return false;
+  }
+
+  if (formData.relation === 'Guardian' && !formData.wardName) {
+    toast({
+      title: "Ward's Name Required",
+      description: "Please enter ward's name for Guardian relation.",
+      variant: "destructive",
+    });
+    return false;
+  }
+
+  if ((formData.relation === 'Ward' || formData.relation === 'Dependent') && !formData.guardianName) {
+    toast({
+      title: "Guardian's Name Required",
+      description: "Please enter guardian's name for Ward/Dependent relation.",
+      variant: "destructive",
+    });
+    return false;
+  }
+
+ return true;
+};
+
+// Convert file to base64
+const convertToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = error => reject(error);
+    reader.readAsDataURL(file);
+  });
+};
 useEffect(() => {
   // Load villages from database
   const loadVillages = async () => {
@@ -136,126 +234,220 @@ useEffect(() => {
   loadVillages();
 }, []);
 
+
 const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
   
-  if (!formData.aadhaarFile || !formData.passportFile) {
+  if (!user) {
     toast({
-      title: "Documents Required",
-      description: "Please upload both Aadhaar card and passport photo.",
-      variant: "destructive",
-    });
-    return;
-  }
-  
-  if (!formData.termsAccepted) {
-    toast({
-      title: "Terms and Conditions Required",
-      description: "Please accept the Terms and Conditions to proceed.",
+      title: "Authentication Required",
+      description: "Please log in to submit an application.",
       variant: "destructive",
     });
     return;
   }
 
-  if (!formData.privacyAccepted) {
-    toast({
-      title: "Privacy Policy Required", 
-      description: "Please accept the Privacy Policy to proceed.",
-      variant: "destructive",
-    });
+  if (!validateForm()) {
     return;
   }
+
+  setIsSubmitting(true);
   
   try {
-    // Generate application number based on selected village
-    const now = new Date();
-    const selectedVillage = villages.find(v => v.id === formData.villageId);
-    const villageCode = selectedVillage ? selectedVillage.name.split(' ').map(word => word.charAt(0)).join('').toUpperCase() : 'NOC';
-    const appNo = `${villageCode}${now.getDate().toString().padStart(2, '0')}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getFullYear()}${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}`;
-    
-   // Convert files to base64
-    const aadhaarBase64 = await new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target?.result);
-      reader.readAsDataURL(formData.aadhaarFile);
-    });
-
-    const passportBase64 = await new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target?.result);
-      reader.readAsDataURL(formData.passportFile);
-    });
-
-  // Submit to database with files (with authentication)
     const token = localStorage.getItem('auth-token');
+    
+   const payload = {
+  title: formData.salutation,
+  applicantName: formData.name,
+  relation: formData.relation,
+  fatherName: formData.fatherName,
+  husbandName: formData.husbandName,
+  motherName: formData.motherName,
+  guardianName: formData.guardianName,
+  childName: formData.childName,
+  wardName: formData.wardName,
+  address: formData.address,
+  houseNumber: formData.houseNumber,
+  villageId: formData.villageId,
+  tribeName: formData.tribe,
+  religion: formData.religion,
+  annualIncome: formData.annualIncome,
+  annualIncomeWords: formData.annualIncomeWords,
+  purposeOfNOC: formData.purposeOfNOC,
+  phone: formData.phone,
+  email: formData.email,
+  aadhaarDocument: formData.aadhaarFile ? await convertToBase64(formData.aadhaarFile) : null,
+  passportPhoto: formData.passportFile ? await convertToBase64(formData.passportFile) : null
+};
     const response = await fetch('/.netlify/functions/applications', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
+        'Authorization': `Bearer ${token}`
       },
-     body: JSON.stringify({
-        applicationNumber: appNo,
-        title: formData.salutation,
-        applicantName: formData.name,
-        relation: formData.relation,
-        fatherName: formData.fatherName,
-        address: formData.address,
-        houseNumber: formData.houseNumber,
-        villageId: formData.villageId,
-        tribeName: formData.tribe,
-        religion: formData.religion,
-        annualIncome: formData.annualIncome,
-        annualIncomeWords: formData.annualIncomeWords,
-        purposeOfNOC: formData.purposeOfNOC,
-        phone: formData.phone,
-        email: formData.email,
-        aadhaarDocument: aadhaarBase64,
-        passportPhoto: passportBase64
-      })
+      body: JSON.stringify(payload)
     });
 
     const result = await response.json();
 
-   if (response.ok) {
-      // Update user balance and show success page
-      await refreshUser(); // Refresh to get new point balance
-      setSubmittedAppNumber(result.applicationNumber || appNo);
-      setShowSuccess(true);
-      
-      // Reset form after successful submission
-     setFormData({
-        salutation: "",
-        name: "",
-        relation: "",
-        fatherName: "",
-        husbandName: "",
-        motherName: "",
-        guardianName: "",
-        address: "",
-        houseNumber: "",
-        villageId: "",
-        tribe: "",
-        religion: "",
-        annualIncome: "",
-        annualIncomeWords: "",
-        purposeOfNOC: "",
-        aadhaarFile: null,
-        passportFile: null,
-        phone: "",
-        email: "",
-        termsAccepted: false,
-        privacyAccepted: false,
-        declarationAccepted: false
+    if (response.ok) {
+      toast({
+        title: "Application Submitted Successfully!",
+        description: `Your application number is: ${result.applicationNumber}`,
       });
+      
+     setFormData({
+  salutation: '',
+  name: '',
+  relation: '',
+  fatherName: '',
+  husbandName: '',
+  motherName: '',
+  guardianName: '',
+  childName: '',
+  wardName: '',
+  address: '',
+  houseNumber: '',
+  villageId: '',
+  tribe: '',
+  religion: '',
+  annualIncome: '',
+  annualIncomeWords: '',
+  purposeOfNOC: '',
+  phone: '',
+  email: '',
+  aadhaarFile: null,
+  passportFile: null,
+  termsAccepted: false,
+  privacyAccepted: false,
+  declarationAccepted: false
+});
+      
+      // Redirect to dashboard after successful submission
+     setTimeout(() => {
+          navigate('/userDashboard');
+        }, 3000);
+      
     } else {
-      throw new Error(result.error || 'Submission failed');
+      // ERROR OCCURRED - Check if application was actually submitted
+      await checkApplicationStatus(result.error || 'Submission failed');
     }
+
   } catch (error) {
     console.error('Submission error:', error);
+    // NETWORK ERROR - Check if application was actually submitted
+    await checkApplicationStatus('Network error occurred');
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
+// NEW FUNCTION: Check if application was submitted despite error
+const checkApplicationStatus = async (originalError: string) => {
+  try {
+    const token = localStorage.getItem('auth-token');
+    
+    // Check user's recent applications and point balance
+    const statusResponse = await fetch('/.netlify/functions/check-submission-status', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    if (statusResponse.ok) {
+      const statusData = await statusResponse.json();
+      
+      // Check if a recent application exists (within last 5 minutes)
+      const recentApplication = statusData.recentApplications?.find((app: any) => {
+        const appTime = new Date(app.created_at).getTime();
+        const now = new Date().getTime();
+        return (now - appTime) < 5 * 60 * 1000; // 5 minutes
+      });
+      
+      if (recentApplication) {
+        // Application was actually submitted successfully!
+        toast({
+          title: "Application Submitted Successfully!",
+          description: `Your application number is: ${recentApplication.application_number}. Despite the error message, your application was processed.`,
+        });
+        
+        // Clear form and redirect
+       setFormData({
+  salutation: '',
+  name: '',
+  relation: '',
+  fatherName: '',
+  husbandName: '',
+  motherName: '',
+  guardianName: '',
+  childName: '',
+  wardName: '',
+  address: '',
+  houseNumber: '',
+  villageId: '',
+  tribe: '',
+  religion: '',
+  annualIncome: '',
+  annualIncomeWords: '',
+  purposeOfNOC: '',
+  phone: '',
+  email: '',
+  aadhaarFile: null,
+  passportFile: null,
+  termsAccepted: false,
+  privacyAccepted: false,
+  declarationAccepted: false
+});
+        
+        setTimeout(() => {
+         navigate('/userDashboard');
+        }, 3000);
+        
+      } else {
+        // Check if points were deducted without application submission
+        if (statusData.pointsDeductedWithoutApp) {
+          toast({
+            title: "Processing Refund",
+            description: "Points were deducted but application failed. Refunding 15 points...",
+          });
+          
+          // Trigger refund
+          await fetch('/.netlify/functions/refund-failed-application', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          toast({
+            title: "Refund Completed",
+            description: "15 points have been refunded to your account.",
+          });
+        }
+        
+        // Show original error
+        toast({
+          title: "Submission Failed",
+          description: originalError,
+          variant: "destructive",
+        });
+      }
+    } else {
+      // Fallback to original error
+      toast({
+        title: "Submission Failed",
+        description: originalError,
+        variant: "destructive",
+      });
+    }
+  } catch (error) {
+    console.error('Status check error:', error);
+    // Fallback to original error
     toast({
       title: "Submission Failed",
-      description: "Please try again later.",
+      description: originalError,
       variant: "destructive",
     });
   }
@@ -590,6 +782,8 @@ if (showSuccess) {
           <SelectContent>
             <SelectItem value="Son">Son</SelectItem>
             <SelectItem value="Daughter">Daughter</SelectItem>
+            <SelectItem value="Father">Father of</SelectItem>
+            <SelectItem value="Guardian">Guardian of</SelectItem>
             <SelectItem value="Wife">Wife</SelectItem>
             <SelectItem value="Husband">Husband</SelectItem>
             <SelectItem value="Ward">Ward</SelectItem>
@@ -638,18 +832,31 @@ if (showSuccess) {
     </>
   )}
   
-  {(formData.relation === 'Ward' || formData.relation === 'Dependent') && (
-    <>
-      <Label htmlFor="guardianName">Guardian's Name *</Label>
-      <Input
-        id="guardianName"
-        value={formData.guardianName}
-        onChange={(e) => setFormData({...formData, guardianName: e.target.value})}
-        placeholder="Enter guardian's name"
-        required
-      />
-    </>
-  )}
+  {formData.relation === 'Father' && (
+  <>
+    <Label htmlFor="childName">Child's Name *</Label>
+    <Input
+      id="childName"
+      value={formData.childName}
+      onChange={(e) => setFormData({...formData, childName: e.target.value})}
+      placeholder="Enter child's name"
+      required
+    />
+  </>
+)}
+
+{formData.relation === 'Guardian' && (
+  <>
+    <Label htmlFor="wardName">Ward's Name *</Label>
+    <Input
+      id="wardName"
+      value={formData.wardName}
+      onChange={(e) => setFormData({...formData, wardName: e.target.value})}
+      placeholder="Enter ward's name"
+      required
+    />
+  </>
+)}
 </div>
     </div>
 
@@ -775,11 +982,11 @@ if (showSuccess) {
         <Input
           id="aadhaar"
           type="file"
-          accept=".pdf,.jpg,.jpeg,.png"
+         accept=".jpg,.jpeg,.png"
           onChange={(e) => setFormData({...formData, aadhaarFile: e.target.files?.[0] || null})}
           required
         />
-        <p className="text-xs text-muted-foreground mt-1">Upload PDF, JPG, or PNG (max 5MB)</p>
+       <p className="text-xs text-muted-foreground mt-1">Upload JPG or PNG only (max 5MB) - PDF not supported</p>
       </div>
       
       <div>
@@ -787,11 +994,11 @@ if (showSuccess) {
         <Input
           id="passport"
           type="file"
-          accept=".pdf,.jpg,.jpeg,.png"
+          accept=".jpg,.jpeg,.png"
           onChange={(e) => setFormData({...formData, passportFile: e.target.files?.[0] || null})}
           required
         />
-        <p className="text-xs text-muted-foreground mt-1">Upload PDF, JPG, or PNG (max 5MB)</p>
+       <p className="text-xs text-muted-foreground mt-1">Upload JPG or PNG only (max 5MB) - PDF not supported</p>
       </div>
     </div>
   </div>
@@ -866,10 +1073,9 @@ if (showSuccess) {
                   </Alert>
                 </div>
 
-              {/* Submit Button */}
-                <Button type="submit" className="w-full" size="lg">
-                  Submit NOC Application
-                </Button>
+              <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
+                {isSubmitting ? "Submitting..." : "Submit NOC Application"}
+              </Button>
               </form>
             </CardContent>
           </Card>
