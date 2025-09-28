@@ -116,7 +116,7 @@ if (villageAdmin.length > 0) {
       application_id, reason
     )
     VALUES (
-      ${adminTransactionHash}, ${adminId}, 'ADD', 5, ${currentAdminBalance}, ${newAdminBalance},
+      ${adminTransactionHash}, ${adminId}, 'CREATE', 5, ${currentAdminBalance}, ${newAdminBalance},
       ${applicationId}, 'Village Admin Commission'
     )
   `;
