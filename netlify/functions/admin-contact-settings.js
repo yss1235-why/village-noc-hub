@@ -18,18 +18,31 @@ export const handler = async (event, context) => {
    if (event.httpMethod === 'GET') {
       const getAllAdmins = event.queryStringParameters?.getAllAdmins === 'true';
       if (getAllAdmins) {
-        const adminContacts = await sql`
-          SELECT 
-            acs.admin_id,
-            acs.setting_key,
-            acs.setting_value,
-            u.role
-          FROM admin_contact_settings acs
-          JOIN users u ON acs.admin_id = u.id
-          WHERE acs.is_active = true 
-          AND u.role IN ('system_admin', 'super_admin')
-          ORDER BY acs.admin_id, acs.setting_key
-        `;
+       const adminContacts = await sql`
+  SELECT 
+    acs.admin_id,
+    acs.setting_key,
+    acs.setting_value,
+    'super_admin' as role
+  FROM admin_contact_settings acs
+  JOIN users u ON acs.admin_id = u.id
+  WHERE acs.is_active = true 
+  AND u.role = 'super_admin'
+  
+  UNION ALL
+  
+  SELECT 
+    acs.admin_id,
+    acs.setting_key,
+    acs.setting_value,
+    'system_admin' as role
+  FROM admin_contact_settings acs
+  JOIN system_admins sa ON acs.admin_id = sa.id
+  WHERE acs.is_active = true 
+  AND sa.is_active = true
+  
+  ORDER BY admin_id, setting_key
+`;
         const adminsByIds = {};
         adminContacts.forEach(contact => {
           if (!adminsByIds[contact.admin_id]) {
