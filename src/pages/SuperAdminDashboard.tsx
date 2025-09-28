@@ -9,11 +9,12 @@ import { Label } from "@/components/ui/label";
 import { LogOut, CheckCircle, XCircle, Clock, Crown, Building, Users, Settings, Eye, EyeOff, Trash2, AlertCircle, Key, Gift, TrendingUp, BarChart } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 const SuperAdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-
+  const { user, isAuthenticated, logout } = useAuth();
   // Password change state
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [passwordForm, setPasswordForm] = useState({
@@ -147,12 +148,15 @@ const [isChangingPassword, setIsChangingPassword] = useState(false);
   const inactiveAdmins = adminUsers.filter(admin => !admin.is_active);
   const criticalAlerts = securityAlerts.filter(alert => alert.severity === 'critical');
   const warningAlerts = securityAlerts.filter(alert => alert.severity === 'warning');
-  const handleLogout = () => {
-    toast({
-      title: "Logged Out",
-      description: "Super admin logged out successfully.",
-    });
-    navigate("/");
+  const handleLogout = async () => {
+    const result = await logout();
+    if (result.success) {
+      toast({
+        title: "Logged Out",
+        description: "Super admin logged out successfully.",
+      });
+      navigate("/");
+    }
   };
 
  const handleApproveVillage = async (villageId: string) => {
