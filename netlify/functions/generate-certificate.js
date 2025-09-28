@@ -81,6 +81,8 @@ app.father_name = app.father_name || '';
 app.mother_name = app.mother_name || '';
 app.husband_name = app.husband_name || '';
 app.guardian_name = app.guardian_name || '';
+app.child_name = app.child_name || '';
+app.ward_name = app.ward_name || '';
 
 // Get village documents and template
 const docs = await sql`
@@ -115,9 +117,7 @@ const page = pdfDoc.addPage([595.28, 841.89]); // A4 size
 const timesFont = await pdfDoc.embedFont(StandardFonts.TimesRoman);
 const timesBoldFont = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
 
-// Generate QR Code
-const qrCodeDataUrl = await QRCode.toDataURL(`Application: ${app.application_number}\nName: ${app.applicant_name}\nRelation: ${app.relation || 'N/A'}\nPO: ${app.post_office || 'N/A'}\nPS: ${app.police_station || 'N/A'}\nVillage: ${app.village_name}`);
-const qrCodeImage = await pdfDoc.embedPng(qrCodeDataUrl);
+
 
 // Embed images if they exist
 let letterheadImage = null;
@@ -276,9 +276,17 @@ const getPronoun = (title) => {
 const formatRelation = (relation) => {
   if (!relation) return '';
   const relationLower = relation.toLowerCase();
+  
+  // Handle new relation types
+  if (relationLower === 'father') return 'Father of';
+  if (relationLower === 'guardian') return 'Guardian of';
+  
+  // Handle existing relation types
   if (relationLower.includes('son') || relationLower.includes('daughter') || relationLower.includes('child')) return 'F/O';
   if (relationLower.includes('wife') || relationLower.includes('spouse')) return 'H/O';
+  if (relationLower.includes('husband')) return 'M/O';
   if (relationLower.includes('ward') || relationLower.includes('dependent')) return 'G/O';
+  
   return 'F/O';
 };
 
@@ -291,15 +299,56 @@ const formatCurrency = (amount, words) => {
 // Build clean values
 const pronouns = getPronoun(app.title);
 const relationPrefix = formatRelation(app.relation);
-const relationName = app.father_name || app.mother_name || app.husband_name || app.guardian_name;
+
+// Get the appropriate relation name based on relation type
+let relationName = '';
+if (app.relation && app.relation.toLowerCase() === 'father' && app.child_name) {
+  relationName = app.child_name;
+} else if (app.relation && app.relation.toLowerCase() === 'guardian' && app.ward_name) {
+  relationName = app.ward_name;
+} else {
+  // For traditional relations
+  relationName = app.father_name || app.mother_name || app.husband_name || app.guardian_name;
+}
+
 const fullName = relationPrefix && relationName ? 
   `${toProperCase(app.applicant_name)} ${relationPrefix} ${toProperCase(relationName)}` : 
   `${toProperCase(app.applicant_name)}`;
+
+// NOW add the QR code generation here:
+let relationText = app.relation || 'N/A';
+if (app.relation && app.relation.toLowerCase() === 'father' && app.child_name) {
+  relationText = `Father of ${app.child_name}`;
+} else if (app.relation && app.relation.toLowerCase() === 'guardian' && app.ward_name) {
+  relationText = `Guardian of ${app.ward_name}`;
+} else if (relationName) {
+  relationText = `${app.relation} (${relationName})`;
+}
+
+const qrCodeDataUrl = await QRCode.toDataURL(`Application: ${app.application_number}\nName: ${app.applicant_name}\nRelation: ${relationText}\nPO: ${app.post_office || 'N/A'}\nPS: ${app.police_station || 'N/A'}\nVillage: ${app.village_name}`);
+const qrCodeImage = await pdfDoc.embedPng(qrCodeDataUrl);
+
+   
+   // Prepare relation-specific variables for template
+const relationSpecificName = (() => {
+  if (app.relation && app.relation.toLowerCase() === 'father' && app.child_name) {
+    return `Father of ${toProperCase(app.child_name)}`;
+  } else if (app.relation && app.relation.toLowerCase() === 'guardian' && app.ward_name) {
+    return `Guardian of ${toProperCase(app.ward_name)}`;
+  } else if (relationName) {
+    return `${relationPrefix} ${toProperCase(relationName)}`;
+  }
+  return '';
+})();
+
+
 // Clean template processing
 let certificateText = template[0].template
   .replace(/{{TITLE}}/g, toProperCase(app.title))
-  .replace(/{{APPLICANT_NAME}}/g, fullName)
-  .replace(/{{RELATION}}/g, '')
+ .replace(/{{APPLICANT_NAME}}/g, fullName)
+  .replace(/{{RELATION}}/g, relationSpecificName)
+  .replace(/{{CHILD_NAME}}/g, toProperCase(app.child_name || ''))
+  .replace(/{{WARD_NAME}}/g, toProperCase(app.ward_name || ''))
   .replace(/{{FATHER_NAME}}/g, '')
   .replace(/{{HOUSE_NUMBER}}/g, app.house_number || '')
   .replace(/{{VILLAGE_NAME}}/g, toProperCase(app.village_name))
