@@ -52,7 +52,7 @@ export const handler = async (event, context) => {
       FROM users u
       LEFT JOIN daily_recharge_limits dr ON u.id = dr.user_id AND dr.recharge_date = CURRENT_DATE
       WHERE u.is_approved = true 
-      AND u.role IN ('user', 'applicant')
+      AND u.role = 'applicant'
       AND (
         LOWER(u.username) LIKE ${searchPattern} OR
         LOWER(u.email) LIKE ${searchPattern} OR
