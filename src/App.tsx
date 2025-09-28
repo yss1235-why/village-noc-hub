@@ -72,11 +72,7 @@ const App = () => (
                 <Apply />
               </ProtectedRoute>
             } />
-            <Route path="/status" element={
-              <ProtectedRoute requiredRole="applicant">
-                <Status />
-              </ProtectedRoute>
-            } />
+          <Route path="/status" element={<Status />} />
             <Route path="/userDashboard" element={
               <ProtectedRoute requiredRole="applicant">
                 <UserDashboard />
