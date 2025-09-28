@@ -174,45 +174,61 @@ const loadPointTransactions = async () => {
     }
   };
 
-  const handleDownloadCertificate = async (applicationId: string, applicationNumber: string) => {
-    try {
-      const response = await fetch(`/.netlify/functions/download-certificate?applicationId=${applicationId}`, {
-       headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth-token')}`,
-        },
-      });
+ const handleDownloadCertificate = async (applicationId: string, applicationNumber: string) => {
+  try {
+    const response = await fetch('/.netlify/functions/generate-certificate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        applicationId: applicationId
+      })
+    });
 
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `NOC_Certificate_${applicationNumber}.pdf`;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        window.URL.revokeObjectURL(url);
-        
-        toast({
-          title: "Download Started",
-          description: `Certificate for ${applicationNumber} is downloading.`,
-        });
-      } else {
-        const result = await response.json();
+    if (response.ok) {
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `certificate-${applicationNumber}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Download Started",
+        description: `Certificate for ${applicationNumber} is downloading.`,
+      });
+    } else {
+      const errorText = await response.text();
+      console.error('Certificate generation failed:', errorText);
+      
+      try {
+        const errorJson = JSON.parse(errorText);
         toast({
           title: "Download Failed",
-          description: result.error || "Failed to download certificate.",
+          description: errorJson.error || "Failed to download certificate.",
+          variant: "destructive",
+        });
+      } catch {
+        toast({
+          title: "Download Failed",
+          description: "Failed to download certificate. Please try again.",
           variant: "destructive",
         });
       }
-    } catch (error) {
-      toast({
-        title: "Download Failed",
-        description: "Failed to download certificate. Please try again.",
-        variant: "destructive",
-      });
     }
-  };
+  } catch (error) {
+    console.error('Download error:', error);
+    toast({
+      title: "Download Failed",
+      description: "Failed to download certificate. Please try again.",
+      variant: "destructive",
+    });
+  }
+};
 
   const handleLogout = async () => {
     const result = await logout();
