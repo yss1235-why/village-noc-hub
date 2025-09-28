@@ -54,10 +54,21 @@ export const handler = async (event, context) => {
           body: JSON.stringify({ success: true, admins })
         };
       } else {
+        // Admin loading their own settings - requires auth
+        const authResult = requireMinimumRole(event, 'system_admin');
+        if (!authResult.isValid) {
+          return {
+            statusCode: 403,
+            headers,
+            body: JSON.stringify({ error: 'Authentication required' })
+          };
+        }
+        
+        const adminId = authResult.user.id;
         const settings = await sql`
           SELECT setting_key, setting_value, display_name
           FROM admin_contact_settings
-          WHERE is_active = true
+          WHERE is_active = true AND admin_id = ${adminId}
           ORDER BY setting_key
         `;
         const contactInfo = {};
@@ -84,16 +95,19 @@ export const handler = async (event, context) => {
           body: JSON.stringify({ error: 'Insufficient permissions' })
         };
       }
-
-      const { settings } = JSON.parse(event.body);
+const { settings } = JSON.parse(event.body);
+      const adminId = authResult.user.id;
 
     for (const [key, data] of Object.entries(settings)) {
         await sql`
-          UPDATE admin_contact_settings 
-          SET setting_value = ${data.value},
-              display_name = ${data.displayName},
-              updated_at = NOW()
-          WHERE setting_key = ${key}
+          INSERT INTO admin_contact_settings (setting_key, setting_value, display_name, admin_id, updated_by)
+          VALUES (${key}, ${data.value}, ${data.displayName}, ${adminId}, ${adminId})
+          ON CONFLICT (setting_key, admin_id) 
+          DO UPDATE SET 
+            setting_value = ${data.value},
+            display_name = ${data.displayName},
+            updated_by = ${adminId},
+            updated_at = NOW()
         `;
       }
 
