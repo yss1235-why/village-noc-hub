@@ -587,10 +587,10 @@ const loadPointTransactions = async () => {
               <SelectValue placeholder="All Types" />
             </SelectTrigger>
            <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="ADD">Credits</SelectItem>
-              <SelectItem value="DEDUCT">Debits</SelectItem>
-            </SelectContent>
+            <SelectItem value="all">All Types</SelectItem>
+            <SelectItem value="CREATE">Credits</SelectItem>
+            <SelectItem value="DEDUCT">Debits</SelectItem>
+          </SelectContent>
           </Select>
         </div>
         
@@ -655,21 +655,23 @@ const loadPointTransactions = async () => {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      {transaction.type === 'ADD' ? (
-                        <>
-                          <TrendingUp className="h-4 w-4 text-green-600" />
-                          <Badge className="bg-green-100 text-green-800">Credit</Badge>
-                        </>
-                      ) : (
-                        <>
-                          <TrendingDown className="h-4 w-4 text-red-600" />
-                          <Badge className="bg-red-100 text-red-800">Debit</Badge>
-                        </>
-                      )}
+                      {(transaction.type === 'ADD' || transaction.type === 'CREATE') ? (
+                          <>
+                            <TrendingUp className="h-4 w-4 text-green-600" />
+                            <Badge className="bg-green-100 text-green-800">Credit</Badge>
+                          </>
+                        ) : (
+                          <>
+                            <TrendingDown className="h-4 w-4 text-red-600" />
+                            <Badge className="bg-red-100 text-red-800">Debit</Badge>
+                          </>
+                        )}
+                      
+                     
                     </div>
                   </TableCell>
-                  <TableCell className={`font-semibold ${transaction.type === 'ADD' ? 'text-green-600' : 'text-red-600'}`}>
-                    {transaction.type === 'ADD' ? '+' : ''}{transaction.amount}
+                 <TableCell className={`font-semibold ${(transaction.type === 'ADD' || transaction.type === 'CREATE') ? 'text-green-600' : 'text-red-600'}`}>
+                    {(transaction.type === 'ADD' || transaction.type === 'CREATE') ? '+' : ''}{transaction.amount}
                   </TableCell>
                   <TableCell className="font-medium">
                     {transaction.new_balance}
