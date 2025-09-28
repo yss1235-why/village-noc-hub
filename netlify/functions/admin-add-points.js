@@ -60,7 +60,7 @@ export const handler = async (event, context) => {
       };
     }
 
-    const adminIp = event.headers['x-forwarded-for'] || '127.0.0.1';
+   const adminIp = event.headers['x-forwarded-for'].split(',')[0].trim();
 
     // Use secure database function
     const result = await sql`
