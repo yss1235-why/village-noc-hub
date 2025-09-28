@@ -56,13 +56,17 @@ const SystemAdminDashboard = () => {
     title: ""
   });
  // Redirect if not authenticated as admin
-  useEffect(() => {
-    if (!isAuthenticated || !user || (user.role !== 'system_admin' && user.role !== 'super_admin')) {
-      navigate('/system-admin');
-    } else {
-      initializeDashboard();
-    }
-  }, [isAuthenticated, user, navigate]);
+ useEffect(() => {
+  // Wait for authentication to finish loading before checking
+  if (isLoading) return;
+  
+  // Now safely check authentication
+  if (!isAuthenticated || !user || (user.role !== 'system_admin' && user.role !== 'super_admin')) {
+    navigate('/system-admin');
+  } else {
+    initializeDashboard();
+  }
+}, [isAuthenticated, user, navigate, isLoading]); // Add isLoading to dependencies
 
 const initializeDashboard = async () => {
     setIsLoadingData(true);
