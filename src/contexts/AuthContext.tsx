@@ -203,8 +203,12 @@ const logout = async () => {
         }
       }
     } catch (error) {
-      console.error('Failed to refresh user:', error);
-    }
+  console.error('Failed to refresh user:', error);
+  // Clear authentication data on refresh failure
+  localStorage.removeItem('auth-token');
+  localStorage.removeItem('user-data');
+  setUser(null);
+}
   };
 
 const validateToken = async (): Promise<boolean> => {
@@ -242,9 +246,13 @@ const validateToken = async (): Promise<boolean> => {
       }
       return false;
     } catch (error) {
-      console.error('Token validation failed:', error);
-      return false;
-    }
+  console.error('Token validation failed:', error);
+  // Clear authentication data on validation failure
+  localStorage.removeItem('auth-token');
+  localStorage.removeItem('user-data');
+  setUser(null);
+  return false;
+}
   };
   const register = async (userData: any) => {
     try {
