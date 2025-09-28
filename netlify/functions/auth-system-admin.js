@@ -66,10 +66,10 @@ const email = login;
     }
 
    // Generate JWT token using the proper utility
-   const tokenPayload = {
+  const tokenPayload = {
     id: adminData.id,
     email: adminData.email,
-    role: 'admin',
+    role: 'system_admin',
     name: adminData.name,
     permissions: adminData.permissions
   };
@@ -111,7 +111,7 @@ const email = login;
       username: adminData.email,
       email: adminData.email,
       fullName: adminData.name || adminData.email,
-      role: 'admin',
+      role: 'system_admin',
       pointBalance: 0,
       isApproved: true,
       permissions: adminData.permissions
