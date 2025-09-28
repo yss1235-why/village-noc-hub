@@ -63,7 +63,7 @@ const handleGetAdmins = async (headers) => {
         COUNT(al.id) as total_actions
       FROM users u
       LEFT JOIN audit_logs al ON u.id = al.user_id
-      WHERE u.role = 'admin'
+    WHERE u.role = 'system_admin'
       GROUP BY u.id, u.name, u.email, u.role, u.is_approved, u.is_active,
                u.created_at, u.updated_at, u.last_login
       ORDER BY u.created_at DESC
