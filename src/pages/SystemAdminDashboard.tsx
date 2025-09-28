@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LogOut, CheckCircle, XCircle, Clock, Shield, Building, Users, Settings, Eye, AlertCircle, BarChart, MessageCircle, FileText, Search, UserCheck, Download, Gift, TrendingUp, Phone, Mail, Save, X, MessageSquare } from "lucide-react";
+import { LogOut, CheckCircle, XCircle, Clock, Shield, Building, Users, Settings, Eye, AlertCircle, BarChart, MessageCircle, FileText, Search, UserCheck, Download, Gift, TrendingUp, Phone, Mail, Save, X, MessageSquare, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/contexts/AuthContext';
@@ -35,12 +35,13 @@ const SystemAdminDashboard = () => {
   const [contactInfo, setContactInfo] = useState(null);
   const [isLoadingContact, setIsLoadingContact] = useState(false);
   const [isSavingContact, setIsSavingContact] = useState(false);
-  const [contactForm, setContactForm] = useState({
-    whatsapp: '',
-    phone: '',
-    email: '',
-    instructions: ''
-  });
+ const [contactForm, setContactForm] = useState({
+  adminName: '',
+  whatsapp: '',
+  phone: '',
+  email: '',
+  instructions: ''
+});
   const [messageForm, setMessageForm] = useState({
     targetType: 'village',
     targetId: '',
@@ -414,11 +415,12 @@ const handleLogout = async () => {
         const result = await response.json();
         setContactInfo(result.contactInfo);
         setContactForm({
-          whatsapp: result.contactInfo?.admin_whatsapp?.value || '',
-          phone: result.contactInfo?.admin_phone?.value || '',
-          email: result.contactInfo?.admin_email?.value || '',
-          instructions: result.contactInfo?.recharge_instructions?.value || ''
-        });
+  adminName: result.contactInfo?.admin_name?.value || '',
+  whatsapp: result.contactInfo?.admin_whatsapp?.value || '',
+  phone: result.contactInfo?.admin_phone?.value || '',
+  email: result.contactInfo?.admin_email?.value || '',
+  instructions: result.contactInfo?.recharge_instructions?.value || ''
+});
       }
     } catch (error) {
       console.error('Failed to load contact info:', error);
@@ -445,11 +447,15 @@ const handleLogout = async () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          settings: {
-            admin_whatsapp: {
-              value: contactForm.whatsapp,
-              displayName: 'Admin WhatsApp Number'
-            },
+  settings: {
+    admin_name: {
+      value: contactForm.adminName,
+      displayName: 'Admin Name'
+    },
+    admin_whatsapp: {
+      value: contactForm.whatsapp,
+      displayName: 'Admin WhatsApp Number'
+    },
             admin_phone: {
               value: contactForm.phone,
               displayName: 'Admin Phone Number'
@@ -1254,8 +1260,27 @@ const handleLogout = async () => {
                 </div>
               ) : (
                 <form onSubmit={handleSaveContactSettings} className="space-y-6">
-                  {/* WhatsApp Number */}
-                  <div className="space-y-2">
+  {/* Admin Name */}
+  <div className="space-y-2">
+    <Label htmlFor="adminName" className="flex items-center gap-2">
+      <User className="h-4 w-4 text-purple-600" />
+      Admin Name
+    </Label>
+    <Input
+      id="adminName"
+      type="text"
+      value={contactForm.adminName}
+      onChange={(e) => setContactForm({...contactForm, adminName: e.target.value})}
+      placeholder="Your full name"
+      className="w-full"
+    />
+    <p className="text-xs text-muted-foreground">
+      Your name as it will appear to users requesting recharge
+    </p>
+  </div>
+
+  {/* WhatsApp Number */}
+  <div className="space-y-2">
                     <Label htmlFor="whatsapp" className="flex items-center gap-2">
                       <MessageSquare className="h-4 w-4 text-green-600" />
                       WhatsApp Number
