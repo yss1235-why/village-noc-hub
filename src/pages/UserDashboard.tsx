@@ -194,7 +194,7 @@ const loadPointTransactions = async () => {
       link.download = `certificate-${applicationNumber}.pdf`;
       document.body.appendChild(link);
       link.click();
-      link.remove();
+     document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
       
       toast({
