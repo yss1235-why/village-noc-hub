@@ -35,7 +35,7 @@ const [isLoading, setIsLoading] = useState(true);
 }, []);
   const loadAvailableAdmins = async () => {
   try {
-    const response = await fetch('/.netlify/functions/manage-admin', {
+   const response = await fetch('/.netlify/functions/admin-contact-settings?getAllAdmins=true', {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('auth-token')}`,
