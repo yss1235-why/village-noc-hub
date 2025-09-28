@@ -60,9 +60,8 @@ export const requireSuperAdmin = (event) => {
 // Role hierarchy for permission checking
 const ROLE_HIERARCHY = {
   'super_admin': 4,
-  'admin': 3,
+  'system_admin': 3,
   'village_admin': 2,
-  'user': 1,
   'applicant': 1
 };
 
@@ -74,10 +73,10 @@ export const requireAdmin = (event) => {
     return authResult;
   }
   
-  if (authResult.user.role !== 'admin') {
+ if (authResult.user.role !== 'system_admin') {
     return {
       isValid: false,
-      error: 'Admin access required',
+      error: 'System admin access required',
       statusCode: 403
     };
   }
@@ -123,7 +122,7 @@ export const hasPermission = (userRole, action) => {
       'manual_backup': true,
       'view_all_analytics': true
     },
-    'admin': {
+   'system_admin': {
       'approve_user': true,
       'manage_points': true,
       'view_applications': true,
@@ -138,10 +137,6 @@ export const hasPermission = (userRole, action) => {
   'village_analytics': true,
   'view_own_points': true
 },
-    'user': {
-      'apply_certificate': true,
-      'view_status': true
-    },
     'applicant': {
       'apply_certificate': true,
       'view_status': true
@@ -276,7 +271,7 @@ export const requireSystemAdmin = (event) => {
     return authResult;
   }
   
-  if (authResult.user.role !== 'admin') {
+  if (authResult.user.role !== 'system_admin') {
     return {
       isValid: false,
       error: 'System admin access required',
@@ -295,11 +290,10 @@ export const requireMinimumRole = (event, minimumRole) => {
     return authResult;
   }
   
-  const roleHierarchy = {
-    'user': 1,
+ const roleHierarchy = {
     'applicant': 1,
     'village_admin': 2,
-    'admin': 3,
+    'system_admin': 3,
     'super_admin': 4
   };
   
