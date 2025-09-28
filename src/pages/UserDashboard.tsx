@@ -317,7 +317,7 @@ const loadPointTransactions = async () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        {/* Low Balance Warning */}
+      {/* Low Balance Warning */}
         {(user?.pointBalance || 0) < 30 && (
           <Card className="mb-6 border-amber-200 bg-amber-50">
             <CardContent className="pt-6">
@@ -326,16 +326,16 @@ const loadPointTransactions = async () => {
                 <div className="flex-1">
                   <h4 className="font-medium text-amber-800">Low Point Balance</h4>
                   <p className="text-sm text-amber-700 mt-1">
-                    You have {user?.pointBalance || 0} points remaining. Consider redeeming a voucher to add more points for future applications.
+                    You have {user?.pointBalance || 0} points remaining. Contact admin to recharge your account for future applications.
                   </p>
                   <Button 
                     size="sm" 
                     variant="outline" 
                     className="mt-2 border-amber-600 text-amber-700 hover:bg-amber-100"
-                    onClick={() => navigate('/user/vouchers')}
+                    onClick={() => navigate('/recharge')}
                   >
                     <Gift className="h-3 w-3 mr-1" />
-                    Redeem Voucher
+                    Recharge Points
                   </Button>
                 </div>
               </div>
@@ -343,7 +343,7 @@ const loadPointTransactions = async () => {
           </Card>
         )}
 
-        {/* Quick Actions */}
+     {/* Quick Actions */}
         <div className="mb-8 flex flex-wrap gap-3">
           <Button 
             onClick={() => navigate('/apply')}
@@ -354,16 +354,15 @@ const loadPointTransactions = async () => {
             Apply for New NOC Certificate
           </Button>
           <Button 
-            onClick={() => navigate('/user/vouchers')}
+            onClick={() => navigate('/recharge')}
             size="lg"
             variant="outline"
             className="border-blue-600 text-blue-600 hover:bg-blue-50"
           >
             <Gift className="h-5 w-5 mr-2" />
-            Redeem Vouchers
+            Recharge Points
           </Button>
         </div>
-
        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card className="relative overflow-hidden">
@@ -386,15 +385,15 @@ const loadPointTransactions = async () => {
                 <span className="text-muted-foreground">•</span>
                 <span className="text-muted-foreground">15 points each</span>
               </div>
-              {(user?.pointBalance || 0) < 30 && (
+            {(user?.pointBalance || 0) < 30 && (
                 <Button 
                   size="sm" 
                   variant="outline" 
                   className="mt-2 w-full text-xs"
-                  onClick={() => navigate('/user/vouchers')}
+                  onClick={() => navigate('/recharge')}
                 >
                   <Gift className="h-3 w-3 mr-1" />
-                  Redeem Voucher
+                  Recharge Points
                 </Button>
               )}
             </CardContent>
@@ -448,11 +447,10 @@ const loadPointTransactions = async () => {
           </CardHeader>
           <CardContent>
            <Tabs defaultValue="applications" className="w-full">
-             <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="applications">My Applications</TabsTrigger>
                 <TabsTrigger value="search">Search Applications</TabsTrigger>
                 <TabsTrigger value="transactions">Point History</TabsTrigger>
-                <TabsTrigger value="vouchers">Vouchers</TabsTrigger>
               </TabsList>
               {/* My Applications Tab */}
             <TabsContent value="applications" className="space-y-4">
@@ -521,6 +519,14 @@ const loadPointTransactions = async () => {
                       className="bg-primary text-primary-foreground"
                     >
                       Submit Your First Application
+                    </Button>
+                    <Button 
+                      onClick={() => navigate('/recharge')}
+                      variant="outline"
+                      className="mt-2"
+                    >
+                      <Gift className="h-4 w-4 mr-2" />
+                      Recharge Points
                     </Button>
                   </div>
                 )}
@@ -764,111 +770,8 @@ const loadPointTransactions = async () => {
                 </div>
               </TabsContent>
 
-              {/* Vouchers Tab */}
-              <TabsContent value="vouchers" className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h3 className="text-lg font-medium">Voucher Redemption</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Redeem voucher codes to add points to your account
-                    </p>
-                  </div>
-                  <Button onClick={() => navigate('/user/vouchers')}>
-                    <Gift className="h-4 w-4 mr-2" />
-                    Go to Voucher Page
-                  </Button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <CreditCard className="h-5 w-5 text-blue-600" />
-                        Current Balance
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold text-blue-700">
-                        {(user?.pointBalance || 0).toLocaleString()} points
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Available for NOC applications
-                      </p>
-                      <div className="mt-3 p-3 bg-blue-50 rounded-lg">
-                        <div className="text-sm">
-                          <div className="flex justify-between">
-                            <span>Applications possible:</span>
-                            <span className="font-semibold">{Math.floor((user?.pointBalance || 0) / 15)}</span>
-                          </div>
-                          <div className="flex justify-between text-muted-foreground">
-                            <span>Cost per application:</span>
-                            <span>15 points</span>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Gift className="h-5 w-5 text-green-600" />
-                        Redeem Voucher
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        <div>
-                          <Label htmlFor="quick-voucher">Voucher Code</Label>
-                          <Input
-                            id="quick-voucher"
-                            placeholder="Enter voucher code..."
-                            className="font-mono"
-                          />
-                        </div>
-                        <Button 
-                          className="w-full"
-                          onClick={() => navigate('/user/vouchers')}
-                        >
-                          Go to Redemption Page
-                        </Button>
-                      </div>
-                      
-                      <div className="mt-4 text-xs text-muted-foreground space-y-1">
-                        <p>• Vouchers are assigned to your account</p>
-                        <p>• Minimum value: 500 points (₹500)</p>
-                        <p>• Vouchers expire after 30 days</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                <Card className="border-blue-200 bg-blue-50/50">
-                  <CardHeader>
-                    <CardTitle className="text-blue-800">About Vouchers</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="text-sm text-blue-700 space-y-2">
-                      <div className="flex items-start gap-2">
-                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
-                        <p>Vouchers are issued by system administrators to add points to your account</p>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
-                        <p>Each voucher has a minimum value of 500 points (₹500)</p>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
-                        <p>Vouchers are assigned specifically to your account and expire after 30 days</p>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
-                        <p>Use points to submit NOC applications (15 points per application)</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
+            
+             
             </Tabs>
           </CardContent>
         </Card>
