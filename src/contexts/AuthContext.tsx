@@ -71,40 +71,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             } else {
               throw new Error('Token validation request failed');
             }
-          } catch (validationError) {
-            console.warn('Token validation failed, falling back to stored data:', validationError);
-            // Fallback to stored user data for offline functionality
-           const storedUser = localStorage.getItem('user-data');
-            if (storedUser) {
-              try {
-                const rawUserData = JSON.parse(storedUser);
-                // Basic token structure validation
-                const tokenParts = token.split('.');
-                if (tokenParts.length === 3) {
-                  // Apply standardized user object format to stored data
-                  const standardizedUser = {
-                    id: rawUserData.id,
-                    username: rawUserData.username || rawUserData.email,
-                    email: rawUserData.email,
-                    fullName: rawUserData.fullName || rawUserData.name || rawUserData.email,
-                    role: rawUserData.role,
-                    pointBalance: rawUserData.pointBalance || 0,
-                    isApproved: rawUserData.isApproved !== false,
-                    villageId: rawUserData.villageId,
-                    villageName: rawUserData.villageName
-                  };
-                  setUser(standardizedUser);
-                  // Sync standardized data back to storage
-                  localStorage.setItem('user-data', JSON.stringify(standardizedUser));
-                } else {
-                  throw new Error('Invalid token structure');
-                }
-              } catch (parseError) {
-                throw new Error('Stored user data corrupted');
-              }
-            } else {
-              throw new Error('No valid user data available');
-            }
+         } catch (validationError) {
+            console.warn('Token validation failed, clearing all authentication data:', validationError);
+            // Clear all authentication data to force fresh login
+            localStorage.removeItem('auth-token');
+            localStorage.removeItem('user-data');
+            setUser(null);
+            throw new Error('Authentication validation failed');
           }
         }
       } catch (error) {
