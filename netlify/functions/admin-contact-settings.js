@@ -52,12 +52,11 @@ export const handler = async (event, context) => {
 
       const { settings } = JSON.parse(event.body);
 
-      for (const [key, data] of Object.entries(settings)) {
+    for (const [key, data] of Object.entries(settings)) {
         await sql`
           UPDATE admin_contact_settings 
           SET setting_value = ${data.value},
               display_name = ${data.displayName},
-              updated_by = ${authResult.user.id},
               updated_at = NOW()
           WHERE setting_key = ${key}
         `;
