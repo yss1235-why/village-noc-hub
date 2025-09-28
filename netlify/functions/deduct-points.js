@@ -79,18 +79,50 @@ export const handler = async (event, context) => {
         WHERE id = ${userId}
       `;
 
-      // Create point distribution record (5-5-5)
-      await sql`
-        INSERT INTO point_distributions (
-          application_id, village_id, total_points,
-          server_maintenance_points, super_admin_points, village_admin_points
-        )
-        VALUES (
-          ${applicationId}, ${villageId}, 15, 5, 5, 5
-        )
-      `;
+    // Create point distribution record (5-5-5)
+await sql`
+  INSERT INTO point_distributions (
+    application_id, village_id, total_points,
+    server_maintenance_points, super_admin_points, village_admin_points
+  )
+  VALUES (
+    ${applicationId}, ${villageId}, 15, 5, 5, 5
+  )
+`;
 
-      await sql`COMMIT`;
+// ACTUALLY TRANSFER 5 POINTS TO VILLAGE ADMIN
+const villageAdmin = await sql`
+  SELECT id, point_balance 
+  FROM users 
+  WHERE village_id = ${villageId} AND role = 'village_admin'
+`;
+
+if (villageAdmin.length > 0) {
+  const adminId = villageAdmin[0].id;
+  const currentAdminBalance = villageAdmin[0].point_balance || 0;
+  const newAdminBalance = currentAdminBalance + 5; // village admin gets 5 points
+
+  // Update village admin balance
+  await sql`UPDATE users SET point_balance = ${newAdminBalance} WHERE id = ${adminId}`;
+
+  // Create transaction record for admin points
+  const adminTransactionHash = crypto.createHash('sha256')
+    .update(`${adminId}-${applicationId}-${Date.now()}-admin`)
+    .digest('hex');
+
+  await sql`
+    INSERT INTO point_transactions (
+      transaction_hash, user_id, type, amount, previous_balance, new_balance,
+      application_id, reason
+    )
+    VALUES (
+      ${adminTransactionHash}, ${adminId}, 'ADD', 5, ${currentAdminBalance}, ${newAdminBalance},
+      ${applicationId}, 'Village Admin Commission'
+    )
+  `;
+}
+
+await sql`COMMIT`;
       
       return {
         success: true,
