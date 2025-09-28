@@ -23,12 +23,10 @@ export const handler = async (event, context) => {
             acs.admin_id,
             acs.setting_key,
             acs.setting_value,
-            u.role,
-            u.is_active
+            u.role
           FROM admin_contact_settings acs
           JOIN users u ON acs.admin_id = u.id
           WHERE acs.is_active = true 
-          AND u.is_active = true 
           AND u.role IN ('system_admin', 'super_admin')
           ORDER BY acs.admin_id, acs.setting_key
         `;
