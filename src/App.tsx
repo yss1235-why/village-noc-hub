@@ -67,18 +67,18 @@ const App = () => (
             
             <Route path="/village/register" element={<VillageRegistration />} />
 
-            <Route path="/apply" element={
-              <ProtectedRoute requiredRole={['user', 'applicant']}>
+           <Route path="/apply" element={
+              <ProtectedRoute requiredRole="applicant">
                 <Apply />
               </ProtectedRoute>
             } />
             <Route path="/status" element={
-              <ProtectedRoute requiredRole={['user', 'applicant']}>
+              <ProtectedRoute requiredRole="applicant">
                 <Status />
               </ProtectedRoute>
             } />
             <Route path="/userDashboard" element={
-              <ProtectedRoute requiredRole={['user', 'applicant']}>
+              <ProtectedRoute requiredRole="applicant">
                 <UserDashboard />
               </ProtectedRoute>
             } />
@@ -90,7 +90,7 @@ const App = () => (
             } />
 
             <Route path="/system-admin/dashboard" element={
-              <ProtectedRoute requiredRole="admin">
+              <ProtectedRoute requiredRole="system_admin">
                 <SystemAdminDashboard />
               </ProtectedRoute>
             } />
@@ -102,7 +102,7 @@ const App = () => (
             } />
 
             <Route path="/recharge" element={
-              <ProtectedRoute requiredRole={['user', 'applicant']}>
+              <ProtectedRoute requiredRole="applicant">
                 <RechargeRequest />
               </ProtectedRoute>
             } />
