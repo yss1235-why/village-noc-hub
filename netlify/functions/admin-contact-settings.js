@@ -98,13 +98,12 @@ const { settings } = JSON.parse(event.body);
 
     for (const [key, data] of Object.entries(settings)) {
         await sql`
-          INSERT INTO admin_contact_settings (setting_key, setting_value, display_name, admin_id, updated_by)
-          VALUES (${key}, ${data.value}, ${data.displayName}, ${adminId}, ${adminId})
+          INSERT INTO admin_contact_settings (setting_key, setting_value, display_name, admin_id)
+          VALUES (${key}, ${data.value}, ${data.displayName}, ${adminId})
           ON CONFLICT (setting_key, admin_id) 
           DO UPDATE SET 
             setting_value = ${data.value},
             display_name = ${data.displayName},
-            updated_by = ${adminId},
             updated_at = NOW()
         `;
       }
