@@ -21,7 +21,7 @@ interface UserSearchResult {
 }
 
 interface PointTransaction {
-  amount: number;
+  pointsAdded: number;
   previousBalance: number;
   newBalance: number;
   dailyRecharged: number;
@@ -311,7 +311,7 @@ const SimplePointManagement: React.FC = () => {
               <div>
                 <p className="text-sm text-muted-foreground">Amount Added</p>
                 <p className="text-lg font-semibold text-green-600">
-                  +{lastTransaction.amount.toLocaleString()}
+                  +{lastTransaction.pointsAdded.toLocaleString()}
                 </p>
               </div>
               <div>
