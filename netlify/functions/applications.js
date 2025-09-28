@@ -327,8 +327,8 @@ if (villageAdmin.length > 0) {
       transaction_hash, user_id, type, amount, previous_balance, new_balance,
       application_id, reason, admin_ip
     )
-    VALUES (
-      ${adminTransactionHash}, ${adminId}, 'ADD', 5, ${currentAdminBalance}, ${newAdminBalance},
+   VALUES (
+      ${adminTransactionHash}, ${adminId}, 'CREATE', 5, ${currentAdminBalance}, ${newAdminBalance},
       ${applicationId}, 'Village Admin Commission', ${event.headers['x-forwarded-for'] || 'unknown'}
     )
   `;
