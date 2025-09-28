@@ -1,9 +1,9 @@
 import { neon } from '@neondatabase/serverless';
-import { requireRole } from './utils/auth-middleware.js';
+import { requireMinimumRole } from './utils/auth-middleware.js';
+
+const sql = neon(process.env.NETLIFY_DATABASE_URL);
 
 export const handler = async (event, context) => {
-  const sql = neon(process.env.NETLIFY_DATABASE_URL);
-  
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
@@ -22,146 +22,60 @@ export const handler = async (event, context) => {
     };
   }
 
+  const authResult = requireMinimumRole(event, 'system_admin');
+  if (!authResult.isValid) {
+    return {
+      statusCode: 403,
+      headers,
+      body: JSON.stringify({ error: 'Insufficient permissions' })
+    };
+  }
+
   try {
-    // Verify admin or higher privileges for user search
-    const authResult = requireRole(event, 'admin');
-    if (!authResult.isValid) {
-      return {
-        statusCode: authResult.statusCode,
-        headers,
-        body: JSON.stringify({ error: authResult.error })
-      };
-    }
-
-    const { q: searchQuery, roles, approved, limit = 20 } = event.queryStringParameters || {};
-
-    if (!searchQuery || searchQuery.length < 2) {
+    const { q: searchTerm } = event.queryStringParameters || {};
+    
+    if (!searchTerm || searchTerm.trim().length < 2) {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ error: 'Search query must be at least 2 characters' })
+        body: JSON.stringify({ error: 'Search term must be at least 2 characters' })
       };
     }
 
-    // Parse and validate roles parameter
-    let allowedRoles = ['user', 'applicant']; // Default roles for voucher system
-    if (roles) {
-      const requestedRoles = roles.split(',').map(r => r.trim());
-      const validRoles = ['user', 'applicant', 'village_admin', 'admin', 'super_admin'];
-      allowedRoles = requestedRoles.filter(role => validRoles.includes(role));
-      
-      if (allowedRoles.length === 0) {
-        return {
-          statusCode: 400,
-          headers,
-          body: JSON.stringify({ error: 'No valid roles specified' })
-        };
-      }
-    }
+    const searchPattern = `%${searchTerm.trim().toLowerCase()}%`;
 
-    // Build search query with template literal syntax for Neon compatibility
-const searchTerm = `%${searchQuery.toLowerCase()}%`;
-const limitValue = parseInt(limit);
-
-let users;
-
-// Check if approval filter is specified
-const hasApprovalFilter = approved === 'true' || approved === 'false';
-const approvalValue = approved === 'true';
-
-if (hasApprovalFilter) {
-  users = await sql`
-    SELECT 
-      u.id,
-      u.username,
-      u.email,
-      u.full_name as "fullName",
-      u.role,
-      u.is_approved as "isApproved",
-      u.point_balance as "pointBalance",
-      v.name as "villageName"
-    FROM users u
-    LEFT JOIN villages v ON u.village_id = v.id
-    WHERE u.role = ANY(${allowedRoles})
-    AND (
-      LOWER(u.username) LIKE ${searchTerm} OR
-      LOWER(u.email) LIKE ${searchTerm} OR
-      LOWER(u.full_name) LIKE ${searchTerm}
-    )
-    AND u.is_approved = ${approvalValue}
-    ORDER BY 
-      CASE WHEN u.is_approved THEN 0 ELSE 1 END,
-      u.username ASC 
-    LIMIT ${limitValue}
-  `;
-} else {
-  users = await sql`
-    SELECT 
-      u.id,
-      u.username,
-      u.email,
-      u.full_name as "fullName",
-      u.role,
-      u.is_approved as "isApproved",
-      u.point_balance as "pointBalance",
-      v.name as "villageName"
-    FROM users u
-    LEFT JOIN villages v ON u.village_id = v.id
-    WHERE u.role = ANY(${allowedRoles})
-    AND (
-      LOWER(u.username) LIKE ${searchTerm} OR
-      LOWER(u.email) LIKE ${searchTerm} OR
-      LOWER(u.full_name) LIKE ${searchTerm}
-    )
-    ORDER BY 
-      CASE WHEN u.is_approved THEN 0 ELSE 1 END,
-      u.username ASC 
-    LIMIT ${limitValue}
-  `;
-}
-    // Format results for frontend consumption
-   const formattedUsers = users.map(user => ({
-  id: user.id,
-  username: user.username || user.email,
-  email: user.email,
-  fullName: user.fullName,
-  role: user.role,
-  isApproved: user.isApproved,
-  pointBalance: user.pointBalance || 0,
-  villageName: user.villageName
-}));
-
-  // Log search activity for audit purposes
-   try {
-     await sql`
-       INSERT INTO audit_logs (
-         user_id, action, resource_type, details, ip_address, created_at
-       )
-       VALUES (
-         ${authResult.user.userId || authResult.user.id}, 'USER_SEARCH', 'users',
-         ${JSON.stringify({
-           searchQuery: searchQuery.substring(0, 50),
-           roles: allowedRoles,
-           resultCount: formattedUsers.length,
-           searcherRole: authResult.user.role
-         })},
-         ${event.headers['x-forwarded-for'] || 'unknown'},
-         NOW()
-       )
-     `;
-   } catch (auditError) {
-     console.log('Audit logging failed but search succeeded:', auditError.message);
-   }
+    const users = await sql`
+      SELECT 
+        u.id, u.username, u.email, u.full_name, u.role, u.point_balance,
+        COALESCE(dr.total_recharged, 0) as daily_recharged,
+        (1000 - COALESCE(dr.total_recharged, 0)) as remaining_daily_limit
+      FROM users u
+      LEFT JOIN daily_recharge_limits dr ON u.id = dr.user_id AND dr.recharge_date = CURRENT_DATE
+      WHERE u.is_approved = true 
+      AND u.role IN ('user', 'applicant')
+      AND (
+        LOWER(u.username) LIKE ${searchPattern} OR
+        LOWER(u.email) LIKE ${searchPattern} OR
+        LOWER(u.full_name) LIKE ${searchPattern}
+      )
+      ORDER BY u.username
+      LIMIT 20
+    `;
 
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({
-        success: true,
-        users: formattedUsers,
-        totalResults: formattedUsers.length,
-        searchQuery,
-        roles: allowedRoles
+        users: users.map(user => ({
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          fullName: user.full_name,
+          role: user.role,
+          pointBalance: user.point_balance || 0,
+          dailyRecharged: user.daily_recharged,
+          remainingDailyLimit: user.remaining_daily_limit
+        }))
       })
     };
 
@@ -170,7 +84,7 @@ if (hasApprovalFilter) {
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: 'User search failed. Please try again.' })
+      body: JSON.stringify({ error: 'Failed to search users' })
     };
   }
 };
