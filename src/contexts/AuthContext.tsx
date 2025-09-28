@@ -146,8 +146,17 @@ const logout = async () => {
     // Get token before clearing state
    const token = localStorage.getItem('auth-token');
     
+    // CRITICAL: Set loading state to prevent route checks during logout
+    setIsLoading(true);
+    
     // Clear user state immediately to prevent any UI inconsistencies
     setUser(null);
+    
+    // CRITICAL: Force React state synchronization - wait for user state to be null
+    await new Promise(resolve => {
+      // Use a longer timeout to ensure all components re-render
+      setTimeout(resolve, 300);
+    });
     
     // Cleanup of authentication artifacts from primary storage
         const authKeys = ['auth-token', 'user-data'];
@@ -161,11 +170,20 @@ const logout = async () => {
       localStorage.removeItem(key);
     });
     
+    // Additional safety: Clear any browser-cached state
+    if (typeof window !== 'undefined') {
+      // Force garbage collection of any cached references
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+    
     // Token invalidation is handled by removing it from storage
     // Backend tokens are stateless JWTs that expire naturally
     if (token) {
-      console.log('Local logout completed successfully');
+      console.log('Local logout completed successfully with state sync');
     }
+    
+    // Reset loading state after logout completes
+    setIsLoading(false);
     
     return { success: true };
   };
