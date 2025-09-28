@@ -32,11 +32,10 @@ const getRoleDashboard = (role: string): string => {
   switch (role) {
     case 'super_admin':
       return '/super-admin/dashboard';
-    case 'admin':
+    case 'system_admin':
       return '/system-admin/dashboard';
     case 'village_admin':
       return '/admin/dashboard';
-    case 'user':
     case 'applicant':
     default:
       return '/userDashboard';
