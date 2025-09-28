@@ -44,7 +44,7 @@ export const handler = async (event, context) => {
         COALESCE(point_balance, 0) as point_balance,
         true as is_active
       FROM users
-      WHERE role IN ('user', 'applicant')
+      WHERE role = 'applicant'
       ORDER BY created_at DESC
       LIMIT 1000
     `;
@@ -58,7 +58,7 @@ export const handler = async (event, context) => {
         COUNT(CASE WHEN u.role = 'village_admin' THEN 1 END) as village_admins,
         0 as active_users
       FROM users u
-      WHERE u.role IN ('user', 'applicant')
+     WHERE u.role = 'applicant'
     `;
 
     // Log the access for audit purposes
