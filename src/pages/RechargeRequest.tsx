@@ -15,83 +15,78 @@ import {
   Clock
 } from 'lucide-react';
 
-interface ContactInfo {
-  admin_whatsapp: { value: string; displayName: string };
-  admin_phone: { value: string; displayName: string };
-  admin_email: { value: string; displayName: string };
-  recharge_instructions: { value: string; displayName: string };
+interface AdminContact {
+  id: string;
+  name: string;
+  phone: string;
+  whatsapp: string;
+  role: string;
 }
-
 const RechargeRequest: React.FC = () => {
-  const [selectedAmount, setSelectedAmount] = useState<500 | 1000 | null>(null);
-  const [contactInfo, setContactInfo] = useState<ContactInfo | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+ const [selectedAmount, setSelectedAmount] = useState<500 | 1000 | null>(null);
+const [availableAdmins, setAvailableAdmins] = useState<AdminContact[]>([]);
+const [isLoading, setIsLoading] = useState(true);
   
   const { user } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
-    loadContactInfo();
-  }, []);
-
-  const loadContactInfo = async () => {
-    try {
-      const response = await fetch('/.netlify/functions/admin-contact-settings');
-      if (response.ok) {
-        const result = await response.json();
-        setContactInfo(result.contactInfo);
-      }
-    } catch (error) {
-      console.error('Failed to load contact info:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load contact information",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const generateWhatsAppMessage = (amount: 500 | 1000) => {
-    const message = `Hello, I want to recharge ${amount} points for my account:
+  loadAvailableAdmins();
+}, []);
+  const loadAvailableAdmins = async () => {
+  try {
+    const response = await fetch('/.netlify/functions/manage-admin', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('auth-token')}`,
+        'Content-Type': 'application/json',
+      },
+    });
     
+    if (response.ok) {
+      const result = await response.json();
+      const admins = result.admins?.filter(admin => 
+        admin.is_active && 
+        admin.is_approved && 
+        (admin.role === 'system_admin' || admin.role === 'super_admin')
+      ).map(admin => ({
+        id: admin.id,
+        name: admin.name || admin.email,
+        phone: admin.phone || admin.email,
+        whatsapp: admin.phone || admin.email,
+        role: admin.role
+      })) || [];
+      
+      setAvailableAdmins(admins);
+    }
+  } catch (error) {
+    console.error('Failed to load admins:', error);
+    toast({
+      title: "Error",
+      description: "Failed to load admin contacts",
+      variant: "destructive"
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+ const generateWhatsAppMessage = (amount: 500 | 1000, adminName: string) => {
+  const message = `Hello ${adminName}, I want to recharge ${amount} points for my account:
+
 Username: ${user?.username}
 Email: ${user?.email}
-Full Name: ${user?.full_name || 'Not provided'}
+Full Name: ${user?.username}
 Amount: ${amount} points
 
 Please let me know the payment method and confirm when ready to process.
 
 Thank you!`;
-    
-    return encodeURIComponent(message);
-  };
+  
+  return encodeURIComponent(message);
+};
 
-  const openWhatsApp = (amount: 500 | 1000) => {
-    if (!contactInfo?.admin_whatsapp?.value) {
-      toast({
-        title: "Error",
-        description: "WhatsApp contact not available",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const message = generateWhatsAppMessage(amount);
-    const whatsappNumber = contactInfo.admin_whatsapp.value.replace(/[^0-9]/g, '');
-    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${message}`;
-    
-    window.open(whatsappUrl, '_blank');
-  };
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast({
-      title: "Copied",
-      description: "Text copied to clipboard",
-    });
-  };
+  
 
   if (isLoading) {
     return (
@@ -177,100 +172,60 @@ Thank you!`;
           </CardContent>
         </Card>
 
-        {/* Contact Methods */}
-        {selectedAmount && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Contact Admin for Payment</CardTitle>
-              <CardDescription>
-                Choose your preferred method to contact the admin
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+       {/* Admin Selection */}
+{selectedAmount && availableAdmins.length > 0 && (
+  <Card>
+    <CardHeader>
+      <CardTitle>Choose Admin to Contact</CardTitle>
+      <CardDescription>
+        Select any admin to process your {selectedAmount} points recharge request
+      </CardDescription>
+    </CardHeader>
+    <CardContent>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {availableAdmins.map((admin) => (
+          <div key={admin.id} className="p-4 border rounded-lg hover:border-primary transition-colors">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium">{admin.name}</h3>
+                <Badge variant={admin.role === 'super_admin' ? 'default' : 'secondary'}>
+                  {admin.role === 'super_admin' ? 'Super Admin' : 'System Admin'}
+                </Badge>
+              </div>
               
-              {/* WhatsApp */}
-              {contactInfo?.admin_whatsapp && (
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <MessageSquare className="h-5 w-5 text-green-600" />
-                    <div>
-                      <p className="font-medium">WhatsApp (Recommended)</p>
-                      <p className="text-sm text-muted-foreground">
-                        {contactInfo.admin_whatsapp.value}
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    onClick={() => openWhatsApp(selectedAmount)}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    <MessageSquare className="h-4 w-4 mr-2" />
-                    Send Message
-                  </Button>
-                </div>
-              )}
-
-              {/* Phone */}
-              {contactInfo?.admin_phone && (
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Phone className="h-5 w-5 text-blue-600" />
-                    <div>
-                      <p className="font-medium">Phone Call</p>
-                      <p className="text-sm text-muted-foreground">
-                        {contactInfo.admin_phone.value}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => copyToClipboard(contactInfo.admin_phone.value)}
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      onClick={() => window.open(`tel:${contactInfo.admin_phone.value}`)}
-                    >
-                      <Phone className="h-4 w-4 mr-2" />
-                      Call Now
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {/* Email */}
-              {contactInfo?.admin_email && (
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Mail className="h-5 w-5 text-purple-600" />
-                    <div>
-                      <p className="font-medium">Email</p>
-                      <p className="text-sm text-muted-foreground">
-                        {contactInfo.admin_email.value}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => copyToClipboard(contactInfo.admin_email.value)}
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      onClick={() => window.open(`mailto:${contactInfo.admin_email.value}?subject=Point Recharge Request - ${selectedAmount} Points&body=Hello, I want to recharge ${selectedAmount} points for my account (${user?.username}).`)}
-                    >
-                      <Mail className="h-4 w-4 mr-2" />
-                      Send Email
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-            </CardContent>
-          </Card>
-        )}
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Phone className="h-4 w-4" />
+                <span>{admin.phone}</span>
+              </div>
+              
+              <Button 
+                onClick={() => {
+                  const whatsappNumber = admin.whatsapp?.replace(/[^0-9]/g, '');
+                  if (whatsappNumber) {
+                    const message = generateWhatsAppMessage(selectedAmount, admin.name);
+                    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${message}`;
+                    window.open(whatsappUrl, '_blank');
+                  } else {
+                    toast({
+                      title: "Error",
+                      description: "WhatsApp contact not available for this admin",
+                      variant: "destructive"
+                    });
+                  }
+                }}
+                className="w-full bg-green-600 hover:bg-green-700 text-white"
+                disabled={!admin.whatsapp}
+              >
+                <MessageSquare className="h-4 w-4 mr-2" />
+                Contact via WhatsApp
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </CardContent>
+  </Card>
+)}
 
         {/* Instructions */}
         <Card>
@@ -282,13 +237,7 @@ Thank you!`;
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {contactInfo?.recharge_instructions && (
-                <p className="text-muted-foreground">
-                  {contactInfo.recharge_instructions.value}
-                </p>
-              )}
-              
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <div className="flex items-start gap-2">
                   <Clock className="h-5 w-5 text-blue-600 mt-0.5" />
                   <div>
