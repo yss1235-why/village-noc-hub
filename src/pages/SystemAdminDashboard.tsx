@@ -16,7 +16,7 @@ import { useAuth } from '@/contexts/AuthContext';
 const SystemAdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout, isLoading } = useAuth();
 
   // Core data state
   const [villages, setVillages] = useState([]);
