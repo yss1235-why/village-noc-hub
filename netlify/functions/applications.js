@@ -56,24 +56,14 @@ const secureFileProcessing = async (base64Data) => {
     const fileSignature = buffer.slice(0, 8).toString('hex').toUpperCase();
     let imageBuffer;
     
-    if (fileSignature.startsWith('25504446')) {
-      // PDF file - convert to image
-      console.log('Processing PDF file...');
-      const convert = pdf2pic.fromBuffer(buffer, {
-        density: 150,           // High quality for text readability
-        saveFilename: "page",
-        format: "png",
-        width: 1200,           // Good resolution for documents
-        height: 1600
-      });
-      
-      const result = await convert(1, { responseType: "buffer" });
-      imageBuffer = result.buffer;
+ if (fileSignature.startsWith('25504446')) {
+      // PDF file - now rejected
+      throw new Error('PDF files are not supported. Please upload JPG or PNG only.');
     } else if (fileSignature.startsWith('89504E47') || fileSignature.startsWith('FFD8FF')) {
       // Already an image (PNG or JPEG)
       imageBuffer = buffer;
     } else {
-      throw new Error('Unsupported file format. Only PNG, JPEG, and PDF files are allowed.');
+     throw new Error('Unsupported file format. Only PNG and JPEG files are allowed.');
     }
     
   // Process image with Sharp - creates completely clean file
@@ -150,7 +140,7 @@ export const handler = async (event, context) => {
 
     // Add missing columns to existing table if they don't exist
     try {
-     await sql`
+    await sql`
         ALTER TABLE noc_applications 
         ADD COLUMN IF NOT EXISTS title VARCHAR(10),
         ADD COLUMN IF NOT EXISTS relation VARCHAR(10),
@@ -160,7 +150,12 @@ export const handler = async (event, context) => {
         ADD COLUMN IF NOT EXISTS annual_income VARCHAR(20),
         ADD COLUMN IF NOT EXISTS annual_income_words TEXT,
         ADD COLUMN IF NOT EXISTS aadhaar_document TEXT,
-        ADD COLUMN IF NOT EXISTS passport_photo TEXT
+        ADD COLUMN IF NOT EXISTS passport_photo TEXT,
+        ADD COLUMN IF NOT EXISTS child_name VARCHAR(200),
+        ADD COLUMN IF NOT EXISTS ward_name VARCHAR(200),
+        ADD COLUMN IF NOT EXISTS husband_name VARCHAR(200),
+        ADD COLUMN IF NOT EXISTS mother_name VARCHAR(200),
+        ADD COLUMN IF NOT EXISTS guardian_name VARCHAR(200)
       `;
     } catch (error) {
       console.log('Columns might already exist:', error.message);
@@ -179,12 +174,17 @@ export const handler = async (event, context) => {
 
       const userInfo = authResult.user;
       
-      const { 
+     const { 
         applicationNumber, 
         title,
         applicantName,
         relation,
-        fatherName, 
+        fatherName,
+        husbandName,
+        motherName,
+        guardianName,
+        childName,
+        wardName,
         address, 
         houseNumber,
         villageId, 
@@ -245,18 +245,19 @@ export const handler = async (event, context) => {
         }
 
         // Insert new NOC application with user_id
-        const result = await sql`
+     const result = await sql`
           INSERT INTO noc_applications (
-            application_number, user_id, title, applicant_name, relation, father_name, address, house_number,
-          village_id, tribe_name, religion, annual_income, annual_income_words, purpose_of_noc, phone, email,
-          aadhaar_document, passport_photo, status
-      ) VALUES (
-          ${finalApplicationNumber}, ${userInfo.id}, ${title}, ${applicantName}, ${relation}, ${fatherName}, ${address}, ${houseNumber},
-          ${villageId}, ${tribeName}, ${religion}, ${annualIncome}, ${annualIncomeWords}, ${purposeOfNOC}, ${phone}, ${email},
-          ${cleanAadhaarDocument}, ${cleanPassportPhoto}, 'pending'
-        )
-       RETURNING id, application_number
-      `;
+            application_number, user_id, title, applicant_name, relation, father_name, husband_name, mother_name, 
+            guardian_name, child_name, ward_name, address, house_number, village_id, tribe_name, religion, 
+            annual_income, annual_income_words, purpose_of_noc, phone, email, aadhaar_document, passport_photo, status
+          ) VALUES (
+            ${finalApplicationNumber}, ${userInfo.id}, ${title}, ${applicantName}, ${relation}, ${fatherName}, 
+            ${husbandName}, ${motherName}, ${guardianName}, ${childName}, ${wardName}, ${address}, ${houseNumber},
+            ${villageId}, ${tribeName}, ${religion}, ${annualIncome}, ${annualIncomeWords}, ${purposeOfNOC}, 
+            ${phone}, ${email}, ${cleanAadhaarDocument}, ${cleanPassportPhoto}, 'pending'
+          )
+          RETURNING id, application_number
+        `;
 
       const applicationId = result[0].id;
 
