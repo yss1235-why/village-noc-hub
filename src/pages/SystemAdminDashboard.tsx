@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import SimplePointManagement from '@/components/admin/SimplePointManagement';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -23,24 +24,7 @@ const SystemAdminDashboard = () => {
   const [users, setUsers] = useState([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
 
- // Points management state
-  const [showPointsModal, setShowPointsModal] = useState(false);
-  const [pointsForm, setPointsForm] = useState({
-    userId: '',
-    action: 'add',
-    amount: '',
-    reason: ''
-  });
 
-  // Voucher management state
-  const [voucherStats, setVoucherStats] = useState({
-    quotaUsed: 0,
-    quotaTotal: 5,
-    totalGenerated: 0,
-    activeVouchers: 0,
-    redeemedVouchers: 0,
-    isLoading: true
-  });
   // Messaging state
   const [showMessageModal, setShowMessageModal] = useState(false);
   const [messageForm, setMessageForm] = useState({
@@ -73,49 +57,23 @@ const SystemAdminDashboard = () => {
   });
  // Redirect if not authenticated as admin
   useEffect(() => {
-    if (!isAuthenticated || !user || user.role !== 'admin') {
+    if (!isAuthenticated || !user || (user.role !== 'system_admin' && user.role !== 'super_admin')) {
       navigate('/system-admin');
     } else {
       initializeDashboard();
     }
   }, [isAuthenticated, user, navigate]);
 
- const initializeDashboard = async () => {
+const initializeDashboard = async () => {
     setIsLoadingData(true);
     await Promise.all([
       loadVillages(),
       loadApplications(),
-      loadUsers(),
-      loadVoucherStats()
+      loadUsers()
     ]);
     setIsLoadingData(false);
   };
-
-  const loadVoucherStats = async () => {
-    try {
-      const response = await fetch('/.netlify/functions/track-vouchers?limit=1', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth-token')}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setVoucherStats({
-          quotaUsed: data.quota?.used || 0,
-          quotaTotal: data.quota?.total || 5,
-          totalGenerated: data.quota?.totalGenerated || 0,
-          activeVouchers: data.statistics?.active_vouchers || 0,
-          redeemedVouchers: data.statistics?.redeemed_vouchers || 0,
-          isLoading: false
-        });
-      }
-    } catch (error) {
-      console.error('Failed to fetch voucher stats:', error);
-      setVoucherStats(prev => ({ ...prev, isLoading: false }));
-    }
- };
+ 
  const loadVillages = async () => {
     try {
       const token = localStorage.getItem('auth-token');
@@ -416,59 +374,7 @@ const SystemAdminDashboard = () => {
       setIsProcessingUserAction(false);
     }
   };
-  const handleManagePoints = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!pointsForm.userId || !pointsForm.amount || !pointsForm.reason) {
-      toast({
-        title: "Error", 
-        description: "All fields are required for points management.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const endpoint = pointsForm.action === 'add' ? 'add-points' : 'deduct-points';
-    const token = localStorage.getItem('auth-token');
-      const response = await fetch(`/.netlify/functions/${endpoint}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId: pointsForm.userId,
-          amount: parseInt(pointsForm.amount),
-          reason: pointsForm.reason,
-          adminId: user.id
-        })
-      });
-
-      const result = await response.json();
-      if (response.ok) {
-        toast({
-          title: "Points Updated",
-          description: `${pointsForm.amount} points ${pointsForm.action}ed successfully.`,
-        });
-        setShowPointsModal(false);
-        setPointsForm({ userId: '', action: 'add', amount: '', reason: '' });
-        loadUsers();
-      } else {
-        toast({
-          title: "Error",
-          description: result.error || "Failed to update points.",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update points. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
+  
 
  const handleLogout = async () => {
     const result = await logout();
@@ -541,15 +447,8 @@ const SystemAdminDashboard = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-      {/* Quick Actions */}
+   {/* Quick Actions */}
         <div className="flex flex-wrap gap-3 mb-8">
-          <Button 
-            onClick={() => setShowPointsModal(true)}
-            className="bg-green-600 hover:bg-green-700"
-          >
-            <BarChart className="h-4 w-4 mr-2" />
-            Manage Points
-          </Button>
          <Button 
             onClick={() => setShowMessageModal(true)}
             variant="outline"
@@ -557,45 +456,10 @@ const SystemAdminDashboard = () => {
             <MessageCircle className="h-4 w-4 mr-2" />
             Send Message
           </Button>
-          <Button 
-            onClick={() => navigate('/admin/vouchers')}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            <Gift className="h-4 w-4 mr-2" />
-            Manage Vouchers
-          </Button>
         </div>
 
        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Voucher Quota</CardTitle>
-              <Gift className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {voucherStats.quotaUsed}/{voucherStats.quotaTotal}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {voucherStats.quotaTotal - voucherStats.quotaUsed} slots remaining
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Vouchers</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{voucherStats.activeVouchers}</div>
-              <p className="text-xs text-muted-foreground">
-                Unredeemed vouchers
-              </p>
-            </CardContent>
-          </Card>
-
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Active Villages</CardTitle>
@@ -672,8 +536,8 @@ const SystemAdminDashboard = () => {
                 <TabsTrigger value="villages">
                   Villages ({villages.length})
                 </TabsTrigger>
-                <TabsTrigger value="vouchers">
-                  Vouchers
+                <TabsTrigger value="points">
+                  Point Management
                 </TabsTrigger>
               </TabsList>
 
@@ -765,16 +629,8 @@ const SystemAdminDashboard = () => {
                                   )}
                                 </Button>
                               )}
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  setPointsForm(prev => ({ ...prev, userId: user.id }));
-                                  setShowPointsModal(true);
-                                }}
-                              >
-                                <BarChart className="h-4 w-4" />
-                              </Button>
+                              
+                               
                               {user.is_approved && (
                                 <Button
                                   size="sm"
@@ -907,187 +763,15 @@ const SystemAdminDashboard = () => {
                   </div>
                 )}
              </TabsContent>
-
-              {/* Vouchers Tab */}
-              <TabsContent value="vouchers" className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-medium">Voucher Management</h3>
-                  <Button onClick={() => navigate('/admin/vouchers')}>
-                    <Gift className="h-4 w-4 mr-2" />
-                    Full Voucher Management
-                  </Button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium text-muted-foreground">Quota Used</p>
-                          <p className="text-2xl font-bold">{voucherStats.quotaUsed}/{voucherStats.quotaTotal}</p>
-                        </div>
-                        <Gift className="h-8 w-8 text-muted-foreground" />
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium text-muted-foreground">Total Generated</p>
-                          <p className="text-2xl font-bold">{voucherStats.totalGenerated}</p>
-                        </div>
-                        <TrendingUp className="h-8 w-8 text-muted-foreground" />
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium text-muted-foreground">Active</p>
-                          <p className="text-2xl font-bold">{voucherStats.activeVouchers}</p>
-                        </div>
-                        <CheckCircle className="h-8 w-8 text-green-600" />
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium text-muted-foreground">Redeemed</p>
-                          <p className="text-2xl font-bold">{voucherStats.redeemedVouchers}</p>
-                        </div>
-                        <Users className="h-8 w-8 text-blue-600" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Quick Actions</CardTitle>
-                    <CardDescription>
-                      Common voucher management tasks
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      <Button 
-                        variant="outline" 
-                        className="h-20 flex-col"
-                        onClick={() => navigate('/admin/vouchers')}
-                      >
-                        <Gift className="h-6 w-6 mb-2" />
-                        Generate Voucher
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        className="h-20 flex-col"
-                        onClick={() => navigate('/admin/vouchers')}
-                      >
-                        <Eye className="h-6 w-6 mb-2" />
-                        Track Vouchers
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        className="h-20 flex-col"
-                        onClick={() => navigate('/admin/vouchers')}
-                      >
-                        <BarChart className="h-6 w-6 mb-2" />
-                        View Analytics
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
+                {/* Point Management Tab */}
+              <TabsContent value="points" className="space-y-4">
+                <SimplePointManagement />
+              </TabsContent>   
             </Tabs>
           </CardContent>
         </Card>
 
-        {/* Points Management Modal */}
-        {showPointsModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <Card className="w-full max-w-md mx-4">
-              <CardHeader>
-                <CardTitle>Manage User Points</CardTitle>
-                <CardDescription>Add or deduct points from user accounts</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleManagePoints} className="space-y-4">
-                  <div>
-                    <Label htmlFor="userId">User ID</Label>
-                    <Input
-                      id="userId"
-                      value={pointsForm.userId}
-                      onChange={(e) => setPointsForm({...pointsForm, userId: e.target.value})}
-                      placeholder="Enter user ID"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="action">Action</Label>
-                    <Select value={pointsForm.action} onValueChange={(value) => setPointsForm({...pointsForm, action: value})}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="add">Add Points</SelectItem>
-                        <SelectItem value="deduct">Deduct Points</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="amount">Amount</Label>
-                    <Input
-                      id="amount"
-                      type="number"
-                      value={pointsForm.amount}
-                      onChange={(e) => setPointsForm({...pointsForm, amount: e.target.value})}
-                      placeholder="Enter points amount"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="reason">Reason</Label>
-                    <Input
-                      id="reason"
-                      value={pointsForm.reason}
-                      onChange={(e) => setPointsForm({...pointsForm, reason: e.target.value})}
-                      placeholder="Enter reason for points change"
-                      required
-                    />
-                  </div>
-
-                  <div className="flex gap-2 pt-4">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        setShowPointsModal(false);
-                        setPointsForm({ userId: '', action: 'add', amount: '', reason: '' });
-                      }}
-                      className="flex-1"
-                    >
-                      Cancel
-                    </Button>
-                    <Button type="submit" className="flex-1">
-                      {pointsForm.action === 'add' ? 'Add Points' : 'Deduct Points'}
-                    </Button>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
-          </div>
-)}
-
+      
       {/* User Review Modal */}
       {selectedUser && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
