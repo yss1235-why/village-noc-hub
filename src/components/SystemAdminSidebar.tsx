@@ -13,6 +13,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarSeparator,
+  useSidebar,
 } from "@/components/ui/sidebar";
 
 interface SystemAdminSidebarProps {
@@ -36,6 +37,13 @@ export function SystemAdminSidebar({
   onLogout,
   pendingCounts 
 }: SystemAdminSidebarProps) {
+  const { setOpenMobile } = useSidebar();
+
+  const handleTabChange = (tab: string) => {
+    onTabChange(tab);
+    setOpenMobile(false);
+  };
+
   return (
     <Sidebar>
       <SidebarHeader>
@@ -74,7 +82,7 @@ export function SystemAdminSidebar({
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton 
-                  onClick={() => onTabChange('dashboard')}
+                  onClick={() => handleTabChange('dashboard')}
                   isActive={activeTab === 'dashboard'}
                 >
                   <Home className="h-4 w-4" />
@@ -84,7 +92,7 @@ export function SystemAdminSidebar({
 
               <SidebarMenuItem>
                 <SidebarMenuButton 
-                  onClick={() => onTabChange('users')}
+                  onClick={() => handleTabChange('users')}
                   isActive={activeTab === 'users'}
                 >
                   <Users className="h-4 w-4" />
@@ -99,7 +107,7 @@ export function SystemAdminSidebar({
 
               <SidebarMenuItem>
                 <SidebarMenuButton 
-                  onClick={() => onTabChange('applications')}
+                  onClick={() => handleTabChange('applications')}
                   isActive={activeTab === 'applications'}
                 >
                   <FileText className="h-4 w-4" />
@@ -114,7 +122,7 @@ export function SystemAdminSidebar({
 
               <SidebarMenuItem>
                 <SidebarMenuButton 
-                  onClick={() => onTabChange('villages')}
+                  onClick={() => handleTabChange('villages')}
                   isActive={activeTab === 'villages'}
                 >
                   <Building className="h-4 w-4" />
@@ -129,7 +137,7 @@ export function SystemAdminSidebar({
 
               <SidebarMenuItem>
                 <SidebarMenuButton 
-                  onClick={() => onTabChange('points')}
+                  onClick={() => handleTabChange('points')}
                   isActive={activeTab === 'points'}
                 >
                   <Gift className="h-4 w-4" />
