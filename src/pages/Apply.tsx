@@ -181,6 +181,14 @@ const validateForm = () => {
     });
     return false;
   }
+  if (formData.relation === 'Mother' && !formData.childName) {
+    toast({
+      title: "Child's Name Required",
+      description: "Please enter child's name for Mother relation.",
+      variant: "destructive",
+    });
+    return false;
+  }
 
   if (formData.relation === 'Guardian' && !formData.wardName) {
     toast({
@@ -779,28 +787,29 @@ if (showSuccess) {
           <SelectTrigger>
             <SelectValue placeholder="Select" />
           </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Son">Son</SelectItem>
-            <SelectItem value="Daughter">Daughter</SelectItem>
-            <SelectItem value="Father">Father of</SelectItem>
-            <SelectItem value="Guardian">Guardian of</SelectItem>
-            <SelectItem value="Wife">Wife</SelectItem>
-            <SelectItem value="Husband">Husband</SelectItem>
-            <SelectItem value="Ward">Ward</SelectItem>
-            <SelectItem value="Dependent">Dependent</SelectItem>
-          </SelectContent>
+         <SelectContent>
+              <SelectItem value="Son">Son</SelectItem>
+              <SelectItem value="Daughter">Daughter</SelectItem>
+              <SelectItem value="Father">Father of</SelectItem>
+              <SelectItem value="Mother">Mother of</SelectItem>
+              <SelectItem value="Guardian">Guardian of</SelectItem>
+              <SelectItem value="Wife">Wife</SelectItem>
+              <SelectItem value="Husband">Husband</SelectItem>
+              <SelectItem value="Ward">Ward</SelectItem>
+              <SelectItem value="Dependent">Dependent</SelectItem>
+            </SelectContent>
         </Select>
       </div>
       
      <div className="md:col-span-2">
   {(formData.relation === 'Son' || formData.relation === 'Daughter') && (
     <>
-      <Label htmlFor="fatherName">Father's Name *</Label>
+      <Label htmlFor="fatherName">Father's/Mother's Name *</Label>
       <Input
         id="fatherName"
         value={formData.fatherName}
         onChange={(e) => setFormData({...formData, fatherName: e.target.value})}
-        placeholder="Enter father's name"
+        placeholder="Enter father's or mother's name"
         required
       />
     </>
@@ -853,6 +862,18 @@ if (showSuccess) {
       value={formData.wardName}
       onChange={(e) => setFormData({...formData, wardName: e.target.value})}
       placeholder="Enter ward's name"
+      required
+    />
+  </>
+)}
+       {formData.relation === 'Mother' && (
+  <>
+    <Label htmlFor="childName">Child's Name *</Label>
+    <Input
+      id="childName"
+      value={formData.childName}
+      onChange={(e) => setFormData({...formData, childName: e.target.value})}
+      placeholder="Enter child's name"
       required
     />
   </>
