@@ -25,6 +25,9 @@ const SystemAdminDashboard = () => {
   const [users, setUsers] = useState([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
 
+  // Village approval state
+  const [villageRequests, setVillageRequests] = useState([]);
+  const [isLoadingVillages, setIsLoadingVillages] = useState(true);
 
   // Messaging state
  // Messaging state
@@ -497,14 +500,141 @@ const handleLogout = async () => {
     }
   };
 
-  // Load contact info when modal opens
-  useEffect(() => {
-    if (showContactSettings) {
-      loadContactInfo();
+ const loadVillageRequests = async () => {
+    setIsLoadingVillages(true);
+    try {
+      const response = await fetch('/.netlify/functions/get-all-villages', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth-token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      const result = await response.json();
+      
+      if (response.ok && result.villages) {
+        const formattedVillages = result.villages.map(v => ({
+          id: v.id,
+          name: v.villageName || v.name,
+          district: v.district,
+          state: v.state,
+          adminName: v.adminName || v.admin_name,
+          adminEmail: v.email || v.admin_email,
+          status: v.status,
+          createdAt: v.requestDate || v.created_at
+        }));
+        setVillageRequests(formattedVillages);
+      } else {
+        console.error('Failed to load villages:', result.error);
+        toast({
+          title: "Error",
+          description: "Failed to load villages.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load villages:', error);
+      toast({
+        title: "Error",
+        description: "Failed to connect to server.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingVillages(false);
     }
-  }, [showContactSettings]);
+  };
 
-  const getStatusBadge = (status: string) => {
+  const handleApproveVillage = async (villageId: string) => {
+    try {
+      const response = await fetch('/.netlify/functions/approve-village', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth-token')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ villageId, action: 'approve' })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        setVillageRequests(prev => 
+          prev.map(village => 
+            village.id === villageId 
+              ? { ...village, status: "approved" }
+              : village
+          )
+        );
+        toast({
+          title: "Village Approved",
+          description: "Village registration has been approved.",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to approve village.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to approve village. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRejectVillage = async (villageId: string) => {
+    try {
+      const response = await fetch('/.netlify/functions/approve-village', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth-token')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ villageId, action: 'reject' })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        setVillageRequests(prev => 
+          prev.map(village => 
+            village.id === villageId 
+              ? { ...village, status: "rejected" }
+              : village
+          )
+        );
+        toast({
+          title: "Village Rejected",
+          description: "Village registration has been rejected.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to reject village.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to reject village. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Load contact info when modal opens
+ // Load village requests separately since initializeDashboard handles other data
+ useEffect(() => {
+    if (isAuthenticated && user?.role === 'system_admin') {
+      loadVillageRequests();
+    }
+  }, [isAuthenticated, user]);
+
+ const getStatusBadge = (status: string) => {
     switch (status) {
       case "approved":
         return <Badge className="bg-success text-success-foreground">Approved</Badge>;
@@ -513,10 +643,14 @@ const handleLogout = async () => {
       case "rejected":
         return <Badge variant="destructive">Rejected</Badge>;
       default:
-        return <Badge variant="outline">Unknown</Badge>;
+        return <Badge variant="outline">{status}</Badge>;
     }
   };
 
+  // Computed values for village filtering
+  const pendingVillages = villageRequests.filter(v => v.status === "pending");
+  const approvedVillages = villageRequests.filter(v => v.status === "approved");
+  const rejectedVillages = villageRequests.filter(v => v.status === "rejected");
   const filteredUsers = users.filter(user => {
     const matchesFilter = userFilter === 'all' || user.status === userFilter || user.role === userFilter;
     const matchesSearch = user.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -836,59 +970,199 @@ const handleLogout = async () => {
                 )}
               </TabsContent>
 
-              {/* Villages Tab */}
+           {/* Villages Tab */}
               <TabsContent value="villages" className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-medium">Village Administration</h3>
+                  <h3 className="text-lg font-medium">Village Management</h3>
                   <Badge variant="outline">
-                    {villages.length} Active Villages
+                    {pendingVillages.length} Pending Approval
                   </Badge>
                 </div>
+                
+                <Tabs defaultValue="pending" className="w-full">
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="pending">
+                      Pending ({pendingVillages.length})
+                    </TabsTrigger>
+                    <TabsTrigger value="approved">
+                      Active ({approvedVillages.length})
+                    </TabsTrigger>
+                    <TabsTrigger value="rejected">
+                      Rejected ({rejectedVillages.length})
+                    </TabsTrigger>
+                  </TabsList>
 
-                {villages.length > 0 ? (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Village Name</TableHead>
-                        <TableHead>District</TableHead>
-                        <TableHead>Admin</TableHead>
-                        <TableHead>Applications</TableHead>
-                        <TableHead>Users</TableHead>
-                        <TableHead>Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {villages.map((village) => (
-                        <TableRow key={village.id}>
-                          <TableCell>
-                            <div>
-                              <p className="font-medium">{village.name}</p>
-                              <p className="text-sm text-muted-foreground">{village.state}</p>
-                            </div>
-                          </TableCell>
-                          <TableCell>{village.district}</TableCell>
-                          <TableCell>
-                            <div>
-                              <p className="font-medium">{village.admin_name}</p>
-                              <p className="text-sm text-muted-foreground">{village.admin_email}</p>
-                            </div>
-                          </TableCell>
-                          <TableCell>{village.application_count || 0}</TableCell>
-                          <TableCell>{village.user_count || 0}</TableCell>
-                          <TableCell>
-                            <Badge className="bg-success text-success-foreground">Active</Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Building className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>No villages found</p>
-                  </div>
-                )}
-             </TabsContent>
+                  {/* Pending Villages Sub-Tab */}
+                  <TabsContent value="pending" className="space-y-4">
+                    {isLoadingVillages ? (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="text-sm text-muted-foreground">Loading villages...</div>
+                      </div>
+                    ) : pendingVillages.length > 0 ? (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Village Name</TableHead>
+                            <TableHead>District/State</TableHead>
+                            <TableHead>Admin</TableHead>
+                            <TableHead>Requested</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {pendingVillages.map((village) => (
+                            <TableRow key={village.id}>
+                              <TableCell className="font-medium">{village.name}</TableCell>
+                              <TableCell>
+                                <div>
+                                  <p>{village.district}</p>
+                                  <p className="text-sm text-muted-foreground">{village.state}</p>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div>
+                                  <p className="font-medium">{village.adminName}</p>
+                                  <p className="text-sm text-muted-foreground">{village.adminEmail}</p>
+                                </div>
+                              </TableCell>
+                              <TableCell>{village.createdAt ? new Date(village.createdAt).toLocaleDateString() : 'N/A'}</TableCell>
+                              <TableCell>{getStatusBadge(village.status)}</TableCell>
+                              <TableCell>
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleApproveVillage(village.id)}
+                                    className="bg-success text-success-foreground hover:bg-success/90"
+                                  >
+                                    <CheckCircle className="h-4 w-4 mr-1" />
+                                    Approve
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => handleRejectVillage(village.id)}
+                                  >
+                                    <XCircle className="h-4 w-4 mr-1" />
+                                    Reject
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <AlertCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p>No pending villages</p>
+                      </div>
+                    )}
+                  </TabsContent>
+
+                  {/* Approved Villages Sub-Tab */}
+                  <TabsContent value="approved" className="space-y-4">
+                    {isLoadingVillages ? (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="text-sm text-muted-foreground">Loading villages...</div>
+                      </div>
+                    ) : approvedVillages.length > 0 ? (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Village Name</TableHead>
+                            <TableHead>District/State</TableHead>
+                            <TableHead>Admin</TableHead>
+                            <TableHead>Applications</TableHead>
+                            <TableHead>Users</TableHead>
+                            <TableHead>Status</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {approvedVillages.map((village) => (
+                            <TableRow key={village.id}>
+                              <TableCell className="font-medium">{village.name}</TableCell>
+                              <TableCell>
+                                <div>
+                                  <p>{village.district}</p>
+                                  <p className="text-sm text-muted-foreground">{village.state}</p>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div>
+                                  <p className="font-medium">{village.adminName}</p>
+                                  <p className="text-sm text-muted-foreground">{village.adminEmail}</p>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                {villages.find(v => v.id === village.id)?.application_count || 0}
+                              </TableCell>
+                              <TableCell>
+                                {villages.find(v => v.id === village.id)?.user_count || 0}
+                              </TableCell>
+                              <TableCell>
+                                <Badge className="bg-success text-success-foreground">Active</Badge>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <CheckCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p>No approved villages</p>
+                      </div>
+                    )}
+                  </TabsContent>
+
+                  {/* Rejected Villages Sub-Tab */}
+                  <TabsContent value="rejected" className="space-y-4">
+                    {isLoadingVillages ? (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="text-sm text-muted-foreground">Loading villages...</div>
+                      </div>
+                    ) : rejectedVillages.length > 0 ? (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Village Name</TableHead>
+                            <TableHead>District/State</TableHead>
+                            <TableHead>Admin</TableHead>
+                            <TableHead>Rejected On</TableHead>
+                            <TableHead>Status</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {rejectedVillages.map((village) => (
+                            <TableRow key={village.id}>
+                              <TableCell className="font-medium">{village.name}</TableCell>
+                              <TableCell>
+                                <div>
+                                  <p>{village.district}</p>
+                                  <p className="text-sm text-muted-foreground">{village.state}</p>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div>
+                                  <p className="font-medium">{village.adminName}</p>
+                                  <p className="text-sm text-muted-foreground">{village.adminEmail}</p>
+                                </div>
+                              </TableCell>
+                              <TableCell>{village.createdAt ? new Date(village.createdAt).toLocaleDateString() : 'N/A'}</TableCell>
+                              <TableCell>{getStatusBadge(village.status)}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <XCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p>No rejected villages</p>
+                      </div>
+                    )}
+                  </TabsContent>
+                </Tabs>
+              </TabsContent>
                 {/* Point Management Tab */}
               <TabsContent value="points" className="space-y-4">
                 <SimplePointManagement />
