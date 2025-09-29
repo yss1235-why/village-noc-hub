@@ -69,8 +69,14 @@ const SystemAdminDashboard = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [disableReason, setDisableReason] = useState('');
   
-  // Active tab state for sidebar navigation
+ // Active tab state for sidebar navigation
   const [activeTab, setActiveTab] = useState('dashboard');
+  
+  // Selected application state
+  const [selectedApplication, setSelectedApplication] = useState(null);
+  
+  // Selected village state
+  const [selectedVillage, setSelectedVillage] = useState(null);
   
   // Document view modal state
   const [viewDocumentModal, setViewDocumentModal] = useState({
@@ -966,7 +972,11 @@ const handleLogout = async () => {
                       </TableHeader>
                       <TableBody>
                         {applications.map((app) => (
-                          <TableRow key={app.id}>
+                          <TableRow 
+                            key={app.id}
+                            className="cursor-pointer hover:bg-muted/50"
+                            onClick={() => setSelectedApplication(app)}
+                          >
                             <TableCell className="font-mono text-sm">{app.application_number}</TableCell>
                             <TableCell>{app.village_name}</TableCell>
                             <TableCell>
@@ -983,9 +993,13 @@ const handleLogout = async () => {
                     </Table>
                   </div>
 
-                  <div className="md:hidden space-y-4">
+                 <div className="md:hidden space-y-4">
                     {applications.map((app) => (
-                      <Card key={app.id}>
+                      <Card 
+                        key={app.id}
+                        className="cursor-pointer hover:border-primary"
+                        onClick={() => setSelectedApplication(app)}
+                      >
                         <CardContent className="p-4">
                           <div className="space-y-2">
                             <div className="flex justify-between">
@@ -1031,9 +1045,14 @@ const handleLogout = async () => {
                       {pendingVillages.map((village) => (
                         <Card key={village.id}>
                           <CardContent className="p-4">
-                            <div className="space-y-3">
+                           <div className="space-y-3">
                               <div className="flex justify-between">
-                                <p className="font-semibold">{village.name}</p>
+                                <p 
+                                  className="font-semibold cursor-pointer hover:text-primary"
+                                  onClick={() => setSelectedVillage(village)}
+                                >
+                                  {village.name}
+                                </p>
                                 {getStatusBadge(village.status)}
                               </div>
                               <p className="text-sm">{village.district}, {village.state}</p>
@@ -1074,7 +1093,12 @@ const handleLogout = async () => {
                       {approvedVillages.map((village) => (
                         <Card key={village.id}>
                           <CardContent className="p-4">
-                            <p className="font-semibold">{village.name}</p>
+                            <p 
+                              className="font-semibold cursor-pointer hover:text-primary"
+                              onClick={() => setSelectedVillage(village)}
+                            >
+                              {village.name}
+                            </p>
                             <p className="text-sm">{village.district}, {village.state}</p>
                             <Badge className="mt-2 bg-success">Active</Badge>
                           </CardContent>
@@ -1095,7 +1119,12 @@ const handleLogout = async () => {
                       {rejectedVillages.map((village) => (
                         <Card key={village.id}>
                           <CardContent className="p-4">
-                            <p className="font-semibold">{village.name}</p>
+                            <p 
+                              className="font-semibold cursor-pointer hover:text-primary"
+                              onClick={() => setSelectedVillage(village)}
+                            >
+                              {village.name}
+                            </p>
                             <p className="text-sm">{village.district}, {village.state}</p>
                             <Badge className="mt-2" variant="destructive">Rejected</Badge>
                           </CardContent>
@@ -1126,6 +1155,192 @@ const handleLogout = async () => {
             </CardContent>
           </Card>
         )}
+{/* Village Detail Modal */}
+      {selectedVillage && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-900 rounded-lg max-w-4xl max-h-[90vh] overflow-y-auto m-4">
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Building className="h-5 w-5" />
+                      Village Details
+                    </CardTitle>
+                    <CardDescription>
+                      {selectedVillage.name}
+                    </CardDescription>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedVillage(null)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {/* Village Information */}
+                  <div>
+                    <h3 className="font-semibold mb-3">Village Information</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-sm font-semibold">Village Name</Label>
+                        <p className="text-sm">{selectedVillage.name}</p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-semibold">District</Label>
+                        <p className="text-sm">{selectedVillage.district}</p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-semibold">State</Label>
+                        <p className="text-sm">{selectedVillage.state}</p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-semibold">Status</Label>
+                        <div className="mt-1">{getStatusBadge(selectedVillage.status)}</div>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-semibold">Registration Date</Label>
+                        <p className="text-sm">{selectedVillage.createdAt ? new Date(selectedVillage.createdAt).toLocaleDateString() : 'N/A'}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Admin Information */}
+                  <div>
+                    <h3 className="font-semibold mb-3">Administrator Information</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-sm font-semibold">Admin Name</Label>
+                        <p className="text-sm">{selectedVillage.adminName}</p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-semibold">Admin Email</Label>
+                        <p className="text-sm">{selectedVillage.adminEmail}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex justify-end gap-3 pt-4 border-t">
+                    {selectedVillage.status === 'pending' && (
+                      <>
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            handleRejectVillage(selectedVillage.id);
+                            setSelectedVillage(null);
+                          }}
+                          className="text-destructive"
+                        >
+                          <XCircle className="h-4 w-4 mr-2" />
+                          Reject
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            handleApproveVillage(selectedVillage.id);
+                            setSelectedVillage(null);
+                          }}
+                          className="bg-success text-success-foreground"
+                        >
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          Approve
+                        </Button>
+                      </>
+                    )}
+                    <Button
+                      variant="outline"
+                      onClick={() => setSelectedVillage(null)}
+                    >
+                      Close
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
+
+      {/* Application Detail Modal */}
+      {selectedApplication && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-900 rounded-lg max-w-4xl max-h-[90vh] overflow-y-auto m-4">
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText className="h-5 w-5" />
+                      Application Details
+                    </CardTitle>
+                    <CardDescription>
+                      {selectedApplication.application_number}
+                    </CardDescription>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedApplication(null)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {/* Applicant Information */}
+                  <div>
+                    <h3 className="font-semibold mb-3 flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      Applicant Information
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-sm font-semibold">Full Name</Label>
+                        <p className="text-sm">{selectedApplication.applicant_name}</p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-semibold">Father/Guardian</Label>
+                        <p className="text-sm">{selectedApplication.father_name || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-semibold">Village</Label>
+                        <p className="text-sm">{selectedApplication.village_name}</p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-semibold">Application Number</Label>
+                        <p className="text-sm font-mono">{selectedApplication.application_number}</p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-semibold">Status</Label>
+                        <div className="mt-1">{getStatusBadge(selectedApplication.status)}</div>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-semibold">Submitted Date</Label>
+                        <p className="text-sm">{new Date(selectedApplication.created_at).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex justify-end gap-3 pt-4 border-t">
+                    <Button
+                      variant="outline"
+                      onClick={() => setSelectedApplication(null)}
+                    >
+                      Close
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
 
       
       {/* User Review Modal */}
