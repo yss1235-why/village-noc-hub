@@ -9,10 +9,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LogOut, CheckCircle, XCircle, Clock, Shield, Building, Users, Settings, Eye, AlertCircle, BarChart, MessageCircle, FileText, Search, UserCheck, Download, Gift, TrendingUp, Phone, Mail, Save, X, MessageSquare, User } from "lucide-react";
+import { LogOut, CheckCircle, XCircle, Clock, Shield, Building, Users, Settings, Eye, AlertCircle, BarChart, MessageCircle, FileText, Search, UserCheck, Download, Gift, TrendingUp, Phone, Mail, Save, X, MessageSquare, User, Menu } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/contexts/AuthContext';
+import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
+import { SystemAdminSidebar } from "@/components/SystemAdminSidebar";
 
 const SystemAdminDashboard = () => {
   const navigate = useNavigate();
@@ -66,6 +68,9 @@ const SystemAdminDashboard = () => {
   const [showDisableConfirm, setShowDisableConfirm] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [disableReason, setDisableReason] = useState('');
+  
+  // Active tab state for sidebar navigation
+  const [activeTab, setActiveTab] = useState('dashboard');
   
   // Document view modal state
   const [viewDocumentModal, setViewDocumentModal] = useState({
@@ -663,50 +668,36 @@ const handleLogout = async () => {
   const rejectedApplications = applications.filter(app => app.status === "rejected");
   const pendingUsers = users.filter(user => !user.is_approved);
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-secondary/30">
-      {/* Header */}
-      <header className="bg-gradient-to-r from-purple-600 to-purple-700 text-white py-4 shadow-lg">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Shield className="h-6 w-6" />
-              <div>
-                <h1 className="text-xl font-bold">System Administrator</h1>
-                <p className="text-sm text-purple-100">
-                  Cross-Village NOC Management System
-                </p>
-              </div>
-            </div>
-          <div className="flex items-center gap-4">
-              <div className="text-right">
-                <p className="text-sm font-medium">{user?.fullName || user?.username || 'System Admin'}</p>
-                <p className="text-xs text-purple-200">{user?.email}</p>
-              </div>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setShowContactSettings(true)}
-                className="text-white hover:bg-white/10"
-              >
-                <Settings className="h-4 w-4 mr-2" />
-                Settings
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={handleLogout}
-                className="text-white hover:bg-white/10"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
 
-      <main className="container mx-auto px-4 py-8">
+    return (
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full">
+        <SystemAdminSidebar 
+          user={user}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          onSettings={() => setShowContactSettings(true)}
+          onLogout={handleLogout}
+          pendingCounts={{
+            users: pendingUsers.length,
+            applications: pendingApplications.length,
+            villages: pendingVillages.length
+          }}
+        />
+        
+        <SidebarInset className="flex-1">
+          {/* Mobile Header with Hamburger */}
+          <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
+            <SidebarTrigger className="md:hidden">
+              <Menu className="h-6 w-6" />
+            </SidebarTrigger>
+            <div className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-purple-600" />
+              <h1 className="text-lg font-semibold">System Admin</h1>
+            </div>
+          </header>
+
+          <main className="flex-1 p-4 md:p-6 lg:p-8">
    {/* Quick Actions */}
         <div className="flex flex-wrap gap-3 mb-8">
          <Button 
@@ -785,19 +776,19 @@ const handleLogout = async () => {
             </div>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="users" className="w-full">
-             <TabsList className="grid w-full grid-cols-4">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+             <TabsList className="grid w-full grid-cols-4 lg:hidden">
                 <TabsTrigger value="users">
-                  Users ({users.length})
+                  Users
                 </TabsTrigger>
                 <TabsTrigger value="applications">
-                  Applications ({applications.length})
+                  Apps
                 </TabsTrigger>
                 <TabsTrigger value="villages">
-                  Villages ({villages.length})
+                  Villages
                 </TabsTrigger>
                 <TabsTrigger value="points">
-                  Point Management
+                  Points
                 </TabsTrigger>
               </TabsList>
 
@@ -1662,8 +1653,10 @@ const handleLogout = async () => {
           </Card>
         </div>
       )}
-      </main>
-    </div>
+     </main>
+        </SidebarInset>
+      </div>
+    </SidebarProvider>
   );
 };
 
