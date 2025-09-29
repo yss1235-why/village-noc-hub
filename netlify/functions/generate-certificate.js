@@ -277,9 +277,10 @@ const formatRelation = (relation) => {
   if (!relation) return '';
   const relationLower = relation.toLowerCase();
   
-  // Handle new relation types with full text
-  if (relationLower === 'father') return 'F/O';
-  if (relationLower === 'guardian') return 'G/O';
+  // Handle new relation types with abbreviations
+  if (relationLower === 'father') return 'F/O';     // Father Of
+  if (relationLower === 'mother') return 'M/O';     // Mother Of
+  if (relationLower === 'guardian') return 'G/O';   // Guardian Of
   if (relationLower === 'ward') return 'Ward of';
   if (relationLower === 'dependent') return 'Dependent of';
   
@@ -291,7 +292,6 @@ const formatRelation = (relation) => {
   
   return 'S/O'; // Default fallback
 };
-
 const formatCurrency = (amount, words) => {
   if (!amount) return '';
   const formattedAmount = parseInt(amount).toLocaleString('en-IN');
@@ -305,6 +305,8 @@ const relationPrefix = formatRelation(app.relation);
 // Get the appropriate relation name based on relation type
 let relationName = '';
 if (app.relation && app.relation.toLowerCase() === 'father' && app.child_name) {
+  relationName = app.child_name;
+} else if (app.relation && app.relation.toLowerCase() === 'mother' && app.child_name) {
   relationName = app.child_name;
 } else if (app.relation && app.relation.toLowerCase() === 'guardian' && app.ward_name) {
   relationName = app.ward_name;
@@ -321,6 +323,8 @@ const fullName = relationPrefix && relationName ?
 let relationText = app.relation || 'N/A';
 if (app.relation && app.relation.toLowerCase() === 'father' && app.child_name) {
   relationText = `Father of ${app.child_name}`;
+} else if (app.relation && app.relation.toLowerCase() === 'mother' && app.child_name) {
+  relationText = `Mother of ${app.child_name}`;
 } else if (app.relation && app.relation.toLowerCase() === 'guardian' && app.ward_name) {
   relationText = `Guardian of ${app.ward_name}`;
 } else if (relationName) {
@@ -338,6 +342,8 @@ const qrCodeImage = await pdfDoc.embedPng(qrCodeDataUrl);
 const relationSpecificName = (() => {
   if (app.relation && app.relation.toLowerCase() === 'father' && app.child_name) {
     return `Father of ${toProperCase(app.child_name)}`;
+  } else if (app.relation && app.relation.toLowerCase() === 'mother' && app.child_name) {
+    return `Mother of ${toProperCase(app.child_name)}`;
   } else if (app.relation && app.relation.toLowerCase() === 'guardian' && app.ward_name) {
     return `Guardian of ${toProperCase(app.ward_name)}`;
   }
