@@ -697,19 +697,10 @@ const handleLogout = async () => {
             </div>
           </header>
 
-          <main className="flex-1 p-4 md:p-6 lg:p-8">
-   {/* Quick Actions */}
-        <div className="flex flex-wrap gap-3 mb-8">
-         <Button 
-            onClick={() => setShowMessageModal(true)}
-            variant="outline"
-          >
-            <MessageCircle className="h-4 w-4 mr-2" />
-            Send Message
-          </Button>
-        </div>
+         <main className="flex-1 p-4 md:p-6 lg:p-8">
 
-       {/* Stats Cards */}
+       {/* Stats Cards - Only show on dashboard */}
+       {activeTab === 'dashboard' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -764,403 +755,377 @@ const handleLogout = async () => {
             </CardContent>
           </Card>
         </div>
+        )}
 
-        {/* Main Management Interface */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>System Administration</CardTitle>
-                <CardDescription>Manage users, villages, and applications across the regional system.</CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-             <TabsList className="grid w-full grid-cols-4 lg:hidden">
-                <TabsTrigger value="users">
-                  Users
-                </TabsTrigger>
-                <TabsTrigger value="applications">
-                  Apps
-                </TabsTrigger>
-                <TabsTrigger value="villages">
-                  Villages
-                </TabsTrigger>
-                <TabsTrigger value="points">
-                  Points
-                </TabsTrigger>
-              </TabsList>
-
-              {/* Users Tab */}
-              <TabsContent value="users" className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-medium">User Management</h3>
-                  <div className="flex gap-2">
-                    <div className="flex items-center gap-2">
-                      <Search className="h-4 w-4" />
-                      <Input
-                        placeholder="Search users..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-40"
-                      />
-                    </div>
-                    <Select value={userFilter} onValueChange={setUserFilter}>
-                      <SelectTrigger className="w-40">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Users</SelectItem>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="approved">Approved</SelectItem>
-                        <SelectItem value="village_admin">Village Admins</SelectItem>
-                        <SelectItem value="user">Regular Users</SelectItem>
-                      </SelectContent>
-                    </Select>
+        {/* Conditional Content Based on Active Tab */}
+        
+        {/* Users Management View */}
+        {activeTab === 'users' && (
+          <Card>
+            <CardHeader>
+              <CardTitle>User Management</CardTitle>
+              <CardDescription>Manage and review user accounts across the system</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
+                <h3 className="text-lg font-medium">User Accounts</h3>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="flex items-center gap-2">
+                    <Search className="h-4 w-4" />
+                    <Input
+                      placeholder="Search users..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full sm:w-40"
+                    />
                   </div>
+                  <Select value={userFilter} onValueChange={setUserFilter}>
+                    <SelectTrigger className="w-full sm:w-40">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Users</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="approved">Approved</SelectItem>
+                      <SelectItem value="village_admin">Village Admins</SelectItem>
+                      <SelectItem value="user">Regular Users</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
+              </div>
 
-                {filteredUsers.length > 0 ? (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Role</TableHead>
-                        <TableHead>Village</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Points</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredUsers.map((user) => (
-                        <TableRow key={user.id}>
-                          <TableCell>
-                            <div>
-                              <p className="font-medium">{user.name}</p>
-                              <p className="text-sm text-muted-foreground">
-                                Joined {new Date(user.created_at).toLocaleDateString()}
-                              </p>
+              {filteredUsers.length > 0 ? (
+                <>
+                  {/* Desktop Table */}
+                  <div className="hidden md:block">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Role</TableHead>
+                          <TableHead>Village</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Points</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredUsers.map((user) => (
+                          <TableRow key={user.id}>
+                            <TableCell>
+                              <div>
+                                <p className="font-medium">{user.name}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  Joined {new Date(user.created_at).toLocaleDateString()}
+                                </p>
+                              </div>
+                            </TableCell>
+                            <TableCell>{user.email}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{user.role}</Badge>
+                            </TableCell>
+                            <TableCell>{user.village_name || '-'}</TableCell>
+                            <TableCell>
+                              {user.is_approved ? (
+                                <Badge className="bg-success text-success-foreground">Active</Badge>
+                              ) : (
+                                <Badge variant="secondary">Pending</Badge>
+                              )}
+                            </TableCell>
+                            <TableCell>{user.point_balance || 0}</TableCell>
+                            <TableCell>
+                              <div className="flex gap-1">
+                                {!user.is_approved && (
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleReviewUser(user.id)}
+                                    disabled={isLoadingUserDetails}
+                                    className="bg-blue-600 text-white hover:bg-blue-700"
+                                  >
+                                    <Eye className="h-4 w-4 mr-1" />
+                                    Review
+                                  </Button>
+                                )}
+                                {user.is_approved && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setShowDisableConfirm(user)}
+                                  >
+                                    <XCircle className="h-4 w-4" />
+                                  </Button>
+                                )}
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => setShowDeleteConfirm(user)}
+                                >
+                                  <XCircle className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {/* Mobile Cards */}
+                  <div className="md:hidden space-y-4">
+                    {filteredUsers.map((user) => (
+                      <Card key={user.id}>
+                        <CardContent className="p-4">
+                          <div className="space-y-3">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <p className="font-semibold">{user.name}</p>
+                                <p className="text-sm text-muted-foreground">{user.email}</p>
+                              </div>
+                              {user.is_approved ? (
+                                <Badge className="bg-success text-success-foreground">Active</Badge>
+                              ) : (
+                                <Badge variant="secondary">Pending</Badge>
+                              )}
                             </div>
-                          </TableCell>
-                          <TableCell>{user.email}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{user.role}</Badge>
-                          </TableCell>
-                          <TableCell>{user.village_name || '-'}</TableCell>
-                          <TableCell>
-                            {user.is_approved ? (
-                              <Badge className="bg-success text-success-foreground">Active</Badge>
-                            ) : (
-                              <Badge variant="secondary">Pending</Badge>
-                            )}
-                          </TableCell>
-                          <TableCell>{user.point_balance || 0}</TableCell>
-                          <TableCell>
-                            <div className="flex gap-1">
-                             {!user.is_approved && (
+                            <div className="grid grid-cols-2 gap-2 text-sm">
+                              <div>
+                                <span className="text-muted-foreground">Role:</span>
+                                <Badge variant="outline" className="ml-2">{user.role}</Badge>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">Points:</span>
+                                <span className="ml-2">{user.point_balance || 0}</span>
+                              </div>
+                            </div>
+                            <div className="flex gap-2 pt-2 border-t">
+                              {!user.is_approved && (
                                 <Button
                                   size="sm"
                                   onClick={() => handleReviewUser(user.id)}
-                                  disabled={isLoadingUserDetails}
-                                  className="bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+                                  className="flex-1 bg-blue-600"
                                 >
-                                  {isLoadingUserDetails ? (
-                                    <>
-                                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-1"></div>
-                                      Loading...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Eye className="h-4 w-4 mr-1" />
-                                      Review
-                                    </>
-                                  )}
+                                  Review
                                 </Button>
                               )}
-                              
-                               
                               {user.is_approved && (
                                 <Button
                                   size="sm"
                                   variant="outline"
                                   onClick={() => setShowDisableConfirm(user)}
-                                  className="text-orange-600 hover:text-orange-700"
-                                  title="Disable User"
+                                  className="flex-1"
                                 >
-                                  <XCircle className="h-4 w-4" />
+                                  Disable
                                 </Button>
                               )}
                               <Button
                                 size="sm"
                                 variant="destructive"
                                 onClick={() => setShowDeleteConfirm(user)}
-                                className="text-red-600 hover:text-red-700"
-                                title="Delete User"
+                                className="flex-1"
                               >
-                                <XCircle className="h-4 w-4" />
+                                Delete
                               </Button>
                             </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>No users found matching your criteria</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
                   </div>
-                )}
-              </TabsContent>
-
-              {/* Applications Tab - Similar structure to users but for applications */}
-              <TabsContent value="applications" className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-medium">Application Oversight</h3>
-                  <Badge variant="outline">
-                    {pendingApplications.length} Pending Review
-                  </Badge>
+                </>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No users found</p>
                 </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
-                {applications.length > 0 ? (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Application No.</TableHead>
-                        <TableHead>Village</TableHead>
-                        <TableHead>Applicant</TableHead>
-                        <TableHead>Submitted</TableHead>
-                        <TableHead>Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {applications.map((app) => (
-                        <TableRow key={app.id}>
-                          <TableCell className="font-mono text-sm">{app.application_number}</TableCell>
-                          <TableCell>{app.village_name}</TableCell>
-                          <TableCell>
-                            <div>
-                              <p className="font-medium">{app.applicant_name}</p>
-                              <p className="text-sm text-muted-foreground">S/o {app.father_name}</p>
+        {/* Applications View */}
+        {activeTab === 'applications' && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Application Oversight</CardTitle>
+              <CardDescription>Monitor all NOC applications</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {applications.length > 0 ? (
+                <>
+                  <div className="hidden md:block">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Application No.</TableHead>
+                          <TableHead>Village</TableHead>
+                          <TableHead>Applicant</TableHead>
+                          <TableHead>Submitted</TableHead>
+                          <TableHead>Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {applications.map((app) => (
+                          <TableRow key={app.id}>
+                            <TableCell className="font-mono text-sm">{app.application_number}</TableCell>
+                            <TableCell>{app.village_name}</TableCell>
+                            <TableCell>
+                              <div>
+                                <p className="font-medium">{app.applicant_name}</p>
+                                <p className="text-sm text-muted-foreground">S/o {app.father_name}</p>
+                              </div>
+                            </TableCell>
+                            <TableCell>{new Date(app.created_at).toLocaleDateString()}</TableCell>
+                            <TableCell>{getStatusBadge(app.status)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  <div className="md:hidden space-y-4">
+                    {applications.map((app) => (
+                      <Card key={app.id}>
+                        <CardContent className="p-4">
+                          <div className="space-y-2">
+                            <div className="flex justify-between">
+                              <p className="font-mono text-sm">{app.application_number}</p>
+                              {getStatusBadge(app.status)}
                             </div>
-                          </TableCell>
-                          <TableCell>{new Date(app.created_at).toLocaleDateString()}</TableCell>
-                          <TableCell>{getStatusBadge(app.status)}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>No applications found</p>
+                            <p className="font-semibold">{app.applicant_name}</p>
+                            <p className="text-sm text-muted-foreground">{app.village_name}</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
                   </div>
-                )}
-              </TabsContent>
-
-           {/* Villages Tab */}
-              <TabsContent value="villages" className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-medium">Village Management</h3>
-                  <Badge variant="outline">
-                    {pendingVillages.length} Pending Approval
-                  </Badge>
+                </>
+              ) : (
+                <div className="text-center py-8">
+                  <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No applications found</p>
                 </div>
-                
-                <Tabs defaultValue="pending" className="w-full">
-                  <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="pending">
-                      Pending ({pendingVillages.length})
-                    </TabsTrigger>
-                    <TabsTrigger value="approved">
-                      Active ({approvedVillages.length})
-                    </TabsTrigger>
-                    <TabsTrigger value="rejected">
-                      Rejected ({rejectedVillages.length})
-                    </TabsTrigger>
-                  </TabsList>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
-                  {/* Pending Villages Sub-Tab */}
-                  <TabsContent value="pending" className="space-y-4">
-                    {isLoadingVillages ? (
-                      <div className="flex items-center justify-center py-8">
-                        <div className="text-sm text-muted-foreground">Loading villages...</div>
-                      </div>
-                    ) : pendingVillages.length > 0 ? (
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Village Name</TableHead>
-                            <TableHead>District/State</TableHead>
-                            <TableHead>Admin</TableHead>
-                            <TableHead>Requested</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {pendingVillages.map((village) => (
-                            <TableRow key={village.id}>
-                              <TableCell className="font-medium">{village.name}</TableCell>
-                              <TableCell>
-                                <div>
-                                  <p>{village.district}</p>
-                                  <p className="text-sm text-muted-foreground">{village.state}</p>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <div>
-                                  <p className="font-medium">{village.adminName}</p>
-                                  <p className="text-sm text-muted-foreground">{village.adminEmail}</p>
-                                </div>
-                              </TableCell>
-                              <TableCell>{village.createdAt ? new Date(village.createdAt).toLocaleDateString() : 'N/A'}</TableCell>
-                              <TableCell>{getStatusBadge(village.status)}</TableCell>
-                              <TableCell>
-                                <div className="flex gap-2">
-                                  <Button
-                                    size="sm"
-                                    onClick={() => handleApproveVillage(village.id)}
-                                    className="bg-success text-success-foreground hover:bg-success/90"
-                                  >
-                                    <CheckCircle className="h-4 w-4 mr-1" />
-                                    Approve
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    onClick={() => handleRejectVillage(village.id)}
-                                  >
-                                    <XCircle className="h-4 w-4 mr-1" />
-                                    Reject
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    ) : (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <AlertCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        <p>No pending villages</p>
-                      </div>
-                    )}
-                  </TabsContent>
+        {/* Villages View */}
+        {activeTab === 'villages' && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Village Management</CardTitle>
+              <CardDescription>Manage village registrations</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue="pending">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="pending">Pending ({pendingVillages.length})</TabsTrigger>
+                  <TabsTrigger value="approved">Active ({approvedVillages.length})</TabsTrigger>
+                  <TabsTrigger value="rejected">Rejected ({rejectedVillages.length})</TabsTrigger>
+                </TabsList>
 
-                  {/* Approved Villages Sub-Tab */}
-                  <TabsContent value="approved" className="space-y-4">
-                    {isLoadingVillages ? (
-                      <div className="flex items-center justify-center py-8">
-                        <div className="text-sm text-muted-foreground">Loading villages...</div>
-                      </div>
-                    ) : approvedVillages.length > 0 ? (
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Village Name</TableHead>
-                            <TableHead>District/State</TableHead>
-                            <TableHead>Admin</TableHead>
-                            <TableHead>Applications</TableHead>
-                            <TableHead>Users</TableHead>
-                            <TableHead>Status</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {approvedVillages.map((village) => (
-                            <TableRow key={village.id}>
-                              <TableCell className="font-medium">{village.name}</TableCell>
-                              <TableCell>
-                                <div>
-                                  <p>{village.district}</p>
-                                  <p className="text-sm text-muted-foreground">{village.state}</p>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <div>
-                                  <p className="font-medium">{village.adminName}</p>
-                                  <p className="text-sm text-muted-foreground">{village.adminEmail}</p>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                {villages.find(v => v.id === village.id)?.application_count || 0}
-                              </TableCell>
-                              <TableCell>
-                                {villages.find(v => v.id === village.id)?.user_count || 0}
-                              </TableCell>
-                              <TableCell>
-                                <Badge className="bg-success text-success-foreground">Active</Badge>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    ) : (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <CheckCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        <p>No approved villages</p>
-                      </div>
-                    )}
-                  </TabsContent>
+                <TabsContent value="pending">
+                  {pendingVillages.length > 0 ? (
+                    <div className="space-y-4">
+                      {pendingVillages.map((village) => (
+                        <Card key={village.id}>
+                          <CardContent className="p-4">
+                            <div className="space-y-3">
+                              <div className="flex justify-between">
+                                <p className="font-semibold">{village.name}</p>
+                                {getStatusBadge(village.status)}
+                              </div>
+                              <p className="text-sm">{village.district}, {village.state}</p>
+                              <p className="text-sm text-muted-foreground">{village.adminEmail}</p>
+                              <div className="flex gap-2 pt-2">
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleApproveVillage(village.id)}
+                                  className="flex-1 bg-success"
+                                >
+                                  Approve
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => handleRejectVillage(village.id)}
+                                  className="flex-1"
+                                >
+                                  Reject
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <AlertCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No pending villages</p>
+                    </div>
+                  )}
+                </TabsContent>
 
-                  {/* Rejected Villages Sub-Tab */}
-                  <TabsContent value="rejected" className="space-y-4">
-                    {isLoadingVillages ? (
-                      <div className="flex items-center justify-center py-8">
-                        <div className="text-sm text-muted-foreground">Loading villages...</div>
-                      </div>
-                    ) : rejectedVillages.length > 0 ? (
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Village Name</TableHead>
-                            <TableHead>District/State</TableHead>
-                            <TableHead>Admin</TableHead>
-                            <TableHead>Rejected On</TableHead>
-                            <TableHead>Status</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {rejectedVillages.map((village) => (
-                            <TableRow key={village.id}>
-                              <TableCell className="font-medium">{village.name}</TableCell>
-                              <TableCell>
-                                <div>
-                                  <p>{village.district}</p>
-                                  <p className="text-sm text-muted-foreground">{village.state}</p>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <div>
-                                  <p className="font-medium">{village.adminName}</p>
-                                  <p className="text-sm text-muted-foreground">{village.adminEmail}</p>
-                                </div>
-                              </TableCell>
-                              <TableCell>{village.createdAt ? new Date(village.createdAt).toLocaleDateString() : 'N/A'}</TableCell>
-                              <TableCell>{getStatusBadge(village.status)}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    ) : (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <XCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        <p>No rejected villages</p>
-                      </div>
-                    )}
-                  </TabsContent>
-                </Tabs>
-              </TabsContent>
-                {/* Point Management Tab */}
-              <TabsContent value="points" className="space-y-4">
-                <SimplePointManagement />
-              </TabsContent>   
-            </Tabs>
-          </CardContent>
-        </Card>
+                <TabsContent value="approved">
+                  {approvedVillages.length > 0 ? (
+                    <div className="space-y-4">
+                      {approvedVillages.map((village) => (
+                        <Card key={village.id}>
+                          <CardContent className="p-4">
+                            <p className="font-semibold">{village.name}</p>
+                            <p className="text-sm">{village.district}, {village.state}</p>
+                            <Badge className="mt-2 bg-success">Active</Badge>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <CheckCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No approved villages</p>
+                    </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="rejected">
+                  {rejectedVillages.length > 0 ? (
+                    <div className="space-y-4">
+                      {rejectedVillages.map((village) => (
+                        <Card key={village.id}>
+                          <CardContent className="p-4">
+                            <p className="font-semibold">{village.name}</p>
+                            <p className="text-sm">{village.district}, {village.state}</p>
+                            <Badge className="mt-2" variant="destructive">Rejected</Badge>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <XCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No rejected villages</p>
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Points View */}
+        {activeTab === 'points' && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Point Management</CardTitle>
+              <CardDescription>Manage user points</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <SimplePointManagement />
+            </CardContent>
+          </Card>
+        )}
 
       
       {/* User Review Modal */}
