@@ -129,8 +129,10 @@ export const hasPermission = (userRole, action) => {
       'fraud_monitoring': true,
       'send_message': true,
       'view_analytics': true,
-      'manage_certificates': true
-    },
+      'manage_certificates': true,
+     'approve_village': true,
+      'view_all_villages': true
+      },
   'village_admin': {
   'approve_user': true,
   'view_applications': true,
