@@ -277,17 +277,19 @@ const formatRelation = (relation) => {
   if (!relation) return '';
   const relationLower = relation.toLowerCase();
   
-  // Handle new relation types
-  if (relationLower === 'father') return 'Father of';
-  if (relationLower === 'guardian') return 'Guardian of';
+  // Handle new relation types with full text
+  if (relationLower === 'father') return 'F/O';
+  if (relationLower === 'guardian') return 'G/O';
+  if (relationLower === 'ward') return 'Ward of';
+  if (relationLower === 'dependent') return 'Dependent of';
   
-  // Handle existing relation types
-  if (relationLower.includes('son') || relationLower.includes('daughter') || relationLower.includes('child')) return 'F/O';
-  if (relationLower.includes('wife') || relationLower.includes('spouse')) return 'H/O';
-  if (relationLower.includes('husband')) return 'M/O';
-  if (relationLower.includes('ward') || relationLower.includes('dependent')) return 'G/O';
+  // Handle traditional relations with CORRECT abbreviations
+  if (relationLower === 'son') return 'S/O';        // Son Of
+  if (relationLower === 'daughter') return 'D/O';   // Daughter Of
+  if (relationLower === 'wife') return 'W/O';       // Wife Of
+  if (relationLower === 'husband') return 'H/O';    // Husband Of
   
-  return 'F/O';
+  return 'S/O'; // Default fallback
 };
 
 const formatCurrency = (amount, words) => {
@@ -329,15 +331,17 @@ const qrCodeDataUrl = await QRCode.toDataURL(`Application: ${app.application_num
 const qrCodeImage = await pdfDoc.embedPng(qrCodeDataUrl);
 
    
-   // Prepare relation-specific variables for template
+  // Prepare relation-specific variables for template
+// Note: For traditional relations (Son, Daughter, Wife, etc.), 
+// the relation is already in fullName, so return empty string
+// Only Father and Guardian need separate relation text
 const relationSpecificName = (() => {
   if (app.relation && app.relation.toLowerCase() === 'father' && app.child_name) {
     return `Father of ${toProperCase(app.child_name)}`;
   } else if (app.relation && app.relation.toLowerCase() === 'guardian' && app.ward_name) {
     return `Guardian of ${toProperCase(app.ward_name)}`;
-  } else if (relationName) {
-    return `${relationPrefix} ${toProperCase(relationName)}`;
   }
+  // For all other relations, return empty string because relation is already in fullName
   return '';
 })();
 
