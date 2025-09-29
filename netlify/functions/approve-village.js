@@ -1,11 +1,12 @@
 import { neon } from '@neondatabase/serverless';
+import { requirePermission } from './utils/auth-middleware.js';
 
 export const handler = async (event, context) => {
   const sql = neon(process.env.NETLIFY_DATABASE_URL);
   const headers = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'PUT',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Methods': 'PUT, OPTIONS',
   };
 
   if (event.httpMethod === 'OPTIONS') {
@@ -17,6 +18,16 @@ export const handler = async (event, context) => {
       statusCode: 405,
       headers,
       body: JSON.stringify({ error: 'Method not allowed' })
+    };
+  }
+
+  // Check if user has permission to approve villages
+  const authResult = requirePermission(event, 'approve_village');
+  if (!authResult.isValid) {
+    return {
+      statusCode: authResult.statusCode,
+      headers,
+      body: JSON.stringify({ error: authResult.error })
     };
   }
 
