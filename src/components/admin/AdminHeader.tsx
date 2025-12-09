@@ -4,8 +4,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { LogOut, Settings, ChevronDown, Users, Building2, FileText, Eye } from 'lucide-react';
+import { LogOut, Settings, ChevronDown, Users, Building2, FileText, Eye, KeyRound } from 'lucide-react';
 
 interface AdminHeaderProps {
   villageName: string;
@@ -13,6 +14,7 @@ interface AdminHeaderProps {
   onShowVillageInfo: () => void;
   onShowDocuments: () => void;
   onShowTemplate: () => void;
+  onShowChangePin: () => void;
   onLogout: () => void;
 }
 
@@ -22,6 +24,7 @@ export const AdminHeader = ({
   onShowVillageInfo,
   onShowDocuments,
   onShowTemplate,
+  onShowChangePin,
   onLogout,
 }: AdminHeaderProps) => {
   return (
@@ -52,6 +55,11 @@ export const AdminHeader = ({
                   <Users className="h-4 w-4 mr-2" />
                   My Profile
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={onShowChangePin}>
+                  <KeyRound className="h-4 w-4 mr-2" />
+                  Change PIN
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={onShowVillageInfo}>
                   <Building2 className="h-4 w-4 mr-2" />
                   Village Information
