@@ -14,6 +14,7 @@ import {
   ApplicationReviewModal,
   ProfileManagerModal,
   ChangePasswordModal,
+  ChangePinModal,
   VillageInfoModal,
   DocumentManagerModal,
   CertificateTemplateModal,
@@ -31,6 +32,7 @@ const AdminDashboard = () => {
   // Modal visibility state
   const [showProfileManager, setShowProfileManager] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const [showChangePin, setShowChangePin] = useState(false);
   const [showVillageInfo, setShowVillageInfo] = useState(false);
   const [showDocumentManager, setShowDocumentManager] = useState(false);
   const [showTemplateManager, setShowTemplateManager] = useState(false);
@@ -104,9 +106,13 @@ const AdminDashboard = () => {
     documents.loadDocuments();
   };
 
-  const handleShowTemplate = () => {
+ const handleShowTemplate = () => {
     setShowTemplateManager(true);
     documents.loadDocuments();
+  };
+
+  const handleShowChangePin = () => {
+    setShowChangePin(true);
   };
 
   return (
@@ -117,6 +123,7 @@ const AdminDashboard = () => {
         onShowVillageInfo={handleShowVillageInfo}
         onShowDocuments={handleShowDocuments}
         onShowTemplate={handleShowTemplate}
+        onShowChangePin={handleShowChangePin}
         onLogout={handleLogout}
       />
 
@@ -169,6 +176,10 @@ const AdminDashboard = () => {
           onSubmit={profile.handleChangePassword}
           onReset={profile.resetPasswordForm}
         />
+        <ChangePinModal
+          isOpen={showChangePin}
+          onClose={() => setShowChangePin(false)}
+          />
 
         <VillageInfoModal
           isOpen={showVillageInfo}
