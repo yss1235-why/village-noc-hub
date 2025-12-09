@@ -101,16 +101,108 @@ const getAllowedOrigin = (event) => {
       };
     }
 
-    // Update application status with proper admin ID
+   // Verify PIN before approval (required for all status changes)
+    const { pin } = JSON.parse(event.body);
+    
+    if (!pin) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'PIN is required for approval actions' })
+      };
+    }
+
+    // Verify PIN matches the logged-in sub village admin
+    const subAdmin = await sql`
+      SELECT id, pin_hash, full_name, is_locked, pin_reset_required
+      FROM sub_village_admins 
+      WHERE id = ${adminInfo.subVillageAdminId}
+    `;
+
+    if (subAdmin.length === 0) {
+      return {
+        statusCode: 404,
+        headers,
+        body: JSON.stringify({ error: 'Sub village admin not found' })
+      };
+    }
+
+    if (subAdmin[0].is_locked) {
+      return {
+        statusCode: 403,
+        headers,
+        body: JSON.stringify({ error: 'Your account is locked. Please wait 10 minutes or contact primary admin.' })
+      };
+    }
+
+    if (subAdmin[0].pin_reset_required) {
+      return {
+        statusCode: 403,
+        headers,
+        body: JSON.stringify({ error: 'PIN reset required. Please reset your PIN before approving applications.' })
+      };
+    }
+
+    const bcrypt = await import('bcrypt');
+    const isPinValid = await bcrypt.compare(pin, subAdmin[0].pin_hash);
+    
+    if (!isPinValid) {
+      // Increment failed attempts
+      await sql`
+        UPDATE sub_village_admins 
+        SET failed_pin_attempts = failed_pin_attempts + 1
+        WHERE id = ${adminInfo.subVillageAdminId}
+      `;
+      
+      return {
+        statusCode: 401,
+        headers,
+        body: JSON.stringify({ error: 'Invalid PIN' })
+      };
+    }
+
+    // Get designation for audit log
+    const designation = await sql`
+      SELECT dt.name 
+      FROM sub_village_admins sva
+      JOIN designation_types dt ON sva.designation_id = dt.id
+      WHERE sva.id = ${adminInfo.subVillageAdminId}
+    `;
+
+    const designationName = designation[0]?.name || 'Unknown';
+
+    // Update application status with sub village admin details
     const result = await sql`
       UPDATE noc_applications 
       SET 
         status = ${status},
         admin_notes = ${adminNotes || null},
         approved_at = ${status === 'approved' ? new Date().toISOString() : null},
-       approved_by = ${status === 'approved' ? adminInfo.userId : null}
+        approved_by = ${status === 'approved' ? adminInfo.userId : null},
+        approved_by_sub_admin_id = ${status === 'approved' ? adminInfo.subVillageAdminId : null},
+        approved_by_name = ${status === 'approved' ? subAdmin[0].full_name : null},
+        approved_by_designation = ${status === 'approved' ? designationName : null}
       WHERE id = ${applicationId}::uuid
-      RETURNING application_number
+      RETURNING application_number, applicant_name
+    `;
+
+    // Log the approval action
+    const ipAddress = event.headers['x-forwarded-for']?.split(',')[0]?.trim() || 'unknown';
+    const userAgent = event.headers['user-agent'] || 'unknown';
+    
+    await sql`
+      INSERT INTO village_admin_audit_log (
+        village_id, sub_village_admin_id, sub_village_admin_name, designation,
+        action_type, application_id, application_number, applicant_name,
+        ip_address, user_agent, details, created_at
+      ) VALUES (
+        ${adminInfo.villageId}, ${adminInfo.subVillageAdminId}, ${subAdmin[0].full_name}, 
+        ${designationName}, ${status === 'approved' ? 'APPROVE_APPLICATION' : 'REJECT_APPLICATION'},
+        ${applicationId}::uuid, ${result[0].application_number}, ${result[0].applicant_name},
+        ${ipAddress}, ${userAgent}, 
+        ${JSON.stringify({ status, adminNotes: adminNotes || null })},
+        NOW()
+      )
     `;
 
     if (result.length === 0) {
