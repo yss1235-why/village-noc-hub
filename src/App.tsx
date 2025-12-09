@@ -12,7 +12,8 @@ import Register from "./pages/Register";
 import Apply from "./pages/Apply";
 import Status from "./pages/Status";
 import AdminLogin from "./pages/AdminLogin";
-import AdminDashboard from "./pages/AdminDashboard";
+import AdminDashboard from "@/pages/AdminDashboard";
+import AdminSetup from "@/pages/AdminSetup";
 import UserDashboard from "./pages/UserDashboard";
 import NotFound from "./pages/NotFound";
 import SuperAdminLogin from "./pages/SuperAdminLogin";
@@ -78,6 +79,8 @@ const App = () => (
                 <UserDashboard />
               </ProtectedRoute>
             } />
+
+            <Route path="/admin/setup" element={<AdminSetup />} />
 
             <Route path="/admin/dashboard" element={
               <ProtectedRoute requiredRole="village_admin">
