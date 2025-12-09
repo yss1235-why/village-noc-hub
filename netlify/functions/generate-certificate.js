@@ -605,15 +605,81 @@ page.drawText(verifyUrl, {
   font: timesFont,
   color: rgb(0, 0, 0.8), // Blue color for the link
 });
+// Get approving sub village admin's signature and seal if available
+let approverSignatureImage = null;
+let approverSealImage = null;
+let approverName = app.admin_name;
+let approverDesignation = 'Headman/Chairman';
+
+if (app.approved_by_sub_admin_id) {
+  const approver = await sql`
+    SELECT full_name, signature_image, seal_image, dt.name as designation
+    FROM sub_village_admins sva
+    JOIN designation_types dt ON sva.designation_id = dt.id
+    WHERE sva.id = ${app.approved_by_sub_admin_id}
+  `;
+  
+  if (approver.length > 0) {
+    approverName = approver[0].full_name;
+    approverDesignation = approver[0].designation;
+    
+    // Embed approver's signature
+    if (approver[0].signature_image) {
+      try {
+        const sigBytes = Buffer.from(approver[0].signature_image.split(',')[1], 'base64');
+        if (approver[0].signature_image.startsWith('data:image/png')) {
+          approverSignatureImage = await pdfDoc.embedPng(sigBytes);
+        } else if (approver[0].signature_image.startsWith('data:image/jpeg') || approver[0].signature_image.startsWith('data:image/jpg')) {
+          approverSignatureImage = await pdfDoc.embedJpg(sigBytes);
+        }
+      } catch (e) {
+        console.log('Approver signature embed error:', e);
+      }
+    }
+    
+    // Embed approver's seal
+    if (approver[0].seal_image) {
+      try {
+        const sealBytes = Buffer.from(approver[0].seal_image.split(',')[1], 'base64');
+        if (approver[0].seal_image.startsWith('data:image/png')) {
+          approverSealImage = await pdfDoc.embedPng(sealBytes);
+        } else if (approver[0].seal_image.startsWith('data:image/jpeg') || approver[0].seal_image.startsWith('data:image/jpg')) {
+          approverSealImage = await pdfDoc.embedJpg(sealBytes);
+        }
+      } catch (e) {
+        console.log('Approver seal embed error:', e);
+      }
+    }
+  }
+}
+
+// Draw approver's signature if available
+if (approverSignatureImage) {
+  page.drawImage(approverSignatureImage, {
+    x: width - 200,
+    y: 150,
+    width: 100,
+    height: 40,
+  });
+} else if (signatureImage) {
+  // Fallback to village signature
+  page.drawImage(signatureImage, {
+    x: width - 200,
+    y: 150,
+    width: 100,
+    height: 40,
+  });
+}
+
 // Official text (right side, aligned with signature)
-page.drawText(`${toProperCase(app.admin_name)}`, {
+page.drawText(`${toProperCase(approverName)}`, {
   x: width - 200,
   y: 140,
   size: 12,
   font: timesBoldFont,
 });
 
-page.drawText('Headman/Chairman', {
+page.drawText(approverDesignation, {
   x: width - 200,
   y: 125,
   size: 10,
@@ -627,23 +693,21 @@ page.drawText(`${toProperCase(app.village_name)} Village`, {
   font: timesFont,
 });
 
-// Regular Seal (right side, below village name with more space) - Updated size
-if (sealImage) {
-  page.drawImage(sealImage, {
-    x: width - 190, // Adjusted position for larger seal
-    y: 85, // Slightly adjusted position
-    width: 85, // Increased proportionally from 70
-    height: 29.5, // Increased proportionally from 70
+// Approver's Seal (right side, below village name with more space)
+if (approverSealImage) {
+  page.drawImage(approverSealImage, {
+    x: width - 190,
+    y: 55,
+    width: 85,
+    height: 85,
   });
-}
-
-// Round Seal (right side, more spaced out) - Updated size
-if (roundSealImage) {
-  page.drawImage(roundSealImage, {
-    x: width - 140, // Adjusted position for larger seal
-    y: 70, // Slightly adjusted position
-    width: 85, // Increased proportionally from 70
-    height: 85, // Increased proportionally from 70
+} else if (sealImage) {
+  // Fallback to village seal
+  page.drawImage(sealImage, {
+    x: width - 190,
+    y: 85,
+    width: 85,
+    height: 29.5,
   });
 }
 
