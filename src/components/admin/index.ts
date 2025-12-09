@@ -4,6 +4,7 @@ export { ApplicationsTable } from './ApplicationsTable';
 export { ApplicationReviewModal } from './ApplicationReviewModal';
 export { ProfileManagerModal } from './ProfileManagerModal';
 export { ChangePasswordModal } from './ChangePasswordModal';
+export { ChangePinModal } from './ChangePinModal';
 export { VillageInfoModal } from './VillageInfoModal';
 export { DocumentManagerModal } from './DocumentManagerModal';
 export { CertificateTemplateModal } from './CertificateTemplateModal';
