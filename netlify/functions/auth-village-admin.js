@@ -174,6 +174,16 @@ export const handler = async (event, context) => {
       'Path=/'
     ];
 
+    // Check if village has sub village admins setup
+    const subVillageAdminCheck = await sql`
+      SELECT COUNT(*) as count FROM sub_village_admins 
+      WHERE village_id = ${villageData.id} AND is_active = true
+    `;
+    
+    const hasSubVillageAdmins = parseInt(subVillageAdminCheck[0].count) > 0;
+    const requiresPinVerification = hasSubVillageAdmins;
+    const requiresSetup = !hasSubVillageAdmins;
+
     return {
       statusCode: 200,
       headers: {
@@ -181,26 +191,28 @@ export const handler = async (event, context) => {
         'Set-Cookie': cookieOptions.join('; ')
       },
       body: JSON.stringify({
-  success: true,
-  user: {
-    id: user[0].id,
-    username: user[0].email,
-    email: user[0].email,
-    fullName: user[0].full_name || user[0].email,
-    role: 'village_admin',
-    pointBalance: user[0].point_balance || 0,
-    isApproved: true,
-    villageId: villageData.id,
-    villageName: villageData.name
-  },
-  village: {
-    id: villageData.id,
-    name: villageData.name,
-    district: villageData.district,
-    state: villageData.state
-  },
-  token: token
-})
+        success: true,
+        user: {
+          id: user[0].id,
+          username: user[0].email,
+          email: user[0].email,
+          fullName: user[0].full_name || user[0].email,
+          role: 'village_admin',
+          pointBalance: user[0].point_balance || 0,
+          isApproved: true,
+          villageId: villageData.id,
+          villageName: villageData.name
+        },
+        village: {
+          id: villageData.id,
+          name: villageData.name,
+          district: villageData.district,
+          state: villageData.state
+        },
+        token: token,
+        requiresPinVerification: requiresPinVerification,
+        requiresSetup: requiresSetup
+      })
     };
 
   } catch (error) {
