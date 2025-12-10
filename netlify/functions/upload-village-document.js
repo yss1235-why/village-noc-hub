@@ -1,64 +1,28 @@
 import { neon } from '@neondatabase/serverless';
+import sharp from 'sharp';
+import { requireVillageAdmin } from './utils/auth-middleware.js';
 
-// SECURITY: Secure file processing with image conversion
-const sharp = require('sharp');
-const pdf2pic = require('pdf2pic');
-
-const secureFileProcessing = async (base64Data) => {
+// SECURITY: Process and sanitize uploaded images
+const secureFileProcessing = async (base64Input) => {
   try {
-    // Parse base64 data
-    const base64Content = base64Data.includes(',') ? base64Data.split(',')[1] : base64Data;
-    const buffer = Buffer.from(base64Content, 'base64');
-    
-    // Basic size validation
-    if (buffer.length < 100) {
-      throw new Error('File appears to be corrupted or too small');
+    // Extract base64 data (remove data URL prefix if present)
+    let base64Data = base64Input;
+    if (base64Input.includes(',')) {
+      base64Data = base64Input.split(',')[1];
     }
     
-    if (buffer.length > 10 * 1024 * 1024) {
-      throw new Error('File size exceeds 10MB limit');
-    }
+    // Convert base64 to buffer
+    const buffer = Buffer.from(base64Data, 'base64');
     
-    // Detect file type
-    const fileSignature = buffer.slice(0, 8).toString('hex').toUpperCase();
-    let imageBuffer;
-    
-    if (fileSignature.startsWith('25504446')) {
-      // PDF file - convert to image
-      console.log('Processing PDF file...');
-      const convert = pdf2pic.fromBuffer(buffer, {
-        density: 150,           // High quality for text readability
-        saveFilename: "page",
-        format: "png",
-        width: 1200,           // Good resolution for documents
-        height: 1600
-      });
-      
-      const result = await convert(1, { responseType: "buffer" });
-      imageBuffer = result.buffer;
-    } else if (fileSignature.startsWith('89504E47') || fileSignature.startsWith('FFD8FF')) {
-      // Already an image (PNG or JPEG)
-      imageBuffer = buffer;
-    } else {
-      throw new Error('Unsupported file format. Only PNG, JPEG, and PDF files are allowed.');
-    }
-    
-   // Process image with Sharp - creates completely clean file
-    const cleanImage = await sharp(imageBuffer)
-      .png({
-        compressionLevel: 6,    // Good compression
-        palette: false          // Don't use palette (removes some metadata)
-      })
-      .resize(1200, 1600, {     // Standardize size
-        fit: 'inside',          // Maintain aspect ratio
-        withoutEnlargement: true // Don't upscale small images
-      })
+    // Process image with sharp to strip metadata and re-encode
+    const cleanImage = await sharp(buffer)
+      .png({ quality: 90 })  // Re-encode as PNG
       .toBuffer();
     
-    // Convert back to base64 for storage
+    // Convert back to base64 with proper data URL prefix
     const cleanBase64 = `data:image/png;base64,${cleanImage.toString('base64')}`;
     
-    console.log(`File processed successfully. Original: ${buffer.length} bytes, Clean: ${cleanImage.length} bytes`);
+    console.log(`Image processed securely. Original: ${buffer.length} bytes, Clean: ${cleanImage.length} bytes`);
     
     return cleanBase64;
   } catch (error) {
@@ -72,8 +36,8 @@ export const handler = async (event, context) => {
   const sql = neon(process.env.NETLIFY_DATABASE_URL);
   const headers = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'POST',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
   };
 
   if (event.httpMethod === 'OPTIONS') {
@@ -88,26 +52,45 @@ export const handler = async (event, context) => {
     };
   }
 
- try {
+  try {
+    // Authenticate - require village admin
+    const authResult = requireVillageAdmin(event);
+    if (!authResult.isValid) {
+      return {
+        statusCode: authResult.statusCode,
+        headers,
+        body: JSON.stringify({ error: authResult.error })
+      };
+    }
+
     const body = event.body;
-    const isBase64 = event.isBase64Encoded;
     
     if (!body) {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ error: 'No file data received' })
+        body: JSON.stringify({ error: 'No request body received' })
       };
     }
 
-    const villageId = event.headers['x-village-id'] || event.queryStringParameters?.villageId;
-    const documentType = event.headers['x-document-type'] || event.queryStringParameters?.documentType;
+    // Parse JSON body - frontend sends villageId, documentType, documentData in body
+    const requestData = JSON.parse(body);
+    const { villageId, documentType, documentData, fileName } = requestData;
 
     if (!villageId || !documentType) {
       return {
         statusCode: 400,
         headers,
         body: JSON.stringify({ error: 'Village ID and document type are required' })
+      };
+    }
+
+    // Security check: Ensure admin can only upload to their own village
+    if (authResult.user.villageId !== villageId) {
+      return {
+        statusCode: 403,
+        headers,
+        body: JSON.stringify({ error: 'Access denied - you can only upload documents for your own village' })
       };
     }
 
@@ -121,27 +104,14 @@ export const handler = async (event, context) => {
       };
     }
 
-    // Create village_documents table if it doesn't exist
-    await sql`
-      CREATE TABLE IF NOT EXISTS village_documents (
-        id SERIAL PRIMARY KEY,
-       village_id UUID NOT NULL,
-        document_type VARCHAR(50) NOT NULL,
-        document_data TEXT,
-        file_name VARCHAR(255),
-        uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(village_id, document_type)
-      )
-    `;
-
-  const requestData = JSON.parse(body);
-    const uploadedBase64 = requestData.document;
+    // Get the uploaded base64 data
+    const uploadedBase64 = documentData;
     
     if (!uploadedBase64) {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ error: 'No file data received' })
+        body: JSON.stringify({ error: 'No document data received' })
       };
     }
 
@@ -158,18 +128,17 @@ export const handler = async (event, context) => {
       };
     }
 
-
-    
     // Insert or update document with the actual uploaded file
     await sql`
       INSERT INTO village_documents (village_id, document_type, document_data, file_name)
-     VALUES (${villageId}, ${documentType}, ${cleanDocument}, ${documentType + '.png'})
+      VALUES (${villageId}::uuid, ${documentType}, ${cleanDocument}, ${fileName || documentType + '.png'})
       ON CONFLICT (village_id, document_type) 
       DO UPDATE SET 
         document_data = EXCLUDED.document_data,
         file_name = EXCLUDED.file_name,
         uploaded_at = CURRENT_TIMESTAMP
     `;
+    
     return {
       statusCode: 200,
       headers,
