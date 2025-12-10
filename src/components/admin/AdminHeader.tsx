@@ -6,25 +6,29 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { LogOut, Settings, ChevronDown, Users, Building2, FileText, Eye, KeyRound } from 'lucide-react';
+import { LogOut, Settings, ChevronDown, Users, Building2, FileText, Eye, KeyRound, UserPlus } from 'lucide-react';
 
 interface AdminHeaderProps {
   villageName: string;
+  isPrimary?: boolean;
   onShowProfile: () => void;
   onShowVillageInfo: () => void;
   onShowDocuments: () => void;
   onShowTemplate: () => void;
   onShowChangePin: () => void;
+  onShowSubAdminManager?: () => void;
   onLogout: () => void;
 }
 
 export const AdminHeader = ({
   villageName,
+  isPrimary = false,
   onShowProfile,
   onShowVillageInfo,
   onShowDocuments,
   onShowTemplate,
   onShowChangePin,
+  onShowSubAdminManager,
   onLogout,
 }: AdminHeaderProps) => {
   return (
