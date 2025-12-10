@@ -28,7 +28,8 @@ export interface Application {
   created_at: string;
   approved_at?: string;
   aadhaar_document?: string;
-  passport_photo?
+  passport_photo?: string;
+}
 
 interface UseAdminApplicationsProps {
   villageId: string | undefined;
