@@ -15,6 +15,7 @@ import {
   ProfileManagerModal,
   ChangePasswordModal,
   ChangePinModal,
+  SubAdminManagerModal,
   VillageInfoModal,
   DocumentManagerModal,
   CertificateTemplateModal,
@@ -29,10 +30,11 @@ const AdminDashboard = () => {
   const [adminPointBalance, setAdminPointBalance] = useState(0);
   const [isLoadingPointBalance, setIsLoadingPointBalance] = useState(false);
 
-  // Modal visibility state
+ // Modal visibility state
   const [showProfileManager, setShowProfileManager] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [showChangePin, setShowChangePin] = useState(false);
+  const [showSubAdminManager, setShowSubAdminManager] = useState(false);
   const [showVillageInfo, setShowVillageInfo] = useState(false);
   const [showDocumentManager, setShowDocumentManager] = useState(false);
   const [showTemplateManager, setShowTemplateManager] = useState(false);
@@ -115,18 +117,23 @@ const AdminDashboard = () => {
     setShowChangePin(true);
   };
 
+  const handleShowSubAdminManager = () => {
+    setShowSubAdminManager(true);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/30">
       <AdminHeader
         villageName={user?.villageName || 'Village'}
+        isPrimary={user?.isPrimary}
         onShowProfile={handleShowProfile}
         onShowVillageInfo={handleShowVillageInfo}
         onShowDocuments={handleShowDocuments}
         onShowTemplate={handleShowTemplate}
         onShowChangePin={handleShowChangePin}
+        onShowSubAdminManager={handleShowSubAdminManager}
         onLogout={handleLogout}
       />
-
       <main className="container mx-auto px-4 py-8">
         <AdminStatsCards
           pointBalance={adminPointBalance}
@@ -179,7 +186,13 @@ const AdminDashboard = () => {
         <ChangePinModal
           isOpen={showChangePin}
           onClose={() => setShowChangePin(false)}
-          />
+        />
+
+        <SubAdminManagerModal
+          isOpen={showSubAdminManager}
+          onClose={() => setShowSubAdminManager(false)}
+          villageId={user?.villageId || ''}
+        />
 
         <VillageInfoModal
           isOpen={showVillageInfo}
