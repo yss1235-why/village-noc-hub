@@ -1,11 +1,12 @@
 import { neon } from '@neondatabase/serverless';
+import { requireVillageAdmin } from './utils/auth-middleware.js';
 
 export const handler = async (event, context) => {
   const sql = neon(process.env.NETLIFY_DATABASE_URL);
   const headers = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'GET',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
   };
 
   if (event.httpMethod === 'OPTIONS') {
@@ -21,7 +22,17 @@ export const handler = async (event, context) => {
   }
 
   try {
-    const { villageId } = event.queryStringParameters;
+    // Authenticate - require village admin
+    const authResult = requireVillageAdmin(event);
+    if (!authResult.isValid) {
+      return {
+        statusCode: authResult.statusCode,
+        headers,
+        body: JSON.stringify({ error: authResult.error })
+      };
+    }
+
+    const { villageId } = event.queryStringParameters || {};
 
     if (!villageId) {
       return {
@@ -31,41 +42,27 @@ export const handler = async (event, context) => {
       };
     }
 
-   // Create village_documents table if it doesn't exist
-    await sql`
-      CREATE TABLE IF NOT EXISTS village_documents (
-        id SERIAL PRIMARY KEY,
-       village_id UUID NOT NULL,
-        document_type VARCHAR(50) NOT NULL,
-        document_data TEXT,
-        file_name VARCHAR(255),
-        uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(village_id, document_type)
-      )
-    `;
+    // Security check: Ensure admin can only access their own village documents
+    if (authResult.user.villageId !== villageId) {
+      return {
+        statusCode: 403,
+        headers,
+        body: JSON.stringify({ error: 'Access denied - you can only view your own village documents' })
+      };
+    }
 
-    // Create certificate_templates table if it doesn't exist  
-    await sql`
-      CREATE TABLE IF NOT EXISTS certificate_templates (
-        id SERIAL PRIMARY KEY,
-        village_id UUID NOT NULL UNIQUE,
-        template TEXT NOT NULL,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `;
-
-    // Get village documents from database
+    // Get village documents from database (with proper UUID cast)
     const docs = await sql`
       SELECT document_type, document_data, file_name
       FROM village_documents 
-      WHERE village_id = ${villageId}
+      WHERE village_id = ${villageId}::uuid
     `;
 
-    // Get certificate template
+    // Get certificate template (with proper UUID cast)
     const template = await sql`
       SELECT template
       FROM certificate_templates 
-      WHERE village_id = ${villageId}
+      WHERE village_id = ${villageId}::uuid
     `;
 
     // Format documents
@@ -77,7 +74,7 @@ export const handler = async (event, context) => {
       };
     });
 
-   const documents = {
+    const documents = {
       letterhead: documentsMap.letterhead || null,
       signature: documentsMap.signature || null,
       seal: documentsMap.seal || null,
