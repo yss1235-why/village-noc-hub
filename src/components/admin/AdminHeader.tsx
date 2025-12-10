@@ -54,7 +54,7 @@ export const AdminHeader = ({
                   <ChevronDown className="h-3 w-3 ml-1" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
+             <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuItem onClick={onShowProfile}>
                   <Users className="h-4 w-4 mr-2" />
                   My Profile
@@ -63,6 +63,12 @@ export const AdminHeader = ({
                   <KeyRound className="h-4 w-4 mr-2" />
                   Change PIN
                 </DropdownMenuItem>
+                {isPrimary && onShowSubAdminManager && (
+                  <DropdownMenuItem onClick={onShowSubAdminManager}>
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Manage Sub-Admins
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={onShowVillageInfo}>
                   <Building2 className="h-4 w-4 mr-2" />
