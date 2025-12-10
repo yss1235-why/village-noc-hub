@@ -135,32 +135,19 @@ export const ApplicationReviewModal = ({
                 </div>
               </div>
 
-              <div className="space-y-4">
+             <div className="space-y-4">
                 <h4 className="font-semibold text-lg border-b pb-2">Uploaded Documents</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {application.aadhaar_front && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {application.aadhaar_document && (
                     <div 
                       className="border rounded-lg p-2 cursor-pointer hover:bg-muted/50 transition-colors"
-                      onClick={() => openDocument(application.aadhaar_front, 'Aadhaar Front')}
+                      onClick={() => openDocument(application.aadhaar_document, 'Aadhaar Card')}
                     >
-                      <p className="text-sm font-medium mb-2">Aadhaar Front</p>
+                      <p className="text-sm font-medium mb-2">Aadhaar Card</p>
                       <img 
-                        src={application.aadhaar_front} 
-                        alt="Aadhaar Front" 
-                        className="w-full h-24 object-cover rounded"
-                      />
-                    </div>
-                  )}
-                  {application.aadhaar_back && (
-                    <div 
-                      className="border rounded-lg p-2 cursor-pointer hover:bg-muted/50 transition-colors"
-                      onClick={() => openDocument(application.aadhaar_back, 'Aadhaar Back')}
-                    >
-                      <p className="text-sm font-medium mb-2">Aadhaar Back</p>
-                      <img 
-                        src={application.aadhaar_back} 
-                        alt="Aadhaar Back" 
-                        className="w-full h-24 object-cover rounded"
+                        src={application.aadhaar_document} 
+                        alt="Aadhaar Card" 
+                        className="w-full h-32 object-cover rounded"
                       />
                     </div>
                   )}
@@ -173,13 +160,17 @@ export const ApplicationReviewModal = ({
                       <img 
                         src={application.passport_photo} 
                         alt="Passport Photo" 
-                        className="w-full h-24 object-cover rounded"
+                        className="w-full h-32 object-cover rounded"
                       />
                     </div>
                   )}
                 </div>
+                {!application.aadhaar_document && !application.passport_photo && (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    No documents uploaded for this application.
+                  </p>
+                )}
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="rejectionRemark">Rejection Remark (Required for rejection)</Label>
                 <Input
