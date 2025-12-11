@@ -142,11 +142,11 @@ const LetterheadCropInterface = ({ imageFile, onCropComplete, onCancel }) => {
   };
 
   const zoomIn = () => {
-    setScale(prev => Math.min(prev * 1.2, 5));
+    setScale(prev => prev * 1.2);
   };
 
   const zoomOut = () => {
-    setScale(prev => Math.max(prev / 1.2, 0.1));
+    setScale(prev => prev / 1.2);
   };
 
   const resetView = () => {
