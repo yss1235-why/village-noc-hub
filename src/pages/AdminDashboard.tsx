@@ -76,6 +76,7 @@ const AdminDashboard = () => {
     } else {
       applications.loadApplications();
       profile.loadProfileInfo();
+      documents.loadDocuments();
       loadAdminPointBalance();
     }
   }, [isAuthenticated, user, navigate]);
