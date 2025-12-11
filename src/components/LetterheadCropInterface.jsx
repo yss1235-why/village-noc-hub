@@ -190,12 +190,9 @@ const LetterheadCropInterface = ({ imageFile, onCropComplete, onCancel }) => {
       0, 0, CROP_WIDTH, CROP_HEIGHT
     );
 
-    // Convert to blob
-    canvas.toBlob((blob) => {
-      if (blob) {
-        onCropComplete(blob);
-      }
-    }, 'image/png', 1.0);
+   // Convert to base64 data URL
+    const base64Data = canvas.toDataURL('image/png', 1.0);
+    onCropComplete(base64Data);
   };
 
 return (
