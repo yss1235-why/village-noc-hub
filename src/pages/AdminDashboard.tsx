@@ -213,8 +213,10 @@ const AdminDashboard = () => {
           setDocumentFiles={documents.setDocumentFiles}
           isLoading={documents.isLoadingDocuments}
           isUploading={documents.isUploadingDocument}
+          isDeleting={documents.isDeletingDocument}
           onUploadDocument={documents.handleUploadDocument}
           onUploadCroppedDocument={documents.handleUploadCroppedDocument}
+          onDeleteDocument={documents.handleDeleteDocument}
         />
 
         <CertificateTemplateModal
