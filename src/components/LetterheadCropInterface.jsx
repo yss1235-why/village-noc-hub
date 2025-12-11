@@ -142,11 +142,27 @@ const LetterheadCropInterface = ({ imageFile, onCropComplete, onCancel }) => {
   };
 
   const zoomIn = () => {
-    setScale(prev => prev * 1.2);
+    const newScale = scale * 1.2;
+    // Calculate center of canvas
+    const centerX = CANVAS_WIDTH / 2;
+    const centerY = CANVAS_HEIGHT / 2;
+    // Adjust position to keep center point stable
+    const newX = centerX - (centerX - position.x) * (newScale / scale);
+    const newY = centerY - (centerY - position.y) * (newScale / scale);
+    setScale(newScale);
+    setPosition({ x: newX, y: newY });
   };
 
   const zoomOut = () => {
-    setScale(prev => prev / 1.2);
+    const newScale = scale / 1.2;
+    // Calculate center of canvas
+    const centerX = CANVAS_WIDTH / 2;
+    const centerY = CANVAS_HEIGHT / 2;
+    // Adjust position to keep center point stable
+    const newX = centerX - (centerX - position.x) * (newScale / scale);
+    const newY = centerY - (centerY - position.y) * (newScale / scale);
+    setScale(newScale);
+    setPosition({ x: newX, y: newY });
   };
 
   const resetView = () => {
