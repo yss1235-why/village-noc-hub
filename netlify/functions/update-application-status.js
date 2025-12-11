@@ -100,8 +100,12 @@ const getAllowedOrigin = (event) => {
         })
       };
     }
-
-   // Verify PIN before approval (required for all status changes)
+// ============================================
+    // TODO: Re-enable PIN verification with session freshness check
+    // This was disabled temporarily - implement idle timeout PIN re-verification later
+    // ============================================
+    /*
+    // Verify PIN before approval (required for all status changes)
     const { pin } = JSON.parse(event.body);
     
     if (!pin) {
@@ -113,13 +117,13 @@ const getAllowedOrigin = (event) => {
     }
 
     // Verify PIN matches the logged-in sub village admin
-    const subAdmin = await sql`
+    const subAdminForPin = await sql`
       SELECT id, pin_hash, full_name, is_locked, pin_reset_required
       FROM sub_village_admins 
       WHERE id = ${adminInfo.subVillageAdminId}
     `;
 
-    if (subAdmin.length === 0) {
+    if (subAdminForPin.length === 0) {
       return {
         statusCode: 404,
         headers,
@@ -127,7 +131,7 @@ const getAllowedOrigin = (event) => {
       };
     }
 
-    if (subAdmin[0].is_locked) {
+    if (subAdminForPin[0].is_locked) {
       return {
         statusCode: 403,
         headers,
@@ -135,7 +139,7 @@ const getAllowedOrigin = (event) => {
       };
     }
 
-    if (subAdmin[0].pin_reset_required) {
+    if (subAdminForPin[0].pin_reset_required) {
       return {
         statusCode: 403,
         headers,
@@ -144,7 +148,7 @@ const getAllowedOrigin = (event) => {
     }
 
     const bcrypt = await import('bcrypt');
-    const isPinValid = await bcrypt.compare(pin, subAdmin[0].pin_hash);
+    const isPinValid = await bcrypt.compare(pin, subAdminForPin[0].pin_hash);
     
     if (!isPinValid) {
       // Increment failed attempts
@@ -160,6 +164,24 @@ const getAllowedOrigin = (event) => {
         body: JSON.stringify({ error: 'Invalid PIN' })
       };
     }
+    */
+
+    // Get sub admin details for audit log (without PIN verification)
+    const subAdmin = await sql`
+      SELECT id, full_name
+      FROM sub_village_admins 
+      WHERE id = ${adminInfo.subVillageAdminId}
+    `;
+
+    if (subAdmin.length === 0) {
+      return {
+        statusCode: 404,
+        headers,
+        body: JSON.stringify({ error: 'Sub village admin not found' })
+      };
+    }
+
+    // Get designation for audit log
 
     // Get designation for audit log
     const designation = await sql`
