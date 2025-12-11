@@ -141,12 +141,28 @@ const SealCropInterface = ({ imageFile, onCropComplete, onCancel }) => {
     setIsDragging(false);
   };
 
-  const zoomIn = () => {
-    setScale(prev => prev * 1.2);
+ const zoomIn = () => {
+    const newScale = scale * 1.2;
+    // Calculate center of canvas
+    const centerX = CANVAS_WIDTH / 2;
+    const centerY = CANVAS_HEIGHT / 2;
+    // Adjust position to keep center point stable
+    const newX = centerX - (centerX - position.x) * (newScale / scale);
+    const newY = centerY - (centerY - position.y) * (newScale / scale);
+    setScale(newScale);
+    setPosition({ x: newX, y: newY });
   };
 
   const zoomOut = () => {
-    setScale(prev => prev / 1.2);
+    const newScale = scale / 1.2;
+    // Calculate center of canvas
+    const centerX = CANVAS_WIDTH / 2;
+    const centerY = CANVAS_HEIGHT / 2;
+    // Adjust position to keep center point stable
+    const newX = centerX - (centerX - position.x) * (newScale / scale);
+    const newY = centerY - (centerY - position.y) * (newScale / scale);
+    setScale(newScale);
+    setPosition({ x: newX, y: newY });
   };
 
   const resetView = () => {
@@ -199,9 +215,10 @@ const SealCropInterface = ({ imageFile, onCropComplete, onCancel }) => {
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-       <CardTitle className="text-lg">Crop Seal - 300x105px</CardTitle>
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60]">
+      <Card className="w-full max-w-2xl mx-4 bg-background">
+        <CardHeader>
+          <CardTitle className="text-lg">Crop Seal - 300x105px</CardTitle>
         <p className="text-sm text-muted-foreground">
           Position and scale your seal within the blue rectangle. Use mouse to drag and buttons to zoom.
         </p>
@@ -244,6 +261,7 @@ const SealCropInterface = ({ imageFile, onCropComplete, onCancel }) => {
         </div>
       </CardContent>
     </Card>
+    </div>
   );
 };
 
