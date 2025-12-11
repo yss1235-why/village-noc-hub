@@ -1,7 +1,7 @@
-import { neon } from '@neondatabase/serverless';
-import { requireVillageAdmin } from './utils/auth-middleware.js';
+const { neon } = require('@neondatabase/serverless');
+const { requireVillageAdmin } = require('./utils/auth-middleware.js');
 
-export const handler = async (event, context) => {
+exports.handler = async (event, context) => {
   const sql = neon(process.env.NETLIFY_DATABASE_URL);
   const headers = {
     'Access-Control-Allow-Origin': '*',
