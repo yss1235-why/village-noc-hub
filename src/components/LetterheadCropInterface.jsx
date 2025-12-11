@@ -198,52 +198,54 @@ const LetterheadCropInterface = ({ imageFile, onCropComplete, onCancel }) => {
     }, 'image/png', 1.0);
   };
 
-  return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="text-lg">Crop Letterhead - 800x200px</CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Position and scale your letterhead within the blue rectangle. Use mouse to drag and buttons to zoom.
-        </p>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex justify-center">
-          <canvas
-            ref={canvasRef}
-            width={CANVAS_WIDTH}
-            height={CANVAS_HEIGHT}
-            className="border rounded cursor-move"
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-          />
-        </div>
-        
-        <div className="flex justify-center gap-2">
-          <Button variant="outline" size="sm" onClick={zoomOut}>
-            <ZoomOut className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="sm" onClick={resetView}>
-            <RotateCcw className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="sm" onClick={zoomIn}>
-            <ZoomIn className="h-4 w-4" />
-          </Button>
-        </div>
-        
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={onCancel}>
-            <X className="h-4 w-4 mr-2" />
-            Cancel
-          </Button>
-          <Button onClick={handleCrop}>
-            <Check className="h-4 w-4 mr-2" />
-            Crop & Upload
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60]">
+      <Card className="w-full max-w-2xl mx-4 bg-background">
+        <CardHeader>
+          <CardTitle className="text-lg">Crop Letterhead - 800x200px</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Position and scale your letterhead within the blue rectangle. Use mouse to drag and buttons to zoom.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex justify-center">
+            <canvas
+              ref={canvasRef}
+              width={CANVAS_WIDTH}
+              height={CANVAS_HEIGHT}
+              className="border rounded cursor-move"
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+            />
+          </div>
+          
+          <div className="flex justify-center gap-2">
+            <Button variant="outline" size="sm" onClick={zoomOut}>
+              <ZoomOut className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="sm" onClick={resetView}>
+              <RotateCcw className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="sm" onClick={zoomIn}>
+              <ZoomIn className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={onCancel}>
+              <X className="h-4 w-4 mr-2" />
+              Cancel
+            </Button>
+            <Button onClick={handleCrop}>
+              <Check className="h-4 w-4 mr-2" />
+              Crop & Upload
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
