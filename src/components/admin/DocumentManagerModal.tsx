@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Upload, Building2 } from 'lucide-react';
+import { Upload, Building2, X } from 'lucide-react';
 import LetterheadCropInterface from '@/components/LetterheadCropInterface';
 import SealCropInterface from '@/components/SealCropInterface';
 import type { Documents, DocumentFiles } from '@/hooks/admin/useAdminDocuments';
@@ -15,10 +15,11 @@ interface DocumentManagerModalProps {
   setDocumentFiles: React.Dispatch<React.SetStateAction<DocumentFiles>>;
   isLoading: boolean;
   isUploading: boolean;
+  isDeleting: boolean;
   onUploadDocument: (file: File, type: keyof Documents) => Promise<void>;
   onUploadCroppedDocument: (croppedData: string, type: keyof Documents) => Promise<void>;
+  onDeleteDocument: (type: keyof Documents) => Promise<void>;
 }
-
 export const DocumentManagerModal = ({
   isOpen,
   onClose,
@@ -27,8 +28,10 @@ export const DocumentManagerModal = ({
   setDocumentFiles,
   isLoading,
   isUploading,
+  isDeleting,
   onUploadDocument,
   onUploadCroppedDocument,
+  onDeleteDocument,
 }: DocumentManagerModalProps) => {
   const [showLetterheadCrop, setShowLetterheadCrop] = useState(false);
   const [letterheadFile, setLetterheadFile] = useState<File | null>(null);
@@ -130,13 +133,23 @@ export const DocumentManagerModal = ({
                     </div>
                     <div>
                       <Label>Current Letterhead</Label>
-                      <div className="border rounded-lg p-4 min-h-[100px] flex items-center justify-center bg-muted/10">
+                      <div className="border rounded-lg p-4 min-h-[100px] flex items-center justify-center bg-muted/10 relative">
                         {documents.letterhead ? (
-                          <img
-                            src={documents.letterhead}
-                            alt="Letterhead"
-                            className="max-w-full max-h-[100px] object-contain"
-                          />
+                          <>
+                            <img
+                              src={documents.letterhead}
+                              alt="Letterhead"
+                              className="max-w-full max-h-[100px] object-contain"
+                            />
+                            <button
+                              onClick={() => onDeleteDocument('letterhead')}
+                              disabled={isDeleting}
+                              className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 disabled:opacity-50"
+                              title="Delete letterhead"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </>
                         ) : (
                           <div className="text-center text-muted-foreground">
                             <Building2 className="h-8 w-8 mx-auto mb-2 opacity-50" />
@@ -184,13 +197,23 @@ export const DocumentManagerModal = ({
                     </div>
                     <div>
                       <Label>Current Signature</Label>
-                      <div className="border rounded-lg p-4 min-h-[100px] flex items-center justify-center bg-muted/10">
+                      <div className="border rounded-lg p-4 min-h-[100px] flex items-center justify-center bg-muted/10 relative">
                         {documents.signature ? (
-                          <img
-                            src={documents.signature}
-                            alt="Signature"
-                            className="max-w-full max-h-[100px] object-contain"
-                          />
+                          <>
+                            <img
+                              src={documents.signature}
+                              alt="Signature"
+                              className="max-w-full max-h-[100px] object-contain"
+                            />
+                            <button
+                              onClick={() => onDeleteDocument('signature')}
+                              disabled={isDeleting}
+                              className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 disabled:opacity-50"
+                              title="Delete signature"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </>
                         ) : (
                           <div className="text-center text-muted-foreground">
                             <Building2 className="h-8 w-8 mx-auto mb-2 opacity-50" />
@@ -235,13 +258,23 @@ export const DocumentManagerModal = ({
                     </div>
                     <div>
                       <Label>Current Seal</Label>
-                      <div className="border rounded-lg p-4 min-h-[100px] flex items-center justify-center bg-muted/10">
+                      <div className="border rounded-lg p-4 min-h-[100px] flex items-center justify-center bg-muted/10 relative">
                         {documents.seal ? (
-                          <img
-                            src={documents.seal}
-                            alt="Official Seal"
-                            className="max-w-full max-h-[100px] object-contain"
-                          />
+                          <>
+                            <img
+                              src={documents.seal}
+                              alt="Official Seal"
+                              className="max-w-full max-h-[100px] object-contain"
+                            />
+                            <button
+                              onClick={() => onDeleteDocument('seal')}
+                              disabled={isDeleting}
+                              className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 disabled:opacity-50"
+                              title="Delete seal"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </>
                         ) : (
                           <div className="text-center text-muted-foreground">
                             <Building2 className="h-8 w-8 mx-auto mb-2 opacity-50" />
@@ -287,15 +320,25 @@ export const DocumentManagerModal = ({
                         </Button>
                       )}
                     </div>
-                    <div>
+                   <div>
                       <Label>Current Round Seal</Label>
-                      <div className="border rounded-lg p-4 min-h-[150px] flex items-center justify-center bg-muted/10">
+                      <div className="border rounded-lg p-4 min-h-[150px] flex items-center justify-center bg-muted/10 relative">
                         {documents.roundSeal ? (
-                          <img
-                            src={documents.roundSeal}
-                            alt="Round Official Seal"
-                            className="max-w-full max-h-[150px] object-contain"
-                          />
+                          <>
+                            <img
+                              src={documents.roundSeal}
+                              alt="Round Official Seal"
+                              className="max-w-full max-h-[150px] object-contain"
+                            />
+                            <button
+                              onClick={() => onDeleteDocument('roundSeal')}
+                              disabled={isDeleting}
+                              className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 disabled:opacity-50"
+                              title="Delete round seal"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </>
                         ) : (
                           <div className="text-center text-muted-foreground">
                             <Building2 className="h-8 w-8 mx-auto mb-2 opacity-50" />
