@@ -67,7 +67,7 @@ export const useAdminDocuments = ({ villageId }: UseAdminDocumentsProps): UseAdm
   });
 
   const [certificateTemplate, setCertificateTemplate] = useState('');
-  const [isLoadingDocuments, setIsLoadingDocuments] = useState(false);
+  const [isLoadingDocuments, setIsLoadingDocuments] = useState(true);
   const [isUploadingDocument, setIsUploadingDocument] = useState(false);
   const [isUpdatingTemplate, setIsUpdatingTemplate] = useState(false);
 
@@ -122,8 +122,13 @@ export const useAdminDocuments = ({ villageId }: UseAdminDocumentsProps): UseAdm
   }, [villageId, toast]);
 
   const loadDocuments = useCallback(async () => {
-    if (!villageId) return;
+    if (!villageId) {
+      console.warn('loadDocuments called but villageId is missing');
+      setIsLoadingDocuments(false);
+      return;
+    }
 
+    console.log('Loading documents for villageId:', villageId);
     setIsLoadingDocuments(true);
     try {
       const token = localStorage.getItem('auth-token');
@@ -132,7 +137,15 @@ export const useAdminDocuments = ({ villageId }: UseAdminDocumentsProps): UseAdm
           'Authorization': `Bearer ${token}`
         }
       });
-      const result = await response.json();
+     const result = await response.json();
+      console.log('Documents API response:', {
+        ok: response.ok,
+        hasDocuments: !!result.documents,
+        letterhead: !!result.documents?.letterhead?.data,
+        signature: !!result.documents?.signature?.data,
+        seal: !!result.documents?.seal?.data,
+        roundSeal: !!result.documents?.roundSeal?.data
+      });
 
       if (response.ok && result.documents) {
         setDocuments({
@@ -142,6 +155,8 @@ export const useAdminDocuments = ({ villageId }: UseAdminDocumentsProps): UseAdm
           roundSeal: result.documents.roundSeal?.data || null
         });
         setCertificateTemplate(result.documents.certificateTemplate || DEFAULT_TEMPLATE);
+      } else {
+        console.warn('Documents load failed or empty:', result);
       }
     } catch (error) {
       toast({
