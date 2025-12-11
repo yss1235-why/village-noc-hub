@@ -194,14 +194,30 @@ page.drawRectangle({
 if (letterheadImage) {
   // Calculate letterhead width to reach both sides with 2-3px gap
   const letterheadWidth = width - 66; // 30px border + 3px gap on each side = 66px total margin
-  const letterheadHeight = 120; // Increased proportionally from original 100px
+  // Calculate height proportionally based on actual image dimensions
+  const imageAspectRatio = letterheadImage.width / letterheadImage.height;
+  const letterheadHeight = letterheadWidth / imageAspectRatio;
   
   page.drawImage(letterheadImage, {
     x: 33, // 30px border + 3px gap
-    y: height - 180, // Adjusted Y position for larger height
+    y: height - 30 - letterheadHeight, // Position from top with 30px margin
     width: letterheadWidth,
     height: letterheadHeight,
   });
+  
+  // Draw round seal centered on letterhead if it exists
+  if (roundSealImage) {
+    const roundSealSize = 80; // Size of the round seal
+    const roundSealX = (width - roundSealSize) / 2; // Center horizontally
+    const roundSealY = height - 30 - letterheadHeight + (letterheadHeight - roundSealSize) / 2; // Center vertically on letterhead
+    
+    page.drawImage(roundSealImage, {
+      x: roundSealX,
+      y: roundSealY,
+      width: roundSealSize,
+      height: roundSealSize,
+    });
+  }
 } else {
   page.drawText(app.village_name.toUpperCase() + ' VILLAGE AUTHORITY', {
     x: width / 2 - 200,
