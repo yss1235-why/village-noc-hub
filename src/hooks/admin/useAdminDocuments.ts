@@ -28,9 +28,11 @@ interface UseAdminDocumentsReturn {
   isLoadingDocuments: boolean;
   isUploadingDocument: boolean;
   isUpdatingTemplate: boolean;
+  isDeletingDocument: boolean;
   loadDocuments: () => Promise<void>;
   handleUploadDocument: (file: File, documentType: keyof Documents) => Promise<void>;
   handleUploadCroppedDocument: (croppedData: string, documentType: keyof Documents) => Promise<void>;
+  handleDeleteDocument: (documentType: keyof Documents) => Promise<void>;
   handleUpdateTemplate: () => Promise<boolean>;
   getDefaultTemplate: () => string;
 }
@@ -70,6 +72,54 @@ export const useAdminDocuments = ({ villageId }: UseAdminDocumentsProps): UseAdm
   const [isUpdatingTemplate, setIsUpdatingTemplate] = useState(false);
 
   const getDefaultTemplate = useCallback(() => DEFAULT_TEMPLATE, []);
+  const [isDeletingDocument, setIsDeletingDocument] = useState(false);
+
+  const handleDeleteDocument = useCallback(async (documentType: keyof Documents) => {
+    if (!villageId) return;
+
+    setIsDeletingDocument(true);
+    try {
+      const token = localStorage.getItem('auth-token');
+      const response = await fetch('/.netlify/functions/delete-village-document', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          villageId,
+          documentType
+        })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        setDocuments(prev => ({
+          ...prev,
+          [documentType]: null
+        }));
+        toast({
+          title: 'Document Deleted',
+          description: `${documentType} has been deleted successfully.`,
+        });
+      } else {
+        toast({
+          title: 'Delete Failed',
+          description: result.error || 'Failed to delete document.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Delete Failed',
+        description: 'Failed to delete document. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDeletingDocument(false);
+    }
+  }, [villageId, toast]);
 
   const loadDocuments = useCallback(async () => {
     if (!villageId) return;
@@ -284,7 +334,7 @@ export const useAdminDocuments = ({ villageId }: UseAdminDocumentsProps): UseAdm
     }
   }, [villageId, certificateTemplate, toast]);
 
-  return {
+ return {
     documents,
     documentFiles,
     setDocumentFiles,
@@ -293,9 +343,11 @@ export const useAdminDocuments = ({ villageId }: UseAdminDocumentsProps): UseAdm
     isLoadingDocuments,
     isUploadingDocument,
     isUpdatingTemplate,
+    isDeletingDocument,
     loadDocuments,
     handleUploadDocument,
     handleUploadCroppedDocument,
+    handleDeleteDocument,
     handleUpdateTemplate,
     getDefaultTemplate,
   };
