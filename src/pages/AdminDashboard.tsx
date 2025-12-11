@@ -69,7 +69,7 @@ const AdminDashboard = () => {
     }
   };
 
-  // Authentication check and initial data load
+ // Authentication check and initial data load
   useEffect(() => {
     if (!isAuthenticated || !user || user.role !== 'village_admin') {
       navigate('/admin');
