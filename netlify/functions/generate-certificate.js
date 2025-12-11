@@ -190,20 +190,37 @@ page.drawRectangle({
   borderWidth: 1,
 });
 
-// Letterhead or Authority name - Updated to reach borders with 2-3px gap
+// Letterhead or Authority name - Full width with proportional height
 if (letterheadImage) {
-  // Calculate letterhead width to reach both sides with 2-3px gap
-  const letterheadWidth = width - 66; // 30px border + 3px gap on each side = 66px total margin
-  // Calculate height proportionally based on actual image dimensions
+  // Use full PDF width with minimal margin (3px each side)
+  const letterheadWidth = width - 6; // 3px margin on each side
+  // Calculate height proportionally based on actual image dimensions (maintains aspect ratio)
   const imageAspectRatio = letterheadImage.width / letterheadImage.height;
   const letterheadHeight = letterheadWidth / imageAspectRatio;
   
+  const letterheadY = height - 3 - letterheadHeight; // 3px from top
+  
   page.drawImage(letterheadImage, {
-    x: 33, // 30px border + 3px gap
-    y: height - 30 - letterheadHeight, // Position from top with 30px margin
+    x: 3, // 3px margin from left
+    y: letterheadY,
     width: letterheadWidth,
     height: letterheadHeight,
   });
+  
+  // Draw round seal centered on letterhead if it exists
+  if (roundSealImage) {
+    const roundSealSize = 80;
+    const roundSealX = (width - roundSealSize) / 2; // Center horizontally on page
+    const roundSealY = letterheadY + (letterheadHeight - roundSealSize) / 2; // Center vertically on letterhead
+    
+    page.drawImage(roundSealImage, {
+      x: roundSealX,
+      y: roundSealY,
+      width: roundSealSize,
+      height: roundSealSize,
+    });
+  }
+}
   
   // Draw round seal centered on letterhead if it exists
   if (roundSealImage) {
