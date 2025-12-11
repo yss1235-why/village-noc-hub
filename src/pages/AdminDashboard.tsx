@@ -104,9 +104,9 @@ const AdminDashboard = () => {
     profile.loadVillageInfo();
   };
 
-  const handleShowDocuments = () => {
+  const handleShowDocuments = async () => {
     setShowDocumentManager(true);
-    documents.loadDocuments();
+    await documents.loadDocuments();
   };
 
  const handleShowTemplate = () => {
