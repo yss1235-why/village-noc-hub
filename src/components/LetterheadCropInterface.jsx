@@ -11,11 +11,16 @@ const LetterheadCropInterface = ({ imageFile, onCropComplete, onCancel }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
-  // Crop dimensions: 800x200 at 300 DPI
-  const CROP_WIDTH = 800;
-  const CROP_HEIGHT = 200;
+  // Crop dimensions for A4 at 300 DPI (print quality)
+  // A4 width = 8.27 inches × 300 DPI = 2480 pixels
+  // Letterhead height = 2.5 inches × 300 DPI = 750 pixels
+  const CROP_WIDTH = 2480;
+  const CROP_HEIGHT = 750;
   const CANVAS_WIDTH = 600;
   const CANVAS_HEIGHT = 300;
+
+  // Display ratio to fit crop area in canvas (2480 * 0.2 = 496px fits in 600px canvas)
+  const DISPLAY_RATIO = 0.2;
 
   useEffect(() => {
     if (imageFile) {
@@ -64,8 +69,8 @@ const LetterheadCropInterface = ({ imageFile, onCropComplete, onCancel }) => {
   };
 
   const drawCropOverlay = (ctx) => {
-    const cropDisplayWidth = CROP_WIDTH * 0.3; // Scale for display
-    const cropDisplayHeight = CROP_HEIGHT * 0.3;
+    const cropDisplayWidth = CROP_WIDTH * DISPLAY_RATIO; // Scale for display
+    const cropDisplayHeight = CROP_HEIGHT * DISPLAY_RATIO;
     const cropX = (CANVAS_WIDTH - cropDisplayWidth) / 2;
     const cropY = (CANVAS_HEIGHT - cropDisplayHeight) / 2;
 
@@ -187,17 +192,16 @@ const LetterheadCropInterface = ({ imageFile, onCropComplete, onCancel }) => {
     canvas.height = CROP_HEIGHT;
 
     // Calculate actual crop position
-    const displayRatio = 0.3;
-    const cropDisplayWidth = CROP_WIDTH * displayRatio;
-    const cropDisplayHeight = CROP_HEIGHT * displayRatio;
+    const cropDisplayWidth = CROP_WIDTH * DISPLAY_RATIO;
+    const cropDisplayHeight = CROP_HEIGHT * DISPLAY_RATIO;
     const cropX = (CANVAS_WIDTH - cropDisplayWidth) / 2;
     const cropY = (CANVAS_HEIGHT - cropDisplayHeight) / 2;
 
     // Calculate source position on the actual image
     const sourceX = (cropX - position.x) / scale;
     const sourceY = (cropY - position.y) / scale;
-    const sourceWidth = cropDisplayWidth / scale / displayRatio;
-    const sourceHeight = cropDisplayHeight / scale / displayRatio;
+    const sourceWidth = cropDisplayWidth / scale / DISPLAY_RATIO;
+    const sourceHeight = cropDisplayHeight / scale / DISPLAY_RATIO;
 
     // Draw cropped portion
     ctx.drawImage(
@@ -215,9 +219,9 @@ return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60]">
       <Card className="w-full max-w-2xl mx-4 bg-background">
         <CardHeader>
-          <CardTitle className="text-lg">Crop Letterhead - 800x200px</CardTitle>
+          <CardTitle className="text-lg">Crop Letterhead - A4 Width (300 DPI)</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Position and scale your letterhead within the blue rectangle. Use mouse to drag and buttons to zoom.
+            Position and scale your letterhead within the blue rectangle. Output: 2480×750px (full A4 width at 300 DPI, ~2.5" tall)
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
