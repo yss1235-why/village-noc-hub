@@ -27,12 +27,15 @@ const LetterheadCropInterface = ({ imageFile, onCropComplete, onCancel }) => {
       const img = new Image();
       img.onload = () => {
         setImage(img);
-        // Calculate initial scale to fit crop area
-        const scaleX = CROP_WIDTH / img.width;
-        const scaleY = CROP_HEIGHT / img.height;
-        const initialScale = Math.max(scaleX, scaleY) * 0.8;
+        // Calculate initial scale to fit crop DISPLAY area (not output size)
+        const cropDisplayWidth = CROP_WIDTH * DISPLAY_RATIO;
+        const cropDisplayHeight = CROP_HEIGHT * DISPLAY_RATIO;
+        const scaleX = cropDisplayWidth / img.width;
+        const scaleY = cropDisplayHeight / img.height;
+        // Use max to ensure image fills the crop area
+        const initialScale = Math.max(scaleX, scaleY);
         setScale(initialScale);
-        
+
         // Center the image
         setPosition({
           x: (CANVAS_WIDTH - img.width * initialScale) / 2,
@@ -172,9 +175,12 @@ const LetterheadCropInterface = ({ imageFile, onCropComplete, onCancel }) => {
 
   const resetView = () => {
     if (image) {
-      const scaleX = CROP_WIDTH / image.width;
-      const scaleY = CROP_HEIGHT / image.height;
-      const initialScale = Math.max(scaleX, scaleY) * 0.8;
+      // Calculate scale to fit crop DISPLAY area (not output size)
+      const cropDisplayWidth = CROP_WIDTH * DISPLAY_RATIO;
+      const cropDisplayHeight = CROP_HEIGHT * DISPLAY_RATIO;
+      const scaleX = cropDisplayWidth / image.width;
+      const scaleY = cropDisplayHeight / image.height;
+      const initialScale = Math.max(scaleX, scaleY);
       setScale(initialScale);
       setPosition({
         x: (CANVAS_WIDTH - image.width * initialScale) / 2,
@@ -198,10 +204,12 @@ const LetterheadCropInterface = ({ imageFile, onCropComplete, onCancel }) => {
     const cropY = (CANVAS_HEIGHT - cropDisplayHeight) / 2;
 
     // Calculate source position on the actual image
+    // sourceX/Y: where in the original image the crop starts
+    // sourceWidth/Height: how much of the original image to extract
     const sourceX = (cropX - position.x) / scale;
     const sourceY = (cropY - position.y) / scale;
-    const sourceWidth = cropDisplayWidth / scale / DISPLAY_RATIO;
-    const sourceHeight = cropDisplayHeight / scale / DISPLAY_RATIO;
+    const sourceWidth = cropDisplayWidth / scale;
+    const sourceHeight = cropDisplayHeight / scale;
 
     // Draw cropped portion
     ctx.drawImage(
