@@ -294,48 +294,84 @@ export const handler = async (event, context) => {
       // Update user balance
       await sql`UPDATE users SET point_balance = ${newBalance} WHERE id = ${userInfo.id}`;
 
-      // Create point distribution (5-5-5)
-await sql`
-  INSERT INTO point_distributions (
-    application_id, village_id, total_points,
-    server_maintenance_points, super_admin_points, village_admin_points
-  )
-  VALUES (${applicationId}, ${villageId}, 15, 5, 5, 5)
-`;
+      // POINT DISTRIBUTION (5-5-5)
+      // 1. System Admin: 5 points (credited immediately)
+      // 2. System Maintenance: 5 points (credited immediately)
+      // 3. Village Admin: 5 points (pending until approval)
 
-// ACTUALLY TRANSFER 5 POINTS TO VILLAGE ADMIN
-const villageAdmin = await sql`
-  SELECT id, point_balance 
-  FROM users 
-  WHERE village_id = ${villageId} AND role = 'village_admin'
-`;
+      // Credit 5 points to System Admin immediately
+      const systemAdmin = await sql`
+        SELECT id, point_balance
+        FROM users
+        WHERE role = 'system_admin'
+        LIMIT 1
+      `;
 
-if (villageAdmin.length > 0) {
-  const adminId = villageAdmin[0].id;
-  const currentAdminBalance = villageAdmin[0].point_balance || 0;
-  const newAdminBalance = currentAdminBalance + 5; // village admin gets 5 points
+      if (systemAdmin.length > 0) {
+        const adminId = systemAdmin[0].id;
+        const currentAdminBalance = systemAdmin[0].point_balance || 0;
+        const newAdminBalance = currentAdminBalance + 5;
 
-  // Update village admin balance
-  await sql`UPDATE users SET point_balance = ${newAdminBalance} WHERE id = ${adminId}`;
+        await sql`UPDATE users SET point_balance = ${newAdminBalance} WHERE id = ${adminId}`;
 
-  // Create transaction record for admin points
-  const adminTransactionHash = crypto.createHash('sha256')
-    .update(`${adminId}-${applicationId}-${Date.now()}-admin`)
-    .digest('hex');
+        const systemAdminHash = crypto.createHash('sha256')
+          .update(`${adminId}-${applicationId}-${Date.now()}-systemadmin`)
+          .digest('hex');
 
-  await sql`
-    INSERT INTO point_transactions (
-      transaction_hash, user_id, type, amount, previous_balance, new_balance,
-      application_id, reason, admin_ip
-    )
-   VALUES (
-      ${adminTransactionHash}, ${adminId}, 'CREATE', 5, ${currentAdminBalance}, ${newAdminBalance},
-      ${applicationId}, 'Village Admin Commission', ${event.headers['x-forwarded-for'] || 'unknown'}
-    )
-  `;
-}
+        await sql`
+          INSERT INTO point_transactions (
+            transaction_hash, user_id, type, amount, previous_balance, new_balance,
+            application_id, reason, admin_ip
+          )
+          VALUES (
+            ${systemAdminHash}, ${adminId}, 'CREATE', 5, ${currentAdminBalance}, ${newAdminBalance},
+            ${applicationId}, 'System Admin Commission - Application Submitted', ${event.headers['x-forwarded-for'] || 'unknown'}
+          )
+        `;
+      }
 
-await sql`COMMIT`;
+      // Credit 5 points to System Maintenance immediately
+      const systemMaintenance = await sql`
+        SELECT id, point_balance
+        FROM users
+        WHERE role = 'super_admin'
+        LIMIT 1
+      `;
+
+      if (systemMaintenance.length > 0) {
+        const maintenanceId = systemMaintenance[0].id;
+        const currentMaintenanceBalance = systemMaintenance[0].point_balance || 0;
+        const newMaintenanceBalance = currentMaintenanceBalance + 5;
+
+        await sql`UPDATE users SET point_balance = ${newMaintenanceBalance} WHERE id = ${maintenanceId}`;
+
+        const maintenanceHash = crypto.createHash('sha256')
+          .update(`${maintenanceId}-${applicationId}-${Date.now()}-maintenance`)
+          .digest('hex');
+
+        await sql`
+          INSERT INTO point_transactions (
+            transaction_hash, user_id, type, amount, previous_balance, new_balance,
+            application_id, reason, admin_ip
+          )
+          VALUES (
+            ${maintenanceHash}, ${maintenanceId}, 'CREATE', 5, ${currentMaintenanceBalance}, ${newMaintenanceBalance},
+            ${applicationId}, 'System Maintenance - Application Submitted', ${event.headers['x-forwarded-for'] || 'unknown'}
+          )
+        `;
+      }
+
+      // Create point distribution record with village admin points as PENDING
+      await sql`
+        INSERT INTO point_distributions (
+          application_id, village_id, total_points,
+          server_maintenance_points, super_admin_points, village_admin_points,
+          status
+        )
+        VALUES (${applicationId}, ${villageId}, 15, 5, 5, 5, 'pending')
+      `;
+
+      await sql`COMMIT`;
 
       return {
         statusCode: 201,

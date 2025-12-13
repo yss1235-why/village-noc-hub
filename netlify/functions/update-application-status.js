@@ -193,56 +193,117 @@ const getAllowedOrigin = (event) => {
 
     const designationName = designation[0]?.name || 'Unknown';
 
-    // Update application status with sub village admin details
-    const result = await sql`
-      UPDATE noc_applications 
-      SET 
-        status = ${status},
-        admin_notes = ${adminNotes || null},
-        approved_at = ${status === 'approved' ? new Date().toISOString() : null},
-        approved_by = ${status === 'approved' ? adminInfo.userId : null},
-        approved_by_sub_admin_id = ${status === 'approved' ? adminInfo.subVillageAdminId : null},
-        approved_by_name = ${status === 'approved' ? subAdmin[0].full_name : null},
-        approved_by_designation = ${status === 'approved' ? designationName : null}
-      WHERE id = ${applicationId}::uuid
-      RETURNING application_number, applicant_name
-    `;
+    // Start transaction for approval + point transfer
+    await sql`BEGIN`;
 
-    // Log the approval action
-    const ipAddress = event.headers['x-forwarded-for']?.split(',')[0]?.trim() || 'unknown';
-    const userAgent = event.headers['user-agent'] || 'unknown';
-    
-    await sql`
-      INSERT INTO village_admin_audit_log (
-        village_id, sub_village_admin_id, sub_village_admin_name, designation,
-        action_type, application_id, application_number, applicant_name,
-        ip_address, user_agent, details, created_at
-      ) VALUES (
-        ${adminInfo.villageId}, ${adminInfo.subVillageAdminId}, ${subAdmin[0].full_name}, 
-        ${designationName}, ${status === 'approved' ? 'APPROVE_APPLICATION' : 'REJECT_APPLICATION'},
-        ${applicationId}::uuid, ${result[0].application_number}, ${result[0].applicant_name},
-        ${ipAddress}, ${userAgent}, 
-        ${JSON.stringify({ status, adminNotes: adminNotes || null })},
-        NOW()
-      )
-    `;
+    try {
+      // Update application status with sub village admin details
+      const result = await sql`
+        UPDATE noc_applications
+        SET
+          status = ${status},
+          admin_notes = ${adminNotes || null},
+          approved_at = ${status === 'approved' ? new Date().toISOString() : null},
+          approved_by = ${status === 'approved' ? adminInfo.userId : null},
+          approved_by_sub_admin_id = ${status === 'approved' ? adminInfo.subVillageAdminId : null},
+          approved_by_name = ${status === 'approved' ? subAdmin[0].full_name : null},
+          approved_by_designation = ${status === 'approved' ? designationName : null}
+        WHERE id = ${applicationId}::uuid
+        RETURNING application_number, applicant_name, village_id
+      `;
 
-    if (result.length === 0) {
+      // Transfer 5 points to village admin for processing (regardless of approve/reject)
+      if (status === 'approved' || status === 'rejected') {
+        const villageId = result[0].village_id;
+
+        // Find the primary village admin for this village
+        const villageAdmin = await sql`
+          SELECT id, point_balance
+          FROM users
+          WHERE village_id = ${villageId} AND role = 'village_admin'
+        `;
+
+        if (villageAdmin.length > 0) {
+          const adminId = villageAdmin[0].id;
+          const currentAdminBalance = villageAdmin[0].point_balance || 0;
+          const newAdminBalance = currentAdminBalance + 5;
+
+          // Update village admin balance
+          await sql`UPDATE users SET point_balance = ${newAdminBalance} WHERE id = ${adminId}`;
+
+          // Create transaction record for admin points
+          const crypto = await import('crypto');
+          const adminTransactionHash = crypto.createHash('sha256')
+            .update(`${adminId}-${applicationId}-${Date.now()}-processing`)
+            .digest('hex');
+
+          const reason = status === 'approved'
+            ? 'Village Admin Commission - Application Approved'
+            : 'Village Admin Commission - Application Rejected';
+
+          await sql`
+            INSERT INTO point_transactions (
+              transaction_hash, user_id, type, amount, previous_balance, new_balance,
+              application_id, reason, admin_ip
+            )
+            VALUES (
+              ${adminTransactionHash}, ${adminId}, 'CREATE', 5, ${currentAdminBalance}, ${newAdminBalance},
+              ${applicationId}, ${reason}, ${event.headers['x-forwarded-for'] || 'unknown'}
+            )
+          `;
+        }
+
+        // Update point distribution status from 'pending' to 'paid_out'
+        await sql`
+          UPDATE point_distributions
+          SET status = 'paid_out', distributed_at = NOW()
+          WHERE application_id = ${applicationId}
+        `;
+      }
+
+      // Log the approval action
+      const ipAddress = event.headers['x-forwarded-for']?.split(',')[0]?.trim() || 'unknown';
+      const userAgent = event.headers['user-agent'] || 'unknown';
+
+      await sql`
+        INSERT INTO village_admin_audit_log (
+          village_id, sub_village_admin_id, sub_village_admin_name, designation,
+          action_type, application_id, application_number, applicant_name,
+          ip_address, user_agent, details, created_at
+        ) VALUES (
+          ${adminInfo.villageId}, ${adminInfo.subVillageAdminId}, ${subAdmin[0].full_name},
+          ${designationName}, ${status === 'approved' ? 'APPROVE_APPLICATION' : 'REJECT_APPLICATION'},
+          ${applicationId}::uuid, ${result[0].application_number}, ${result[0].applicant_name},
+          ${ipAddress}, ${userAgent},
+          ${JSON.stringify({ status, adminNotes: adminNotes || null })},
+          NOW()
+        )
+      `;
+
+      await sql`COMMIT`;
+
+      if (result.length === 0) {
+        return {
+          statusCode: 404,
+          headers,
+          body: JSON.stringify({ error: 'Application not found' })
+        };
+      }
+
       return {
-        statusCode: 404,
+        statusCode: 200,
         headers,
-        body: JSON.stringify({ error: 'Application not found' })
+        body: JSON.stringify({
+          success: true,
+          message: `Application ${result[0].application_number} has been ${status}`
+        })
       };
-    }
 
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({ 
-        success: true, 
-        message: `Application ${result[0].application_number} has been ${status}` 
-      })
-    };
+    } catch (transactionError) {
+      await sql`ROLLBACK`;
+      console.error('Transaction error during status update:', transactionError);
+      throw transactionError;
+    }
 
   } catch (error) {
     console.error('Update application status error:', error);
