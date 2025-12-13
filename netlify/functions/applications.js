@@ -295,47 +295,16 @@ export const handler = async (event, context) => {
       await sql`UPDATE users SET point_balance = ${newBalance} WHERE id = ${userInfo.id}`;
 
       // Create point distribution (5-5-5)
-await sql`
-  INSERT INTO point_distributions (
-    application_id, village_id, total_points,
-    server_maintenance_points, super_admin_points, village_admin_points
-  )
-  VALUES (${applicationId}, ${villageId}, 15, 5, 5, 5)
-`;
+      // Village admin will receive their 5 points when they APPROVE the application
+      await sql`
+        INSERT INTO point_distributions (
+          application_id, village_id, total_points,
+          server_maintenance_points, super_admin_points, village_admin_points
+        )
+        VALUES (${applicationId}, ${villageId}, 15, 5, 5, 5)
+      `;
 
-// ACTUALLY TRANSFER 5 POINTS TO VILLAGE ADMIN
-const villageAdmin = await sql`
-  SELECT id, point_balance 
-  FROM users 
-  WHERE village_id = ${villageId} AND role = 'village_admin'
-`;
-
-if (villageAdmin.length > 0) {
-  const adminId = villageAdmin[0].id;
-  const currentAdminBalance = villageAdmin[0].point_balance || 0;
-  const newAdminBalance = currentAdminBalance + 5; // village admin gets 5 points
-
-  // Update village admin balance
-  await sql`UPDATE users SET point_balance = ${newAdminBalance} WHERE id = ${adminId}`;
-
-  // Create transaction record for admin points
-  const adminTransactionHash = crypto.createHash('sha256')
-    .update(`${adminId}-${applicationId}-${Date.now()}-admin`)
-    .digest('hex');
-
-  await sql`
-    INSERT INTO point_transactions (
-      transaction_hash, user_id, type, amount, previous_balance, new_balance,
-      application_id, reason, admin_ip
-    )
-   VALUES (
-      ${adminTransactionHash}, ${adminId}, 'CREATE', 5, ${currentAdminBalance}, ${newAdminBalance},
-      ${applicationId}, 'Village Admin Commission', ${event.headers['x-forwarded-for'] || 'unknown'}
-    )
-  `;
-}
-
-await sql`COMMIT`;
+      await sql`COMMIT`;
 
       return {
         statusCode: 201,
