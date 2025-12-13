@@ -248,6 +248,20 @@ const getAllowedOrigin = (event) => {
             )
           `;
         }
+
+        // Update point distribution status from 'pending' to 'paid_out'
+        await sql`
+          UPDATE point_distributions
+          SET status = 'paid_out', distributed_at = NOW()
+          WHERE application_id = ${applicationId}
+        `;
+      } else if (status === 'rejected') {
+        // If rejected, mark the pending village admin points as archived
+        await sql`
+          UPDATE point_distributions
+          SET status = 'archived'
+          WHERE application_id = ${applicationId}
+        `;
       }
 
       // Log the approval action
