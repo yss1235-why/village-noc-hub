@@ -212,8 +212,8 @@ const getAllowedOrigin = (event) => {
         RETURNING application_number, applicant_name, village_id
       `;
 
-      // If approved, transfer 5 points to village admin (primary village admin, not sub-admin)
-      if (status === 'approved') {
+      // Transfer 5 points to village admin for processing (regardless of approve/reject)
+      if (status === 'approved' || status === 'rejected') {
         const villageId = result[0].village_id;
 
         // Find the primary village admin for this village
@@ -234,8 +234,12 @@ const getAllowedOrigin = (event) => {
           // Create transaction record for admin points
           const crypto = await import('crypto');
           const adminTransactionHash = crypto.createHash('sha256')
-            .update(`${adminId}-${applicationId}-${Date.now()}-approval`)
+            .update(`${adminId}-${applicationId}-${Date.now()}-processing`)
             .digest('hex');
+
+          const reason = status === 'approved'
+            ? 'Village Admin Commission - Application Approved'
+            : 'Village Admin Commission - Application Rejected';
 
           await sql`
             INSERT INTO point_transactions (
@@ -244,7 +248,7 @@ const getAllowedOrigin = (event) => {
             )
             VALUES (
               ${adminTransactionHash}, ${adminId}, 'CREATE', 5, ${currentAdminBalance}, ${newAdminBalance},
-              ${applicationId}, 'Village Admin Commission - Application Approved', ${event.headers['x-forwarded-for'] || 'unknown'}
+              ${applicationId}, ${reason}, ${event.headers['x-forwarded-for'] || 'unknown'}
             )
           `;
         }
@@ -253,13 +257,6 @@ const getAllowedOrigin = (event) => {
         await sql`
           UPDATE point_distributions
           SET status = 'paid_out', distributed_at = NOW()
-          WHERE application_id = ${applicationId}
-        `;
-      } else if (status === 'rejected') {
-        // If rejected, mark the pending village admin points as archived
-        await sql`
-          UPDATE point_distributions
-          SET status = 'archived'
           WHERE application_id = ${applicationId}
         `;
       }
