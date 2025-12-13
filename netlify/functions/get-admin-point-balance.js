@@ -32,38 +32,62 @@ export const handler = async (event, context) => {
       };
     }
 
-    // Get villageId from authenticated user (works for both primary and sub-admins)
+    // Get user ID from authenticated user token
+    const userId = authResult.user.id;
     const villageId = authResult.user.villageId;
 
-    if (!villageId) {
+    if (!userId) {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ error: 'Village ID not found in user session' })
+        body: JSON.stringify({ error: 'User ID not found in session' })
       };
     }
 
-    // Get village point balance (shared by all admins in the village)
-    // This queries the primary village admin's point balance in the users table
-    const villagePoints = await sql`
+    // First, try to get points for the logged-in user directly
+    // This ensures the same user record used for login shows their points
+    const userPoints = await sql`
       SELECT point_balance
       FROM users
-      WHERE village_id = ${villageId} AND role = 'village_admin'
+      WHERE id = ${userId}
     `;
 
-    if (villagePoints.length === 0) {
+    if (userPoints.length > 0) {
       return {
-        statusCode: 404,
+        statusCode: 200,
         headers,
-        body: JSON.stringify({ error: 'Village admin account not found' })
+        body: JSON.stringify({
+          pointBalance: userPoints[0].point_balance || 0
+        })
       };
     }
 
+    // Fallback: Query by village_id and role if user not found by ID
+    // This handles legacy cases or sub-admin queries
+    if (villageId) {
+      const villagePoints = await sql`
+        SELECT point_balance
+        FROM users
+        WHERE village_id = ${villageId} AND role = 'village_admin'
+      `;
+
+      if (villagePoints.length > 0) {
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            pointBalance: villagePoints[0].point_balance || 0
+          })
+        };
+      }
+    }
+
+    // No points found - return 0 instead of error
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({
-        pointBalance: villagePoints[0].point_balance || 0
+        pointBalance: 0
       })
     };
 

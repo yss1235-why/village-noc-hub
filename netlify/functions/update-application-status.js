@@ -216,7 +216,12 @@ const getAllowedOrigin = (event) => {
       if (status === 'approved' || status === 'rejected') {
         const villageId = result[0].village_id;
 
-        // Find the primary village admin for this village
+        // Find the village admin user to credit points to
+        // First try by village_id and role, then fallback to logged-in user
+        let adminId = null;
+        let currentAdminBalance = 0;
+
+        // Try to find primary village admin for this village
         const villageAdmin = await sql`
           SELECT id, point_balance
           FROM users
@@ -224,8 +229,27 @@ const getAllowedOrigin = (event) => {
         `;
 
         if (villageAdmin.length > 0) {
-          const adminId = villageAdmin[0].id;
-          const currentAdminBalance = villageAdmin[0].point_balance || 0;
+          adminId = villageAdmin[0].id;
+          currentAdminBalance = villageAdmin[0].point_balance || 0;
+        } else {
+          // Fallback: Use the logged-in user's ID (from JWT token)
+          // This handles cases where village_admin user record doesn't exist
+          console.log(`No village_admin user found for village ${villageId}, using logged-in user ${adminInfo.userId}`);
+
+          const loggedInUser = await sql`
+            SELECT id, point_balance
+            FROM users
+            WHERE id = ${adminInfo.userId}
+          `;
+
+          if (loggedInUser.length > 0) {
+            adminId = loggedInUser[0].id;
+            currentAdminBalance = loggedInUser[0].point_balance || 0;
+          }
+        }
+
+        // Credit points if we found an admin user
+        if (adminId) {
           const newAdminBalance = currentAdminBalance + 5;
 
           // Update village admin balance
@@ -251,6 +275,8 @@ const getAllowedOrigin = (event) => {
               ${applicationId}, ${reason}, ${event.headers['x-forwarded-for'] || 'unknown'}
             )
           `;
+        } else {
+          console.error(`Could not find any admin user to credit points for village ${villageId}`);
         }
 
         // Update point distribution status from 'pending' to 'paid_out'
