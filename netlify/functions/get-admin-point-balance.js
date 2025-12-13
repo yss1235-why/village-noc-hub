@@ -32,45 +32,38 @@ export const handler = async (event, context) => {
       };
     }
 
-    const adminId = event.queryStringParameters?.adminId || authResult.user.userId || authResult.user.id;
-    
-    if (!adminId) {
+    // Get villageId from authenticated user (works for both primary and sub-admins)
+    const villageId = authResult.user.villageId;
+
+    if (!villageId) {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ error: 'Admin ID is required' })
+        body: JSON.stringify({ error: 'Village ID not found in user session' })
       };
     }
 
-    // Verify the admin is requesting their own points
-    if (adminId !== (authResult.user.userId || authResult.user.id)) {
-      return {
-        statusCode: 403,
-        headers,
-        body: JSON.stringify({ error: 'Can only view your own point balance' })
-      };
-    }
-
-    // Get admin point balance
-    const adminPoints = await sql`
+    // Get village point balance (shared by all admins in the village)
+    // This queries the primary village admin's point balance in the users table
+    const villagePoints = await sql`
       SELECT point_balance
-      FROM users 
-      WHERE id = ${adminId} AND role = 'village_admin'
+      FROM users
+      WHERE village_id = ${villageId} AND role = 'village_admin'
     `;
 
-    if (adminPoints.length === 0) {
+    if (villagePoints.length === 0) {
       return {
         statusCode: 404,
         headers,
-        body: JSON.stringify({ error: 'Village admin not found' })
+        body: JSON.stringify({ error: 'Village admin account not found' })
       };
     }
 
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ 
-        pointBalance: adminPoints[0].point_balance || 0
+      body: JSON.stringify({
+        pointBalance: villagePoints[0].point_balance || 0
       })
     };
 
